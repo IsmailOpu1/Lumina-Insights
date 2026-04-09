@@ -1,0 +1,10 @@
+project_id = "zfpsldylzmpadlknypzz"
+
+[functions.generate-dashboard-insights]
+verify_jwt = false
+
+[functions.generate-marketing-content]
+verify_jwt = false
+
+[functions.business-ai-chat]
+verify_jwt = false

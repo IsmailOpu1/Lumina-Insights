@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ALTER COLUMN product_id SET NOT NULL;
+ALTER TABLE public.orders ALTER COLUMN status SET NOT NULL;

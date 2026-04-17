@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Welcome to my Ai Powered Dashboard project
 A complete business intelligence platform that feels like having a smart business advisor,
 marketing expert, and operations manager all in one app — built specifically for the Bangladeshi
 e-commerce and social commerce market.

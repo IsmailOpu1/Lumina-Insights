@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
@@ -9,6 +10,7 @@ import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { userSettings, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [email, setEmail] = useState('');
@@ -32,6 +34,15 @@ export default function Login() {
     // If came from invite link, handle token
     if (token) {
       await handleInviteToken(token);
+    }
+
+    // Wait for userSettings to be loaded before navigating
+    // This prevents ProtectedRoute from seeing null userSettings and redirecting to onboarding
+    let attempts = 0;
+    const maxAttempts = 20; // 2 seconds max wait
+    while (!userSettings && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
     }
 
     navigate('/', { replace: true });

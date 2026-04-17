@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { context, focusQuestion } = await req.json();
+    const { context, focusQuestion, business_context } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
@@ -20,11 +20,13 @@ serve(async (req) => {
       })
       .join('\n');
 
+    const contextBlock = business_context ? `\n\nBUSINESS PROFILE:\nName: ${business_context.business_name || 'N/A'}\nType: ${business_context.business_type || 'N/A'}\nDescription: ${business_context.business_description || 'N/A'}\nCurrency: ${business_context.currency || 'BDT'}\n\nLIVE BUSINESS DATA:\nRevenue: ${business_context.currency === 'INR' ? '₹' : business_context.currency === 'USD' ? '$' : '৳'}${business_context.revenue || 0}\nProfit: ${business_context.currency === 'INR' ? '₹' : business_context.currency === 'USD' ? '$' : '৳'}${business_context.profit || 0}\nMargin: ${business_context.margin || 0}%\nTop Product: ${business_context.top_product || 'N/A'}\nLow Stock: ${business_context.low_stock || 0}\nBest Channel: ${business_context.top_sales_source || 'N/A'}\nTotal Orders: ${business_context.total_orders || 0}\nAd Spend: ${business_context.currency === 'INR' ? '₹' : business_context.currency === 'USD' ? '$' : '৳'}${business_context.total_ad_spend || 0}\n` : '';
+
     const systemPrompt = `You are a sharp business advisor for a small business owner. Analyze this exact business data and give exactly 5 bold, specific, numbered, actionable insights. Use the currency symbol provided. Reference the actual numbers provided. Be direct — no fluff, no generic advice. Each insight must be 1-2 sentences maximum.`;
 
     const userPrompt = focusQuestion
-      ? `Here is my current business data:\n${contextStr}\n\nFocus on this question: ${focusQuestion}\n\nGive 5 insights with emphasis on the question.`
-      : `Here is my current business data:\n${contextStr}\n\nGive me 5 actionable insights.`;
+      ? `Here is my current business data:\n${contextStr}${contextBlock}\n\nFocus on this question: ${focusQuestion}\n\nGive 5 insights with emphasis on the question.`
+      : `Here is my current business data:\n${contextStr}${contextBlock}\n\nGive me 5 actionable insights.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,

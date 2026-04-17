@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import { Download, Loader2, Check, Palette, Type, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User } from 'lucide-react';
+import { Download, Loader2, Check, Palette, Type, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User, Users, Copy, X, MailPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { todaySuffix } from '@/lib/xlsxExport';
@@ -58,6 +58,14 @@ export default function SettingsPage() {
   const [editingName, setEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // Team management state
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'manager' | 'viewer'>('viewer');
+  const [sendingInvite, setSendingInvite] = useState(false);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const fetchSettings = useCallback(async () => {
@@ -95,6 +103,18 @@ export default function SettingsPage() {
   }, [user]);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
+
+  const fetchTeamData = useCallback(async () => {
+    if (!user || !isOwner) return;
+    const [membersRes, invitesRes] = await Promise.all([
+      supabase.from('team_members').select('*').eq('owner_id', user.id),
+      supabase.from('invites').select('*').eq('owner_id', user.id).eq('used', false).gt('expires_at', new Date().toISOString()),
+    ]);
+    setTeamMembers(membersRes.data || []);
+    setPendingInvites(invitesRes.data || []);
+  }, [user, isOwner]);
+
+  useEffect(() => { fetchTeamData(); }, [fetchTeamData]);
 
   useEffect(() => {
     if (editingName && nameInputRef.current) nameInputRef.current.focus();
@@ -246,6 +266,60 @@ export default function SettingsPage() {
     await refreshCount();
     toast.success('Cleared ✓');
     setClearOpen(false);
+  }
+
+  async function sendTeamInvite() {
+    if (!inviteEmail.trim() || !user) return;
+    setSendingInvite(true);
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: insertError } = await supabase.from('invites').insert({
+      owner_id: user.id,
+      email: inviteEmail.trim(),
+      role: inviteRole,
+      token,
+      expires_at: expiresAt,
+    });
+
+    if (insertError) {
+      toast.error('Failed to create invite', { description: insertError.message });
+      setSendingInvite(false);
+      return;
+    }
+
+    const link = `${window.location.origin}/invite/${token}`;
+    setInviteEmail('');
+    setInviteModalOpen(false);
+    fetchTeamData();
+    setSendingInvite(false);
+    toast.success('Invite created successfully!');
+  }
+
+  async function removeTeamMember(memberId: string) {
+    const { error } = await supabase.from('team_members').delete().eq('id', memberId);
+    if (error) {
+      toast.error('Failed to remove member', { description: error.message });
+    } else {
+      toast.success('Member removed');
+      fetchTeamData();
+    }
+  }
+
+  async function revokeInvite(inviteId: string) {
+    const { error } = await supabase.from('invites').delete().eq('id', inviteId);
+    if (error) {
+      toast.error('Failed to revoke invite', { description: error.message });
+    } else {
+      toast.success('Invite revoked');
+      fetchTeamData();
+    }
+  }
+
+  function copyInviteLink(token: string) {
+    const link = `${window.location.origin}/invite/${token}`;
+    navigator.clipboard.writeText(link);
+    toast.success('Link copied!');
   }
 
   const sectionClass = 'settings-hover rounded-xl border border-border p-5 bg-[var(--chart-card-bg)]';
@@ -501,6 +575,91 @@ export default function SettingsPage() {
               </Button>
             </div>
           </div>
+
+          {/* Team Management - Only for owners */}
+          {isOwner && (
+            <div className={sectionClass}>
+              <h2 className={sectionTitleClass}>
+                <Users size={18} style={{ color: 'var(--accent-color)' }} />
+                Team Management
+              </h2>
+              <Button
+                variant="outline"
+                className="w-full border-primary/30 text-primary hover:bg-primary/5 font-bold mb-4"
+                onClick={() => setInviteModalOpen(true)}
+              >
+                <MailPlus className="mr-2 h-4 w-4" />
+                Invite Team Member
+              </Button>
+
+              {/* Current Team Members */}
+              <div className="mb-4">
+                <Label className="text-sm font-extrabold mb-2 block">Team Members ({teamMembers.length + 1})</Label>
+                <div className="flex flex-col gap-2">
+                  {/* Owner (you) */}
+                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F0B429] text-xs font-bold text-white">
+                      {businessName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{businessName}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email} · Owner</p>
+                    </div>
+                  </div>
+                  {/* Other members */}
+                  {teamMembers.map((member) => (
+                    <div key={member.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
+                        {member.email?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{member.email}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{member.role}</p>
+                      </div>
+                      <button
+                        onClick={() => removeTeamMember(member.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        title="Remove member"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pending Invites */}
+              {pendingInvites.length > 0 && (
+                <div>
+                  <Label className="text-sm font-extrabold mb-2 block">Pending Invites ({pendingInvites.length})</Label>
+                  <div className="flex flex-col gap-2">
+                    {pendingInvites.map((invite) => (
+                      <div key={invite.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{invite.email}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{invite.role} · Expires {fnsFormat(new Date(invite.expires_at), 'MMM d')}</p>
+                        </div>
+                        <button
+                          onClick={() => copyInviteLink(invite.token)}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          title="Copy invite link"
+                        >
+                          <Copy size={16} />
+                        </button>
+                        <button
+                          onClick={() => revokeInvite(invite.id)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          title="Revoke invite"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -513,6 +672,65 @@ export default function SettingsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleClearNotifs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Clear All</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Invite Modal */}
+      <AlertDialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invite Team Member</AlertDialogTitle>
+            <AlertDialogDescription>Send an invite to join your team</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-sm font-extrabold mb-2 block">Email Address</Label>
+              <Input
+                type="email"
+                placeholder="team@example.com"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                disabled={sendingInvite}
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-extrabold mb-2 block">Role</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={inviteRole === 'manager' ? 'default' : 'outline'}
+                  className={inviteRole === 'manager' ? 'bg-[#F0B429] text-black hover:bg-[#F0B429]/90' : ''}
+                  onClick={() => setInviteRole('manager')}
+                  disabled={sendingInvite}
+                >
+                  Manager
+                </Button>
+                <Button
+                  type="button"
+                  variant={inviteRole === 'viewer' ? 'default' : 'outline'}
+                  className={inviteRole === 'viewer' ? 'bg-[#F0B429] text-black hover:bg-[#F0B429]/90' : ''}
+                  onClick={() => setInviteRole('viewer')}
+                  disabled={sendingInvite}
+                >
+                  Viewer
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {inviteRole === 'manager' ? 'Can add/edit data and manage team' : 'Can only view data'}
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={sendingInvite}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={sendTeamInvite}
+              disabled={!inviteEmail.trim() || sendingInvite}
+              className="bg-[#4A7C59] hover:bg-[#3d6a4b]"
+            >
+              {sendingInvite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Send Invite
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

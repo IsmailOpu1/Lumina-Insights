@@ -51,7 +51,7 @@ export default function Onboarding() {
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    await supabase.from('invites').insert({
+    const { error: insertError } = await supabase.from('invites').insert({
       owner_id: user.id,
       email: inviteEmail.trim(),
       role: inviteRole,
@@ -59,11 +59,17 @@ export default function Onboarding() {
       expires_at: expiresAt,
     });
 
+    if (insertError) {
+      toast.error('Failed to create invite', { description: insertError.message });
+      setSendingInvite(false);
+      return;
+    }
+
     const link = `${window.location.origin}/invite/${token}`;
     setSentInvites((prev) => [...prev, { email: inviteEmail.trim(), role: inviteRole, link }]);
     setInviteEmail('');
     setSendingInvite(false);
-    toast.success('Invite sent!');
+    toast.success('Invite created successfully!');
   };
 
   const finish = async () => {

@@ -2,30 +2,39 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import SkeletonLoader from '@/components/SkeletonLoader';
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export default function ProtectedRoute({
+  children
+}: {
+  children: React.ReactNode
+}) {
   const { session, userSettings, loading } = useAuth();
 
+  // Still loading auth + settings
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center" style={{ backgroundColor: 'var(--page-bg)' }}>
+      <div
+        className="flex h-screen w-screen
+          items-center justify-center"
+        style={{ backgroundColor: 'var(--page-bg)' }}
+      >
         <SkeletonLoader variant="card" count={4} />
       </div>
     );
   }
 
+  // Not logged in
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
-  // If onboarding not complete and not already on onboarding
-  if (userSettings && !userSettings.onboarding_complete) {
+  // Logged in but no settings row yet
+  // OR onboarding explicitly false
+  // → go to onboarding
+  // Only redirect to onboarding if session exists (prevents race condition during signOut)
+  if (session && (!userSettings || userSettings.onboarding_complete === false)) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // If no settings at all, go to onboarding
-  if (!userSettings) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
+  // All good → render the page
   return <>{children}</>;
 }

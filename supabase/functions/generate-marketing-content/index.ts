@@ -15,12 +15,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { product_name, platform, product_features, target_audience } = await req.json();
+    const { product_name, platform, product_features, target_audience, business_context } = await req.json();
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("Gemini API key is not configured");
 
     const platformGuide = platformPrompts[platform] || platformPrompts.Instagram;
+
+    const contextBlock = business_context ? `\n\nBUSINESS PROFILE:\nName: ${business_context.business_name || 'N/A'}\nType: ${business_context.business_type || 'N/A'}\nDescription: ${business_context.business_description || 'N/A'}\nCurrency: ${business_context.currency || 'BDT'}\n` : '';
 
     const systemPrompt = `You are an expert social media marketer for small Bangladeshi businesses. Generate marketing content for ${platform}. Be specific, persuasive, culturally relevant to Bangladesh. Return ONLY valid JSON with keys: hook, value_proposition, cta, caption, script, hashtags (array of strings without # prefix). No markdown, no code fences, pure JSON only.`;
 
@@ -28,7 +30,7 @@ serve(async (req) => {
 Platform: ${platform}
 Features: ${product_features || "Not specified"}
 Target Audience: ${target_audience || "General Bangladeshi consumers"}
-
+${contextBlock}
 Platform guidelines: ${platformGuide}
 
 ${platform === "TikTok" ? "Include a detailed video script in the 'script' field." : "Set 'script' to null since this is not TikTok."}

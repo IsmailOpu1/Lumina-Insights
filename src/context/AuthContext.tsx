@@ -95,30 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Set up auth listener FIRST
+    // Set up auth listener FIRST (Supabase recommended pattern)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      (event, newSession) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
-          // Use setTimeout to avoid Supabase deadlock
-          setTimeout(() => fetchSettings(newSession.user.id), 0);
+          // Call fetchSettings directly and chain setLoading(false) to ensure it waits
+          fetchSettings(newSession.user.id).finally(() => setLoading(false));
         } else {
           setUserSettings(null);
           setOwnerIdForQueries(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    // Then check existing session
+    // Then check existing session (trigger the auth listener by calling getSession)
+    // The auth listener will fire with INITIAL_SESSION event and handle loading
     supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        fetchSettings(s.user.id);
-      }
-      setLoading(false);
+      // Don't manipulate loading here - let the auth listener handle it
     });
 
     return () => subscription.unsubscribe();

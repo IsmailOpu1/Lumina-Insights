@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export type FontStyle = 'inter' | 'poppins' | 'roboto' | 'playfair' | 'nunito' | 'dmsans';
-export type ThemeName = 'avocado' | 'ocean' | 'sunset' | 'purple' | 'forest' | 'rosegold';
+export type ThemeName = 'purple';
 
 export const FONT_FAMILIES: Record<FontStyle, string> = {
   inter: "'Inter', sans-serif",
@@ -31,15 +31,10 @@ export interface ThemeColors {
 }
 
 export const THEMES: Record<ThemeName, { name: string; colors: ThemeColors }> = {
-  avocado: { name: 'Avocado', colors: { sidebar: '#7a8e57', pageBg: '#374b2f', cards: '#000000', chartCards: '#dcd38e', accent: '#F0B429', darkBg: '#141E14' } },
-  ocean: { name: 'Ocean Deep', colors: { sidebar: '#1B3A4B', pageBg: '#1E3F5A', cards: '#0D1B2A', chartCards: '#B8D4E8', accent: '#00B4D8', darkBg: '#0A1628' } },
-  sunset: { name: 'Sunset', colors: { sidebar: '#6B2D2D', pageBg: '#7A3535', cards: '#1A0A0A', chartCards: '#F4C9A0', accent: '#FF6B35', darkBg: '#1A0A0A' } },
-  purple: { name: 'Midnight Purple', colors: { sidebar: '#2D1B4E', pageBg: '#341E5C', cards: '#160D2E', chartCards: '#D4C4F0', accent: '#9B59B6', darkBg: '#0D0820' } },
-  forest: { name: 'Forest Night', colors: { sidebar: '#1A3A2A', pageBg: '#1E4030', cards: '#0A1A10', chartCards: '#C0DCC0', accent: '#27AE60', darkBg: '#0A1510' } },
-  rosegold: { name: 'Rose Gold', colors: { sidebar: '#5C3A3A', pageBg: '#6B4040', cards: '#1A0A0A', chartCards: '#F0D4D4', accent: '#E8A0A0', darkBg: '#1A0808' } },
+  purple: { name: 'Midnight Purple', colors: { sidebar: '#1E1B4B', pageBg: '#2D1B69', cards: '#160E3C', chartCards: '#E9D5FF', accent: '#A855F7', darkBg: '#0F0A2E' } },
 };
 
-const THEME_CLASSES: ThemeName[] = ['avocado', 'ocean', 'sunset', 'purple', 'forest', 'rosegold'];
+const THEME_CLASSES: ThemeName[] = ['purple'];
 
 function applyThemeClass(theme: ThemeName) {
   const root = document.documentElement;
@@ -55,7 +50,7 @@ function applyFont(font: FontStyle) {
 function applyFromStorage() {
   const dark = localStorage.getItem('lumina-dark') === 'true';
   const font = (localStorage.getItem('lumina-font') as FontStyle) || 'inter';
-  const theme = (localStorage.getItem('lumina-theme') as ThemeName) || 'avocado';
+  const theme = (localStorage.getItem('lumina-theme') as ThemeName) || 'purple';
   document.documentElement.classList.toggle('dark', dark);
   applyFont(font);
   applyThemeClass(theme);
@@ -79,7 +74,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     () => (localStorage.getItem('lumina-font') as FontStyle) || 'inter'
   );
   const [themeName, setThemeNameState] = useState<ThemeName>(
-    () => (localStorage.getItem('lumina-theme') as ThemeName) || 'avocado'
+    () => (localStorage.getItem('lumina-theme') as ThemeName) || 'purple'
   );
 
   const toggleDark = useCallback(() => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useFilter } from '@/context/FilterContext';
+import { useAuth } from '@/context/AuthContext';
 import { formatTaka } from '@/lib/constants';
 import AddProductModal, { ProductToEdit } from '@/components/AddProductModal';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -42,6 +43,7 @@ const PAGE_SIZE = 20;
 export default function Inventory() {
   const { openModal } = useFAB();
   const { getDateRange } = useFilter();
+  const { isViewer } = useAuth();
   const [items, setItems] = useState<InvRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -215,9 +217,11 @@ export default function Inventory() {
           <Input className="pl-9" placeholder="Search product or SKU..." value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
         </div>
         <div className="flex-1" />
-        <Button onClick={() => {setEditProduct(null);setEditOpen(true);}} className="h-11 gap-2 rounded-lg px-5 font-bold max-md:w-full max-md:order-first">
-          <Plus className="h-4 w-4" />+ Add Product
-        </Button>
+        {!isViewer && (
+          <Button onClick={() => {setEditProduct(null);setEditOpen(true);}} className="h-11 gap-2 rounded-lg px-5 font-bold max-md:w-full max-md:order-first">
+            <Plus className="h-4 w-4" />+ Add Product
+          </Button>
+        )}
         <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 font-extrabold" onClick={handleExport} disabled={exporting || filtered.length === 0}>
           {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {exporting ? 'Exporting...' : 'Export XLSX'}
@@ -279,14 +283,16 @@ export default function Inventory() {
                       <td className="px-3 py-2.5 tabular-nums font-extrabold text-sm bg-[var(--chart-card-bg)]">{formatTaka(i.stock_quantity * i.cost_price)}</td>
                       <td className="px-3 py-2.5 font-extrabold text-sm text-accent bg-[var(--chart-card-bg)]">{i.supplier || '—'}</td>
                       <td className="px-3 py-2.5 text-sm font-extrabold border-[var(--chart-card-bg)]">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => handleEdit(i)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
-                            <Pencil size={18} />
-                          </button>
-                          <button onClick={() => setDeleteId(i.id)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 active:scale-95">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+                        {!isViewer && (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleEdit(i)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
+                              <Pencil size={18} />
+                            </button>
+                            <button onClick={() => setDeleteId(i.id)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 active:scale-95">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>);
 

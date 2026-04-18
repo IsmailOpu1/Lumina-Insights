@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme, FONT_FAMILIES, FONT_LABELS, THEMES, type FontStyle, type ThemeName } from '@/context/ThemeContext';
+import { useTheme, FONT_FAMILIES, FONT_LABELS, type FontStyle } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import { Download, Loader2, Check, Palette, Type, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User, Users, Copy, X, MailPlus } from 'lucide-react';
+import { Download, Loader2, Check, Palette, Type, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User, Users, Copy, X, MailPlus, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { todaySuffix } from '@/lib/xlsxExport';
@@ -38,12 +38,11 @@ const PREF_LABELS: Record<keyof NotifPrefs, string> = {
 };
 
 const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nunito', 'dmsans'];
-const THEME_OPTIONS: ThemeName[] = ['avocado', 'ocean', 'sunset', 'purple', 'forest', 'rosegold'];
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
-  const { isDark, toggleDark, fontStyle, setFontStyle, themeName, setThemeName } = useTheme();
+  const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
   const { refreshCount } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [settingsId, setSettingsId] = useState<string | null>(null);
@@ -55,8 +54,18 @@ export default function SettingsPage() {
   const [exporting, setExporting] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const [businessName, setBusinessName] = useState(userSettings?.business_name || 'My Business');
+  const [fullName, setFullName] = useState(userSettings?.full_name || '');
   const [editingName, setEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  
+  // Profile editing state
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profileFullName, setProfileFullName] = useState('');
+  const [profileBusinessName, setProfileBusinessName] = useState('');
 
   // Team management state
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -78,13 +87,13 @@ export default function SettingsPage() {
       setRoasThreshold(String(data.roas_threshold ?? 2.0));
       setDeadDays(String(data.dead_product_days ?? 30));
       setBusinessName(data.business_name || 'My Business');
+      setFullName((data as any).full_name || '');
+      if ((data as any).avatar_url) {
+        setAvatarUrl((data as any).avatar_url);
+      }
       if (data.notification_preferences) setNotifPrefs({ ...DEFAULT_PREFS, ...(data.notification_preferences as Record<string, boolean>) });
       if (data.font_style && data.font_style !== fontStyle) {
         setFontStyle(data.font_style as FontStyle);
-      }
-      const dbTheme = (data as any).theme as string;
-      if (dbTheme && dbTheme !== themeName && THEME_OPTIONS.includes(dbTheme as ThemeName)) {
-        setThemeName(dbTheme as ThemeName);
       }
     } else {
       const { data: newRow } = await supabase.from('user_settings').insert({
@@ -140,11 +149,6 @@ export default function SettingsPage() {
     saveDebounced({ font_style: f });
   }
 
-  function handleThemeChange(t: ThemeName) {
-    setThemeName(t);
-    saveDebounced({ theme: t });
-  }
-
   function handleDashFilter(v: string) {
     setDashboardFilter(v);
     saveDebounced({ dashboard_filter: v });
@@ -169,10 +173,56 @@ export default function SettingsPage() {
   }
 
   function handleBusinessNameSave() {
+    if (!user || !settingsId) return;
+    saveDebounced({ business_name: businessName });
     setEditingName(false);
-    if (settingsId) {
-      saveDebounced({ business_name: businessName.trim() });
+  }
+
+  async function handleAvatarUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!user || !event.target.files || !event.target.files[0]) return;
+    
+    const file = event.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}/avatar.${fileExt}`;
+    
+    setUploadingAvatar(true);
+    try {
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {
+        upsert: true,
+      });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      setAvatarUrl(publicUrl);
+      saveDebounced({ avatar_url: publicUrl });
+      toast.success('Avatar updated successfully');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
     }
+  }
+
+  function handleProfileSave() {
+    if (!user || !settingsId) return;
+    saveDebounced({ 
+      full_name: profileFullName.trim(),
+      business_name: profileBusinessName.trim() 
+    });
+    setFullName(profileFullName.trim());
+    setBusinessName(profileBusinessName.trim());
+    setProfileModalOpen(false);
+    setIsEditingProfile(false);
+    toast.success('Profile updated successfully');
+  }
+
+  function openProfileModal() {
+    setProfileFullName(fullName);
+    setProfileBusinessName(businessName);
+    setProfileModalOpen(true);
+    setIsEditingProfile(true);
   }
 
   async function handleExportAll() {
@@ -332,7 +382,7 @@ export default function SettingsPage() {
     </div>
   );
 
-  const initials = businessName
+  const initials = (fullName || businessName)
     .split(' ')
     .map(w => w[0])
     .join('')
@@ -350,16 +400,39 @@ export default function SettingsPage() {
       <div className={cn(sectionClass, 'mb-6')}>
         <div className="flex flex-col md:flex-row md:items-center gap-5">
           {/* Avatar */}
-          <div className="relative shrink-0">
+          <div 
+            className={`relative shrink-0 w-16 h-16 ${isEditingProfile ? 'group cursor-pointer' : ''}`}
+            onClick={isEditingProfile ? () => fileInputRef.current?.click() : undefined}
+          >
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white"
+              className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white overflow-hidden"
               style={{
-                backgroundColor: 'var(--accent-color)',
+                backgroundColor: avatarUrl ? 'transparent' : 'var(--accent-color)',
                 border: '3px solid rgba(255,255,255,0.2)',
               }}
             >
-              {initials}
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
+            
+            {/* Camera icon — only in edit mode on hover */}
+            {isEditingProfile && (
+              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera size={20} className="text-white" />
+              </div>
+            )}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+              disabled={uploadingAvatar}
+            />
             <span
               className="online-pulse absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white"
               style={{ backgroundColor: '#10B981' }}
@@ -369,26 +442,13 @@ export default function SettingsPage() {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              {editingName ? (
-                <input
-                  ref={nameInputRef}
-                  value={businessName}
-                  onChange={e => setBusinessName(e.target.value)}
-                  onBlur={handleBusinessNameSave}
-                  onKeyDown={e => e.key === 'Enter' && handleBusinessNameSave()}
-                  className="text-xl font-bold bg-transparent border-b-2 border-[var(--accent-color)] outline-none text-foreground w-full max-w-[300px]"
-                />
-              ) : (
-                <>
-                  <h2 className="text-xl font-bold text-foreground">{businessName}</h2>
-                  <button
-                    onClick={() => setEditingName(true)}
-                    className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                </>
-              )}
+              <h2 className="text-xl font-bold text-foreground">{fullName || businessName}</h2>
+              <button
+                onClick={openProfileModal}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <Pencil size={14} />
+              </button>
             </div>
             <p className="text-sm text-muted-foreground">{user?.email || 'yourname@email.com'}</p>
             <div className="flex items-center gap-3 mt-1">
@@ -409,7 +469,7 @@ export default function SettingsPage() {
             <Button
               variant="outline"
               className="gap-1.5 font-bold border-border"
-              onClick={() => setEditingName(true)}
+              onClick={openProfileModal}
             >
               <Pencil size={14} /> Edit Profile
             </Button>
@@ -425,9 +485,9 @@ export default function SettingsPage() {
       </div>
 
       {/* Two column grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* LEFT COLUMN */}
-        <div className="flex flex-col gap-6">
+        <div className="space-y-6">
           {/* Appearance */}
           <div className={sectionClass}>
             <h2 className={sectionTitleClass}>
@@ -460,48 +520,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Themes */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Type size={18} style={{ color: 'var(--accent-color)' }} />
-              Theme
-            </h2>
-            <div className="grid grid-cols-3 gap-3">
-              {THEME_OPTIONS.map(t => {
-                const theme = THEMES[t];
-                const active = themeName === t;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => handleThemeChange(t)}
-                    className={cn(
-                      'rounded-lg p-3 transition-all text-left relative',
-                      active
-                        ? 'border-2 border-[#F0B429] bg-[#F0B429]/10'
-                        : 'border border-border hover:border-primary/50 bg-card/50'
-                    )}
-                  >
-                    {active && (
-                      <div className="absolute top-1.5 right-1.5">
-                        <Check size={14} className="text-[#F0B429]" />
-                      </div>
-                    )}
-                    <div className="flex gap-1.5 mb-2">
-                      <span className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: theme.colors.sidebar }} />
-                      <span className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: theme.colors.accent }} />
-                    </div>
-                    <span className={cn(active ? 'text-xs font-bold text-foreground' : 'font-extrabold text-sm text-accent')}>
-                      {theme.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="flex flex-col gap-6">
           {/* Dashboard Defaults */}
           <div className={sectionClass}>
             <h2 className={sectionTitleClass}>
@@ -527,6 +545,25 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Notification Preferences */}
+          <div className={sectionClass}>
+            <h2 className={sectionTitleClass}>
+              <Bell size={18} style={{ color: 'var(--accent-color)' }} />
+              Notification Preferences
+            </h2>
+            <div className="flex flex-col gap-3">
+              {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => (
+                <div key={key} className="flex items-center justify-between">
+                  <Label className="text-sm font-extrabold">{PREF_LABELS[key]}</Label>
+                  <Switch checked={notifPrefs[key]} onCheckedChange={() => handlePrefToggle(key)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="space-y-6">
           {/* Business Thresholds */}
           <div className={sectionClass}>
             <h2 className={sectionTitleClass}>
@@ -546,36 +583,6 @@ export default function SettingsPage() {
             <p className="italic text-accent font-extrabold text-sm">Low stock threshold is set per-product in Inventory module</p>
           </div>
 
-          {/* Notification Preferences */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Bell size={18} style={{ color: 'var(--accent-color)' }} />
-              Notification Preferences
-            </h2>
-            <div className="flex flex-col gap-3">
-              {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label className="text-sm font-extrabold">{PREF_LABELS[key]}</Label>
-                  <Switch checked={notifPrefs[key]} onCheckedChange={() => handlePrefToggle(key)} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Data Management */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Database size={18} style={{ color: 'var(--accent-color)' }} />
-              Data Management
-            </h2>
-            <div className="flex flex-col gap-3">
-              <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 font-bold justify-start" onClick={handleExportAll} disabled={exporting}>
-                {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                {exporting ? 'Exporting...' : 'Export All Data (XLSX)'}
-              </Button>
-            </div>
-          </div>
-
           {/* Team Management - Only for owners */}
           {isOwner && (
             <div className={sectionClass}>
@@ -592,45 +599,9 @@ export default function SettingsPage() {
                 Invite Team Member
               </Button>
 
-              {/* Current Team Members */}
-              <div className="mb-4">
-                <Label className="text-sm font-extrabold mb-2 block">Team Members ({teamMembers.length + 1})</Label>
-                <div className="flex flex-col gap-2">
-                  {/* Owner (you) */}
-                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F0B429] text-xs font-bold text-white">
-                      {businessName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{businessName}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email} · Owner</p>
-                    </div>
-                  </div>
-                  {/* Other members */}
-                  {teamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
-                        {member.email?.[0]?.toUpperCase() || '?'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{member.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{member.role}</p>
-                      </div>
-                      <button
-                        onClick={() => removeTeamMember(member.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        title="Remove member"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Pending Invites */}
               {pendingInvites.length > 0 && (
-                <div>
+                <div className="mb-4">
                   <Label className="text-sm font-extrabold mb-2 block">Pending Invites ({pendingInvites.length})</Label>
                   <div className="flex flex-col gap-2">
                     {pendingInvites.map((invite) => (
@@ -658,8 +629,62 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Current Team Members */}
+              <div>
+                <Label className="text-sm font-extrabold mb-2 block">Team Members ({teamMembers.length + 1})</Label>
+                <div className="flex flex-col gap-2">
+                  {/* Owner (you) */}
+                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden bg-[#F0B429] text-xs font-bold text-white">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                      ) : (
+                        businessName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{fullName || businessName}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email} · Owner</p>
+                    </div>
+                  </div>
+                  {/* Other members */}
+                  {teamMembers.map((member) => (
+                    <div key={member.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
+                        {member.email?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{member.email}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{member.role}</p>
+                      </div>
+                      <button
+                        onClick={() => removeTeamMember(member.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        title="Remove member"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Data Management */}
+          <div className={sectionClass}>
+            <h2 className={sectionTitleClass}>
+              <Database size={18} style={{ color: 'var(--accent-color)' }} />
+              Data Management
+            </h2>
+            <div className="flex flex-col gap-3">
+              <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 font-bold justify-start" onClick={handleExportAll} disabled={exporting}>
+                {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                {exporting ? 'Exporting...' : 'Export All Data (XLSX)'}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -730,6 +755,82 @@ export default function SettingsPage() {
             >
               {sendingInvite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Send Invite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Profile Edit Modal */}
+      <AlertDialog open={profileModalOpen} onOpenChange={setProfileModalOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Profile</AlertDialogTitle>
+            <AlertDialogDescription>Update your profile information</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Avatar Upload */}
+            <div className="flex flex-col items-center gap-3">
+              <div 
+                className="relative w-20 h-20 mx-auto group cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {/* Avatar image or fallback */}
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-[#F0B429] flex items-center justify-center text-xl font-bold text-white">
+                      {user?.email?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Camera overlay — centered, shows on hover */}
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera size={22} className="text-white" />
+                </div>
+              </div>
+            </div>
+
+            {/* Full Name */}
+            <div>
+              <Label className="text-sm font-extrabold mb-2 block">Full Name</Label>
+              <Input
+                value={profileFullName}
+                onChange={e => setProfileFullName(e.target.value)}
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            {/* Business Name */}
+            <div>
+              <Label className="text-sm font-extrabold mb-2 block">Business Name</Label>
+              <Input
+                value={profileBusinessName}
+                onChange={e => setProfileBusinessName(e.target.value)}
+                placeholder="Enter your business name"
+              />
+            </div>
+
+            {/* Email (Read-only) */}
+            <div>
+              <Label className="text-sm font-extrabold mb-2 block">Email</Label>
+              <Input
+                value={user?.email || ''}
+                disabled
+                className="bg-muted/50"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleProfileSave}
+              disabled={!profileFullName.trim() && !profileBusinessName.trim()}
+              className="bg-[#4A7C59] hover:bg-[#3d6a4b]"
+            >
+              Save Changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

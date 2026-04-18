@@ -12,7 +12,7 @@ export interface UserSettings {
   business_type: string | null;
   business_description: string | null;
   currency: string | null;
-  user_full_name: string | null;
+  full_name: string | null;
   avatar_url: string | null;
   role: string | null;
   onboarding_complete: boolean | null;

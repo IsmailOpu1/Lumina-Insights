@@ -10,7 +10,6 @@ import SalesBySourcePie from '@/components/dashboard/SalesBySourcePie';
 import TopSellingProductsBar from '@/components/dashboard/TopSellingProductsBar';
 import OrderStatusPie from '@/components/dashboard/OrderStatusPie';
 import InventoryAlerts from '@/components/dashboard/InventoryAlerts';
-import AIInsightsPanel from '@/components/dashboard/AIInsightsPanel';
 import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
 import ProfitCalculator from '@/components/dashboard/ProfitCalculator';
@@ -95,18 +94,6 @@ export default function Dashboard() {
     },
   ];
 
-  const aiContext = {
-    revenue: kpis.totalRevenue,
-    profit: kpis.netProfit,
-    profit_margin: `${kpis.profitMargin.toFixed(1)}%`,
-    top_product: topProductName,
-    low_stock_items: kpis.lowStockItems.map(i => ({ name: i.product_name, qty: i.stock_quantity })),
-    top_sales_source: bestSourceLabel,
-    total_orders: kpis.totalOrders,
-    total_ad_spend: kpis.adSpend,
-    date_range_label: '—',
-  };
-
   return (
     <div>
       <DateFilterBar />
@@ -132,8 +119,6 @@ export default function Dashboard() {
         <OrderStatusPie data={statusData} loading={loading} />
         <InventoryAlerts items={inventory} loading={loading} />
       </div>
-
-      <AIInsightsPanel context={aiContext} loading={loading} />
 
       <BusinessMetrics
         orders={orders}

@@ -64,7 +64,7 @@ English only. No Bengali.`;
       ).join('\n');
     }
 
-    const fullPrompt = systemPrompt + contextBlock + historyText + '\n\nUser: ' + message;
+    const fullPrompt = contextBlock + historyText + '\n\nUser: ' + message;
 
     // Build parts array
     const parts: any[] = [{ text: fullPrompt }];
@@ -78,12 +78,15 @@ English only. No Bengali.`;
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
-        method: 'POST',
+        method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts }],
+          contents: [
+            { role: 'system', parts: [{ text: systemPrompt }] },
+            { role: 'user', parts },
+          ],
           generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
         }),
       }

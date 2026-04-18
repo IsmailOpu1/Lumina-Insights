@@ -439,9 +439,7 @@ export default function AIAssistant() {
   return (
     // FIX 1: removed -m-4 md:-m-6 negative margins
     // Use w-full instead to fill container properly
-    <div className="flex flex-col w-full overflow-hidden"
-      style={{ height: 'calc(100dvh - 60px)' }}
-    >
+    <div className="flex flex-col h-full bg-[var(--sidebar-bg)]">
       <style>{`
         @keyframes waveform {
           0%, 100% { height: 4px; }
@@ -530,8 +528,7 @@ export default function AIAssistant() {
       {/* FIX 3: Messages with overflow-hidden */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 pt-4 pb-2"
-        style={{ display: 'flex', flexDirection: 'column' }}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 w-full min-h-0"
       >
         <div style={{ flex: 1 }} />
 

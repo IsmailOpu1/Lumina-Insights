@@ -54,7 +54,7 @@ const TYPE_BADGE: Record<string, string> = {
 
 export default function Expenses() {
   const { openModal } = useFAB();
-  const { ownerIdForQueries } = useAuth();
+  const { ownerIdForQueries, isViewer } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<DateFilter>('30days');
@@ -256,10 +256,12 @@ export default function Expenses() {
           {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {exporting ? 'Exporting...' : 'Export XLSX'}
         </Button>
-        <Button className="h-11 gap-2 px-5 font-bold max-md:w-full" onClick={openAdd}>
-          <Plus size={18} />
-          Add Expense
-        </Button>
+        {!isViewer && (
+          <Button className="h-11 gap-2 px-5 font-bold max-md:w-full" onClick={openAdd}>
+            <Plus size={18} />
+            Add Expense
+          </Button>
+        )}
       </div>
 
       {/* Metrics Bar */}
@@ -325,14 +327,16 @@ export default function Expenses() {
                       </td>
                       <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(new Date(e.date), 'dd/MM/yyyy')}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(e)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
-                            <Pencil size={18} />
-                          </button>
-                          <button onClick={() => setDeleteId(e.id)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 active:scale-95">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+                        {!isViewer && (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openEdit(e)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
+                              <Pencil size={18} />
+                            </button>
+                            <button onClick={() => setDeleteId(e.id)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 active:scale-95">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

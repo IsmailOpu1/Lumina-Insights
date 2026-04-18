@@ -29,7 +29,7 @@ serve(async (req) => {
       : `Here is my current business data:\n${contextStr}${contextBlock}\n\nGive me 5 actionable insights.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,16 +40,17 @@ serve(async (req) => {
               parts: [{ text: systemPrompt + "\n\n" + userPrompt }],
             },
           ],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
         }),
       }
     );
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Rate limit reached. Please wait 1 minute and try again." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
       const t = await response.text();
       console.error("Gemini API error:", response.status, t);

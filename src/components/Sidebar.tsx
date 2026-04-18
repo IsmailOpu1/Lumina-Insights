@@ -4,9 +4,10 @@ import {
   Bot, StickyNote, Bell, Settings, Sun, Moon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -36,9 +37,17 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark, toggleDark } = useTheme();
+  const { isViewer } = useAuth();
   const { unreadCount } = useNotifications();
   const isMobile = useIsMobile();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const navItems = useMemo(() => {
+    if (isViewer) {
+      return NAV_ITEMS.filter(item => item.label !== 'Settings');
+    }
+    return NAV_ITEMS;
+  }, [isViewer]);
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -121,7 +130,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
           className="flex-1 space-y-0.5 overflow-y-auto px-[10px] rounded-none border-0 border-none shadow-none py-2"
           style={{ backgroundColor: 'var(--sidebar-bg)' }}
         >
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = location.pathname === item.path;
             const Icon = item.icon;
             const isBell = item.label === 'Notifications';

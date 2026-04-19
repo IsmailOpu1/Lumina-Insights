@@ -101,6 +101,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
+          // Check if email is confirmed, sign out if not
+          if (event === 'SIGNED_IN' && !newSession.user.email_confirmed_at) {
+            supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            setUserSettings(null);
+            setOwnerIdForQueries(null);
+            setLoading(false);
+            return;
+          }
           // Call fetchSettings directly and chain setLoading(false) to ensure it waits
           fetchSettings(newSession.user.id).finally(() => setLoading(false));
         } else {

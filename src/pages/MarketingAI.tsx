@@ -24,7 +24,7 @@ interface MarketingOutput {
 }
 
 export default function MarketingAI() {
-  const { ownerIdForQueries } = useAuth();
+  const { ownerIdForQueries, userSettings } = useAuth();
   const [productName, setProductName] = useState('');
   const [platform, setPlatform] = useState<Platform>('Instagram');
   const [features, setFeatures] = useState('');
@@ -52,6 +52,12 @@ export default function MarketingAI() {
             platform,
             product_features: features,
             target_audience: audience,
+            business_context: {
+              business_name: userSettings?.business_name || 'N/A',
+              business_type: userSettings?.business_type || 'N/A',
+              business_description: userSettings?.business_description || 'N/A',
+              currency: userSettings?.currency || 'BDT',
+            }
           },
         }
       );

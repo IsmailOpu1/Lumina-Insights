@@ -78,14 +78,13 @@ English only. No Bengali.`;
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [
-            { role: 'system', parts: [{ text: systemPrompt }] },
-            { role: 'user', parts },
+            { role: 'user', parts: [{ text: systemPrompt + "\n\n" + fullPrompt }] },
           ],
           generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
         }),

@@ -14,6 +14,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   savedToNotes?: boolean;
+  imagePreview?: string;
 }
 
 interface BusinessContext {
@@ -34,7 +35,7 @@ const EXAMPLES = [
 ];
 
 export default function AIAssistant() {
-  const { ownerIdForQueries } = useAuth();
+  const { ownerIdForQueries, userSettings } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -320,6 +321,7 @@ export default function AIAssistant() {
       id: crypto.randomUUID(),
       role: 'user',
       content: msg,
+      imagePreview: imagePreview || undefined,
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsGenerating(true);
@@ -333,7 +335,22 @@ export default function AIAssistant() {
       const body: any = {
         message: msg,
         conversation_history: history,
-        business_context: contextRef.current || context,
+        business_context: {
+          // Business profile from onboarding
+          business_name: userSettings?.business_name || 'N/A',
+          business_type: userSettings?.business_type || 'N/A',
+          business_description: userSettings?.business_description || 'N/A',
+          currency: userSettings?.currency || 'BDT',
+          // Live business data
+          revenue: contextRef.current?.revenue || 0,
+          profit: contextRef.current?.profit || 0,
+          margin: contextRef.current?.margin || 0,
+          top_product: contextRef.current?.top_product || 'N/A',
+          low_stock: contextRef.current?.low_stock || 0,
+          top_sales_source: contextRef.current?.top_sales_source || 'N/A',
+          total_orders: contextRef.current?.total_orders || 0,
+          total_ad_spend: contextRef.current?.total_ad_spend || 0,
+        },
       };
 
       if (imageFile && imagePreview) {
@@ -619,9 +636,18 @@ export default function AIAssistant() {
                     </div>
                   </div>
                 ) : (
-                  <span className="text-[15px] break-words">
-                    {msg.content}
-                  </span>
+                  <>
+                    {msg.role === 'user' && msg.imagePreview && (
+                      <img
+                        src={msg.imagePreview}
+                        alt="Uploaded"
+                        className="max-w-[200px] rounded-lg mb-2 object-cover border border-border"
+                      />
+                    )}
+                    <span className="text-[15px] break-words">
+                      {msg.content}
+                    </span>
+                  </>
                 )}
               </div>
             </div>

@@ -71,7 +71,7 @@ export default function Login() {
           owner_id: invite.owner_id,
           role: invite.role,
           onboarding_complete: true,
-          user_full_name: user.user_metadata?.full_name || '',
+          full_name: user.user_metadata?.full_name || '',
         } as any, { onConflict: 'user_id' });
         await supabase.from('invites').update({ used: true } as any).eq('id', invite.id);
       }

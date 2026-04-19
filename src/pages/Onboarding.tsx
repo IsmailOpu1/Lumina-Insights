@@ -82,7 +82,7 @@ export default function Onboarding() {
       business_type: businessType,
       business_description: businessDesc.trim(),
       currency,
-      user_full_name: fullName.trim(),
+      full_name: fullName.trim(),
       role: 'owner',
       onboarding_complete: true,
     } as any, { onConflict: 'user_id' });

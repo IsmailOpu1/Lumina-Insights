@@ -645,7 +645,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-foreground truncate">{fullName || businessName}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email} · Owner</p>
+                      <p className="text-xs text-muted-foreground">{user?.email} · <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F0B429]/20 text-[#F0B429]">Owner</span></p>
                     </div>
                   </div>
                   {/* Other members */}
@@ -656,7 +656,17 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{member.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{member.role}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {member.role === 'owner' && (
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F0B429]/20 text-[#F0B429]">Owner</span>
+                          )}
+                          {member.role === 'manager' && (
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Manager</span>
+                          )}
+                          {member.role === 'viewer' && (
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Viewer</span>
+                          )}
+                        </p>
                       </div>
                       <button
                         onClick={() => removeTeamMember(member.id)}

@@ -35,11 +35,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount, notifications, markAllRead, markOneRead } = useNotifications();
-  const { userSettings } = useAuth();
+  const { isOwner, isManager, isViewer, userSettings } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const avatarInitials = (userSettings?.user_full_name || userSettings?.business_name || 'U')
+  const avatarInitials = (userSettings?.full_name || userSettings?.business_name || 'U')
     .split(' ')
     .map((w: string) => w[0])
     .join('')
@@ -78,7 +78,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       navigate('/inventory');
     } else if (
       notif.type === 'profit_drop' ||
-      notif.type === 'roas_alert'
+      notif.type === 'roas_alert' ||
+      notif.type === 'weekly_summary'
     ) {
       navigate('/');
     } else {
@@ -123,18 +124,29 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       {/* Right */}
       <div className="flex items-center gap-2" ref={dropdownRef}>
         {/* User avatar */}
-        <button
-          onClick={() => navigate('/settings')}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition-transform hover:scale-105"
-          style={{ backgroundColor: 'var(--accent-color)' }}
-          title="Profile & Settings"
-        >
-          {userSettings?.avatar_url ? (
-            <img src={userSettings.avatar_url} alt="Avatar" className="h-full w-full rounded-full object-cover" />
-          ) : (
-            avatarInitials
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/settings')}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition-transform hover:scale-105"
+            style={{ backgroundColor: 'var(--accent-color)' }}
+            title="Profile & Settings"
+          >
+            {userSettings?.avatar_url ? (
+              <img src={userSettings.avatar_url} alt="Avatar" className="h-full w-full rounded-full object-cover" />
+            ) : (
+              avatarInitials
+            )}
+          </button>
+          {isOwner && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F0B429]/20 text-[#F0B429]">Owner</span>
           )}
-        </button>
+          {isManager && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Manager</span>
+          )}
+          {isViewer && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Viewer</span>
+          )}
+        </div>
 
         {/* Bell — FIX 3: uses var(--text-primary) */}
         <button

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 interface Notification {
   id: string;
@@ -32,6 +33,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const { user, ownerIdForQueries } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -40,32 +42,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const { count } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('is_read', false);
+      .eq('is_read', false)
+      .eq('owner_id', ownerIdForQueries);
     setUnreadCount(count ?? 0);
-  }, []);
+  }, [ownerIdForQueries]);
 
   const fetchRecent = useCallback(async () => {
     const { data } = await supabase
       .from('notifications')
       .select('*')
+      .eq('owner_id', ownerIdForQueries)
       .order('created_at', { ascending: false })
       .limit(10);
     if (data) setNotifications(data as Notification[]);
-  }, []);
+  }, [ownerIdForQueries]);
 
   const markAllRead = useCallback(async () => {
-    await supabase.from('notifications').update({ is_read: true } as never).eq('is_read', false);
+    await supabase.from('notifications').update({ is_read: true } as never).eq('is_read', false).eq('owner_id', ownerIdForQueries);
     setUnreadCount(0);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-  }, []);
+  }, [ownerIdForQueries]);
 
   const markOneRead = useCallback(async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true } as never).eq('id', id);
+    await supabase.from('notifications').update({ is_read: true } as never).eq('id', id).eq('owner_id', ownerIdForQueries);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
     setUnreadCount((c) => Math.max(0, c - 1));
-  }, []);
+  }, [ownerIdForQueries]);
 
   useEffect(() => {
     refreshCount();
@@ -75,7 +79,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       .channel('notifications-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `owner_id=eq.${ownerIdForQueries}`
+        },
         (payload) => {
           const newNotif = payload.new as Notification;
           setNotifications((prev) => [newNotif, ...prev].slice(0, 10));
@@ -100,7 +109,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [refreshCount, fetchRecent]);
+  }, [refreshCount, fetchRecent, ownerIdForQueries]);
 
   return (
     <NotificationContext.Provider value={{ unreadCount, notifications, markAllRead, refreshCount, markOneRead }}>

@@ -146,7 +146,7 @@ export default function Notifications() {
       navigate('/orders');
     } else if (['low_stock', 'critical_stock'].includes(n.type)) {
       navigate('/inventory');
-    } else if (['profit_drop', 'roas_alert'].includes(n.type)) {
+    } else if (['profit_drop', 'roas_alert', 'weekly_summary'].includes(n.type)) {
       navigate('/');
     } else {
       navigate('/notifications');

@@ -95,7 +95,7 @@ export default function Signup() {
             owner_id: invite.owner_id,
             role: invite.role,
             onboarding_complete: true,
-            user_full_name: fullName.trim(),
+            full_name: fullName.trim(),
           } as any, { onConflict: 'user_id' });
           await supabase.from('invites').update({ used: true } as any).eq('id', invite.id);
           navigate('/', { replace: true });

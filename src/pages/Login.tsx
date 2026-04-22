@@ -31,21 +31,34 @@ export default function Login() {
       return;
     }
 
-    // If came from invite link, handle token
-    if (token) {
-      await handleInviteToken(token);
-    }
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // Wait for userSettings to be loaded before navigating
-    // This prevents ProtectedRoute from seeing null userSettings and redirecting to onboarding
+    let settings = null;
     let attempts = 0;
-    const maxAttempts = 20; // 2 seconds max wait
-    while (!userSettings && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+
+    while (attempts < 30) {
+      const { data } = await supabase
+        .from('user_settings')
+        .select('onboarding_complete, role')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+      
+      if (data !== null) {
+        settings = data;
+        break;
+      }
+      await new Promise(r => setTimeout(r, 200));
       attempts++;
     }
 
-    navigate('/', { replace: true });
+    if (token) {
+      await handleInviteToken(token);
+      navigate('/', { replace: true });
+    } else if (!settings || settings.onboarding_complete === false) {
+      navigate('/onboarding', { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
   };
 
   const handleInviteToken = async (t: string) => {

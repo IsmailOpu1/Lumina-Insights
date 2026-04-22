@@ -30,8 +30,8 @@ export default function ProtectedRoute({
   // Logged in but no settings row yet
   // OR onboarding explicitly false
   // → go to onboarding
-  // Only redirect to onboarding if session exists (prevents race condition during signOut)
-  if (session && userSettings && userSettings.onboarding_complete === false) {
+  // Only redirect when loading is complete (prevents race condition during loading)
+  if (!loading && session && (!userSettings || userSettings.onboarding_complete === false)) {
     return <Navigate to="/onboarding" replace />;
   }
 

@@ -10,7 +10,7 @@ const FEATURES = [
 
 export default function AuthLeftPanel() {
   return (
-    <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-10"
+    <div className="hidden lg:flex relative overflow-hidden flex-col justify-between p-10 h-full"
       style={{
         background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)',
         backgroundSize: '200% 200%',

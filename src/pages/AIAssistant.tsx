@@ -582,7 +582,7 @@ export default function AIAssistant() {
               <div
                 className={`max-w-[80%] px-4 py-2.5 overflow-hidden ${
                   msg.role === 'user'
-                    ? 'bg-[var(--sidebar-bg)] text-white font-bold rounded-[18px_18px_4px_18px]'
+                    ? 'bg-[var(--sidebar-bg)] border border-[var(--accent-color)]/30 text-white font-bold rounded-[18px_18px_4px_18px] shadow-sm'
                     : 'border border-border text-card-foreground rounded-[18px_18px_18px_4px] bg-[var(--chart-card-bg)]'
                 }`}
               >

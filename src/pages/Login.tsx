@@ -212,7 +212,7 @@ export default function Login() {
 
       {/* DESKTOP ONLY - unchanged */}
       <div className="hidden lg:flex min-h-screen">
-        <div className="w-1/3">
+        <div className="w-1/2">
           <AuthLeftPanel />
         </div>
         <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'var(--page-bg, #1a1a2e)' }}>

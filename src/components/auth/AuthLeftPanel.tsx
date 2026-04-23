@@ -35,7 +35,7 @@ export default function AuthLeftPanel() {
       </div>
 
       {/* Feature cards */}
-      <div className="flex flex-col gap-4 my-auto max-w-md mx-auto w-full">
+      <div className="flex flex-col gap-6 my-auto max-w-lg mx-auto w-full">
         {FEATURES.map((f, i) => {
           const Icon = f.icon;
           return (

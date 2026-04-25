@@ -57,6 +57,11 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState(userSettings?.full_name || '');
   const [editingName, setEditingName] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Profile display variables - always show logged-in user's own data
+  const displayName = userSettings?.full_name || user?.email?.split('@')[0] || 'User';
+  const displayEmail = user?.email || '';
+  const displayAvatar = userSettings?.avatar_url || null;
   
   // Profile editing state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -407,12 +412,12 @@ export default function SettingsPage() {
             <div
               className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white overflow-hidden"
               style={{
-                backgroundColor: avatarUrl ? 'transparent' : 'var(--accent-color)',
+                backgroundColor: displayAvatar ? 'transparent' : 'var(--accent-color)',
                 border: '3px solid rgba(255,255,255,0.2)',
               }}
             >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+              {displayAvatar ? (
+                <img src={displayAvatar} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
                 initials
               )}
@@ -442,9 +447,7 @@ export default function SettingsPage() {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-bold text-foreground">
-                {fullName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || businessName}
-              </h2>
+              <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
               <button
                 onClick={openProfileModal}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1"
@@ -452,7 +455,7 @@ export default function SettingsPage() {
                 <Pencil size={14} />
               </button>
             </div>
-            <p className="text-sm text-muted-foreground">{user?.email || 'yourname@email.com'}</p>
+            <p className="text-sm text-muted-foreground">{displayEmail}</p>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-xs text-muted-foreground">
                 Member since {fnsFormat(new Date(), 'MMM yyyy')}
@@ -814,15 +817,17 @@ export default function SettingsPage() {
               />
             </div>
 
-            {/* Business Name */}
-            <div>
-              <Label className="text-sm font-extrabold mb-2 block">Business Name</Label>
-              <Input
-                value={profileBusinessName}
-                onChange={e => setProfileBusinessName(e.target.value)}
-                placeholder="Enter your business name"
-              />
-            </div>
+            {/* Business Name - only for owners */}
+            {isOwner && (
+              <div>
+                <Label className="text-sm font-extrabold mb-2 block">Business Name</Label>
+                <Input
+                  value={profileBusinessName}
+                  onChange={e => setProfileBusinessName(e.target.value)}
+                  placeholder="Enter your business name"
+                />
+              </div>
+            )}
 
             {/* Email (Read-only) */}
             <div>

@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ownerIdForQueries, setOwnerIdForQueries] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const role: UserRole = (userSettings?.role as UserRole) || 'owner';
+  const role: UserRole = (userSettings?.role as UserRole) || 'viewer';
   const isOwner = role === 'owner';
   const isManager = role === 'manager';
   const isViewer = role === 'viewer';
@@ -62,19 +62,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (data) {
       setUserSettings(data as unknown as UserSettings);
-      // Determine ownerIdForQueries
       if ((data as any).role === 'owner') {
         setOwnerIdForQueries(uid);
       } else {
-        // Team member - fetch owner_id from team_members
-        const { data: teamRow } = await supabase
-          .from('team_members')
-          .select('owner_id')
-          .eq('member_id', uid)
-          .eq('status', 'active')
-          .limit(1)
-          .maybeSingle();
-        setOwnerIdForQueries(teamRow?.owner_id || uid);
+        // Use owner_id from user_settings directly
+        // (set correctly during invite acceptance)
+        const ownerId = (data as any).owner_id;
+        if (ownerId) {
+          setOwnerIdForQueries(ownerId);
+        } else {
+          // Fallback: check team_members table
+          const { data: teamRow } = await supabase
+            .from('team_members')
+            .select('owner_id')
+            .eq('member_id', uid)
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
+          setOwnerIdForQueries(teamRow?.owner_id || uid);
+        }
       }
     } else {
       setUserSettings(null);

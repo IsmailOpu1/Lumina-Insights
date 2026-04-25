@@ -27,11 +27,14 @@ export default function TopSellingProductsBar({ data, loading }: Props) {
     fullName: d.name
   }));
 
+  // Dynamic height based on number of products
+  const chartHeight = data.length <= 2 ? 150 : data.length <= 5 ? 200 : 250;
+
   return (
     <div className="card-hover mb-6 rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)]">
       <h3 className="mb-4 text-base text-foreground font-extrabold">Top Selling Products</h3>
-      <ResponsiveContainer width="100%" height={260} className="font-extrabold text-sm">
-        <BarChart data={chartData}>
+      <ResponsiveContainer width="100%" height={chartHeight} className="font-extrabold text-sm">
+        <BarChart data={chartData} barCategoryGap="60%">
           <CartesianGrid strokeDasharray="3 3" stroke={theme.gridColor} vertical={false} />
           <XAxis dataKey="name" tick={{ fill: theme.labelColor, fontWeight: 700, fontSize: 11 }} axisLine={{ stroke: theme.axisColor }} tickLine={false} />
           <YAxis tick={{ fill: theme.labelColor, fontWeight: 700, fontSize: 12 }} axisLine={{ stroke: theme.axisColor }} tickLine={false} />
@@ -39,11 +42,10 @@ export default function TopSellingProductsBar({ data, loading }: Props) {
             contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }}
             formatter={(value: number, _: string, props: any) => [`${value} units sold • ${formatTaka(props.payload.revenue)}`, props.payload.fullName]} />
           
-          <Bar dataKey="qty" fill="#6366F1" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="qty" fill="#6366F1" radius={[4, 4, 0, 0]} barSize={40}>
             <LabelList dataKey="qty" position="top" style={{ fill: theme.labelColor, fontWeight: 700, fontSize: 12 }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>);
-
 }

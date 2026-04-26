@@ -137,7 +137,9 @@ export default function Signup() {
 
   return (
     <div className="flex min-h-screen">
-      <AuthLeftPanel />
+      <div className="hidden lg:block lg:w-1/2 h-screen sticky top-0">
+        <AuthLeftPanel />
+      </div>
 
       <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'var(--page-bg, #1a1a2e)' }}>
         <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl">

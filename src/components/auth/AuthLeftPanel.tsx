@@ -10,9 +10,10 @@ const FEATURES = [
 
 export default function AuthLeftPanel() {
   return (
-    <div className="hidden lg:flex relative overflow-hidden flex-col justify-between p-10 h-full"
+    <div
+      className="flex flex-col h-full min-h-screen w-full px-8 py-10"
       style={{
-        background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)',
+        background: 'linear-gradient(135deg, #1A3A2A 0%, #2D5A3C 50%, #1B3A4B 100%)',
         backgroundSize: '200% 200%',
         animation: 'authGradient 10s ease infinite',
       }}
@@ -35,13 +36,13 @@ export default function AuthLeftPanel() {
       </div>
 
       {/* Feature cards */}
-      <div className="flex flex-col gap-6 my-auto max-w-lg mx-auto w-full">
+      <div className="flex-1 flex flex-col justify-center gap-3 mt-8">
         {FEATURES.map((f, i) => {
           const Icon = f.icon;
           return (
             <div
               key={f.name}
-              className="flex items-start gap-4 rounded-xl bg-white/10 backdrop-blur-sm p-4"
+              className="flex items-start gap-4 rounded-xl bg-white/10 backdrop-blur-sm p-4 w-full"
               style={{
                 animation: `slideUp 500ms ease ${i * 100}ms backwards`,
               }}
@@ -58,7 +59,7 @@ export default function AuthLeftPanel() {
         })}
       </div>
 
-      <p className="text-sm text-white/40">© {new Date().getFullYear()} Lumina Insights</p>
+      <p className="text-white/40 text-xs mt-8">© 2026 Lumina Insights</p>
     </div>
   );
 }

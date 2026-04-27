@@ -20,7 +20,7 @@ const CURRENCIES = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, refreshSettings } = useAuth();
+  const { user, ownerIdForQueries, refreshSettings } = useAuth();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -46,13 +46,13 @@ export default function Onboarding() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const sendInvite = async () => {
-    if (!inviteEmail.trim() || !user) return;
+    if (!inviteEmail.trim() || !user || !ownerIdForQueries) return;
     setSendingInvite(true);
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const { error: insertError } = await supabase.from('invites').insert({
-      owner_id: user.id,
+      owner_id: ownerIdForQueries,
       email: inviteEmail.trim(),
       role: inviteRole,
       token,

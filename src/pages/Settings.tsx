@@ -41,7 +41,7 @@ const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nu
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
+  const { user, userSettings, isOwner, ownerIdForQueries, signOut, refreshSettings } = useAuth();
   const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
   const { refreshCount } = useNotifications();
   const [loading, setLoading] = useState(true);
@@ -324,13 +324,13 @@ export default function SettingsPage() {
   }
 
   async function sendTeamInvite() {
-    if (!inviteEmail.trim() || !user) return;
+    if (!inviteEmail.trim() || !user || !ownerIdForQueries) return;
     setSendingInvite(true);
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const { error: insertError } = await supabase.from('invites').insert({
-      owner_id: user.id,
+      owner_id: ownerIdForQueries,
       email: inviteEmail.trim(),
       role: inviteRole,
       token,

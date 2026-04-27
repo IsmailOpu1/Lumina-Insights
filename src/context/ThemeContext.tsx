@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export type FontStyle = 'inter' | 'poppins' | 'roboto' | 'playfair' | 'nunito' | 'dmsans';
 export type ThemeName = 'purple';
@@ -69,6 +70,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { userSettings } = useAuth();
   const [isDark, setIsDark] = useState(() => localStorage.getItem('lumina-dark') === 'true');
   const [fontStyle, setFontStyleState] = useState<FontStyle>(
     () => (localStorage.getItem('lumina-font') as FontStyle) || 'inter'
@@ -76,6 +78,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeName, setThemeNameState] = useState<ThemeName>(
     () => (localStorage.getItem('lumina-theme') as ThemeName) || 'purple'
   );
+
+  useEffect(() => {
+    if (userSettings?.dark_mode !== null && userSettings?.dark_mode !== undefined) {
+      setIsDark(userSettings.dark_mode);
+      localStorage.setItem('lumina-dark', String(userSettings.dark_mode));
+      if (userSettings.dark_mode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [userSettings?.dark_mode]);
 
   const toggleDark = useCallback(() => {
     setIsDark(prev => {

@@ -10,7 +10,7 @@ import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { userSettings, loading: authLoading } = useAuth();
+  const { userSettings, loading: authLoading, refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [email, setEmail] = useState('');
@@ -54,6 +54,7 @@ export default function Login() {
 
     if (token) {
       await handleInviteToken(token);
+      await refreshSettings();
       navigate('/', { replace: true });
     } else if (!settings || settings.onboarding_complete === false) {
       navigate('/onboarding', { replace: true });

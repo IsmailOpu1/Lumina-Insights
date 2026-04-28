@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -23,6 +24,7 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [fullName, setFullName] = useState('');
@@ -124,6 +126,7 @@ export default function Signup() {
             full_name: fullName.trim(),
           } as any, { onConflict: 'user_id' });
           await supabase.from('invites').update({ used: true } as any).eq('id', invite.id);
+          await refreshSettings();
           setEmailSent(true);
           setLoading(false);
           return;

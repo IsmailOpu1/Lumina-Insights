@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { setPendingInviteToken } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
@@ -10,7 +10,6 @@ import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { userSettings, loading: authLoading, refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [email, setEmail] = useState('');
@@ -24,6 +23,14 @@ export default function Login() {
     if (!email.trim() || !password) return;
     setLoading(true);
 
+    // Stash the invite token (if any) before signing in — AuthContext's onAuthStateChange
+    // listener redeems it via the server-side accept_team_invite() function and resolves
+    // userSettings before `loading` flips false, so ProtectedRoute makes the right call
+    // on its own. No manual polling, no duplicated invite logic here.
+    if (token) {
+      setPendingInviteToken(token);
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (error) {
@@ -32,65 +39,10 @@ export default function Login() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    let settings = null;
-    let attempts = 0;
-
-    while (attempts < 30) {
-      const { data } = await supabase
-        .from('user_settings')
-        .select('onboarding_complete, role')
-        .eq('user_id', user?.id)
-        .maybeSingle();
-      
-      if (data !== null) {
-        settings = data;
-        break;
-      }
-      await new Promise(r => setTimeout(r, 200));
-      attempts++;
-    }
-
-    if (token) {
-      await handleInviteToken(token);
-      await refreshSettings();
-      navigate('/', { replace: true });
-    } else if (!settings || settings.onboarding_complete === false) {
-      navigate('/onboarding', { replace: true });
-    } else {
-      navigate('/', { replace: true });
-    }
-  };
-
-  const handleInviteToken = async (t: string) => {
-    const { data: invite } = await supabase
-      .from('invites')
-      .select('*')
-      .eq('token', t)
-      .eq('used', false)
-      .maybeSingle();
-
-    if (invite && new Date(invite.expires_at) > new Date()) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('team_members').insert({
-          owner_id: invite.owner_id,
-          member_id: user.id,
-          email: user.email || invite.email,
-          role: invite.role,
-          status: 'active',
-        });
-        await supabase.from('user_settings').upsert({
-          user_id: user.id,
-          owner_id: invite.owner_id,
-          role: invite.role,
-          onboarding_complete: true,
-          full_name: user.user_metadata?.full_name || '',
-        } as any, { onConflict: 'user_id' });
-        await supabase.from('invites').update({ used: true } as any).eq('id', invite.id);
-      }
-    }
+    // AuthContext handles invite redemption + settings fetch + the onboarding-vs-dashboard
+    // decision; ProtectedRoute reads that state once loading clears. We just need to leave
+    // /login — '/' is enough, ProtectedRoute redirects to /onboarding itself if needed.
+    navigate('/', { replace: true });
   };
 
   return (

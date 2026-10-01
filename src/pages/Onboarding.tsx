@@ -88,7 +88,6 @@ export default function Onboarding() {
     } as any, { onConflict: 'user_id' });
 
     await refreshSettings();
-    await new Promise(r => setTimeout(r, 500));
     setSaving(false);
     navigate('/', { replace: true });
   };

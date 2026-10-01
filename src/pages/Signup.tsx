@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
+import { setPendingInviteToken } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -24,7 +24,6 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [fullName, setFullName] = useState('');
@@ -99,39 +98,12 @@ export default function Signup() {
       return;
     }
 
-    // If invite token, handle join
+    // If this signup came from an invite link, stash the token — it can't survive
+    // Supabase's email confirmation redirect (emailRedirectTo gets stripped to the bare
+    // origin), so AuthContext redeems it itself via accept_team_invite() once a confirmed
+    // session actually exists, whether that's right after confirming or on a later login.
     if (token) {
-      const { data: invite } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .eq('used', false)
-        .maybeSingle();
-
-      if (invite && new Date(invite.expires_at) > new Date()) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('team_members').insert({
-            owner_id: invite.owner_id,
-            member_id: user.id,
-            email: user.email || invite.email,
-            role: invite.role,
-            status: 'active',
-          });
-          await supabase.from('user_settings').upsert({
-            user_id: user.id,
-            owner_id: invite.owner_id,
-            role: invite.role,
-            onboarding_complete: true,
-            full_name: fullName.trim(),
-          } as any, { onConflict: 'user_id' });
-          await supabase.from('invites').update({ used: true } as any).eq('id', invite.id);
-          await refreshSettings();
-          setEmailSent(true);
-          setLoading(false);
-          return;
-        }
-      }
+      setPendingInviteToken(token);
     }
 
     setEmailSent(true);

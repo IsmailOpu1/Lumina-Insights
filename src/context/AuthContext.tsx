@@ -4,6 +4,15 @@ import type { User, Session } from '@supabase/supabase-js';
 
 export type UserRole = 'owner' | 'manager' | 'viewer';
 
+// Invite tokens no longer survive Supabase's emailRedirectTo (it strips query params on
+// confirmation), so we stash a pending token here before signUp/signIn and redeem it once
+// a confirmed session exists. One source of truth, redeemed exactly once, regardless of
+// whether the user arrives via signup-confirmation or a direct login.
+const PENDING_INVITE_KEY = 'lumina_pending_invite_token';
+export function setPendingInviteToken(token: string) {
+  localStorage.setItem(PENDING_INVITE_KEY, token);
+}
+
 export interface UserSettings {
   id: string;
   user_id: string | null;
@@ -92,6 +101,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) await fetchSettings(user.id);
   }, [user, fetchSettings]);
 
+  // Redeems a pending invite token (if any) via the server-side accept_team_invite()
+  // function, which validates the invite is real, unexpired and unused before writing
+  // team_members/user_settings. Safe to call on every sign-in; it's a no-op if there's
+  // no pending token.
+  const redeemPendingInvite = useCallback(async () => {
+    const token = localStorage.getItem(PENDING_INVITE_KEY);
+    if (!token) return;
+    localStorage.removeItem(PENDING_INVITE_KEY);
+    const { error } = await supabase.rpc('accept_team_invite', { p_token: token });
+    if (error) {
+      // Invite was invalid/expired/already used — fail quietly and let the user
+      // fall through to normal onboarding rather than blocking sign-in.
+      console.error('Invite redemption failed:', error.message);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -117,8 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
             return;
           }
-          // Call fetchSettings directly and chain setLoading(false) to ensure it waits
-          fetchSettings(newSession.user.id).finally(() => setLoading(false));
+          // Redeem any pending invite BEFORE fetching settings, so ProtectedRoute's
+          // onboarding-redirect check (driven by `loading`) never fires on a stale,
+          // pre-invite-redemption state.
+          (async () => {
+            await redeemPendingInvite();
+            await fetchSettings(newSession.user.id);
+          })().finally(() => setLoading(false));
         } else {
           setUserSettings(null);
           setOwnerIdForQueries(null);
@@ -134,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchSettings]);
+  }, [fetchSettings, redeemPendingInvite]);
 
   return (
     <AuthContext.Provider

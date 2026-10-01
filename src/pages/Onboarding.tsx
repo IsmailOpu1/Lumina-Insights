@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Sparkles, ArrowRight, Check, Loader2, ShoppingBag, Megaphone, MessageSquare, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { Navigate } from 'react-router-dom';
 
 const BUSINESS_TYPES = ['Fashion/Clothing', 'Electronics', 'Food & Beverage', 'Beauty & Skincare', 'Home & Living', 'Other'];
 
@@ -20,9 +21,30 @@ const CURRENCIES = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, ownerIdForQueries, refreshSettings } = useAuth();
+  const { user, userSettings, loading: authLoading, ownerIdForQueries, refreshSettings } = useAuth();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+
+  // /onboarding is intentionally NOT wrapped in ProtectedRoute (a brand-new user with no
+  // settings row needs to reach it). But that means nothing redirects an already-onboarded
+  // user away from it either — a stale tab, browser back, or an old bookmark would otherwise
+  // show a blank "create your business" form every time, even though setup is long done.
+  if (!authLoading && userSettings?.onboarding_complete === true) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Avoid flashing the blank setup form while we're still confirming whether this
+  // user already finished onboarding.
+  if (authLoading) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)' }}
+      >
+        <Loader2 className="animate-spin text-white" size={32} />
+      </div>
+    );
+  }
 
   // Step 2
   const [businessName, setBusinessName] = useState('');

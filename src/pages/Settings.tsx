@@ -18,6 +18,7 @@ import { todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat } from 'date-fns';
 import { createInvite, inviteLink } from '@/lib/invites';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useExportGate } from '@/hooks/useExportGate';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -44,6 +45,7 @@ const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nu
 
 export default function SettingsPage() {
   const { symbol } = useCurrency();
+  const canExport = useExportGate();
   const navigate = useNavigate();
   const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
   const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
@@ -231,6 +233,7 @@ export default function SettingsPage() {
   }
 
   async function handleExportAll() {
+    if (!canExport()) return;
     setExporting(true);
     try {
       const [ordersRes, invRes, expRes] = await Promise.all([

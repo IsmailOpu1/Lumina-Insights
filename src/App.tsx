@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme, THEMES, type FontStyle, type ThemeName } from 
 import { FilterProvider, useFilter } from '@/context/FilterContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { FABProvider } from '@/context/FABContext';
+import { SubscriptionProvider } from '@/context/SubscriptionContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
@@ -23,6 +24,10 @@ const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
 const Notes = lazy(() => import('@/pages/Notes'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
+const Billing = lazy(() => import('@/pages/Billing'));
+const Landing = lazy(() => import('@/pages/Landing'));
+const Terms = lazy(() => import('@/pages/Terms'));
+const Privacy = lazy(() => import('@/pages/Privacy'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const Login = lazy(() => import('@/pages/Login'));
 const Signup = lazy(() => import('@/pages/Signup'));
@@ -68,6 +73,7 @@ const App = () => (
       <ThemeProvider>
         <FilterProvider>
           <NotificationProvider>
+            <SubscriptionProvider>
             <FABProvider>
               <TooltipProvider>
                 <Toaster />
@@ -83,9 +89,11 @@ const App = () => (
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/invite/:token" element={<InvitePage />} />
                       <Route path="/onboarding" element={<Onboarding />} />
+                      <Route path="/terms" element={<Terms />} />
+                      <Route path="/privacy" element={<Privacy />} />
 
                       {/* Protected routes */}
-                      <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+                      <Route element={<ProtectedRoute publicHome={<Landing />}><AppShell /></ProtectedRoute>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/orders" element={<Orders />} />
                         <Route path="/inventory" element={<Inventory />} />
@@ -95,6 +103,7 @@ const App = () => (
                         <Route path="/notes" element={<Notes />} />
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/billing" element={<Billing />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
@@ -103,6 +112,7 @@ const App = () => (
                 </BrowserRouter>
               </TooltipProvider>
             </FABProvider>
+            </SubscriptionProvider>
           </NotificationProvider>
         </FilterProvider>
       </ThemeProvider>

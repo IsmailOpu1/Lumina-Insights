@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import AITextRenderer from '@/components/AITextRenderer';
 import { Copy, RefreshCw, Save, Trash2, Sparkles } from 'lucide-react';
+import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok'] as const;
 type Platform = typeof PLATFORMS[number];
@@ -56,7 +57,7 @@ export default function MarketingAI() {
         }
       );
 
-      if (fnError) throw fnError;
+      if (fnError) throw new Error(await functionErrorMessage(fnError, 'Generation failed. Please try again.'));
       if (data?.error) throw new Error(data.error);
 
       let hashtags = data.hashtags;
@@ -83,7 +84,7 @@ export default function MarketingAI() {
       const now = new Date().toLocaleDateString('en-GB');
       const hashtagStr = output.hashtags?.map((h) => `#${h}`).join(' ') || '';
 
-      await supabase.from('marketing_outputs').insert({
+      const { error: outputError } = await supabase.from('marketing_outputs').insert({
         product_name: productName,
         platform,
         product_features: features || null,
@@ -96,14 +97,16 @@ export default function MarketingAI() {
         hashtags: hashtagStr,
         owner_id: ownerIdForQueries,
       });
+      if (outputError) throw new Error(dbErrorMessage(outputError.message));
 
-      await supabase.from('notes').insert({
+      const { error: noteError } = await supabase.from('notes').insert({
         type: 'ai_output',
         source_module: 'marketing_ai',
         title: `${productName} — ${platform} — ${now}`,
         transcript: `${output.hook || ''}\n\n${output.caption || ''}`,
         owner_id: ownerIdForQueries,
       });
+      if (noteError) throw new Error(dbErrorMessage(noteError.message));
 
       toast({ title: 'Saved to Notes ✓' });
     } catch (e) {

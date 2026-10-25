@@ -11,6 +11,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { fetchRecentSnapshot } from '@/lib/businessSnapshot';
 import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
+import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
 
 interface ChatMessage {
   id: string;
@@ -294,11 +295,12 @@ export default function AIAssistant() {
         content: aiText,
       };
       setMessages((prev) => [...prev, aiMsg]);
-    } catch {
+    } catch (e) {
+      // Shows the server's explanation, e.g. the daily AI limit or an expired plan.
       const errMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: 'Something went wrong. Please try again.',
+        content: await functionErrorMessage(e, 'Something went wrong. Please try again.'),
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
@@ -314,13 +316,17 @@ export default function AIAssistant() {
       .slice(0, index)
       .reverse()
       .find((m) => m.role === 'user')?.content;
-    await supabase.from('notes').insert({
+    const { error } = await supabase.from('notes').insert({
       type: 'ai_output',
       source_module: 'business_ai',
       title: question ? question.slice(0, 200) : 'AI Insight',
       transcript: msg.content,
       owner_id: ownerIdForQueries,
     });
+    if (error) {
+      toast({ title: 'Could not save', description: dbErrorMessage(error.message), variant: 'destructive' });
+      return;
+    }
     setMessages((prev) =>
       prev.map((m) =>
         m.id === msg.id ? { ...m, savedToNotes: true } : m

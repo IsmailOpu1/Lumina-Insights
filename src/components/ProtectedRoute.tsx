@@ -1,40 +1,33 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import SkeletonLoader from '@/components/SkeletonLoader';
+import PageLoader from '@/components/PageLoader';
 
 export default function ProtectedRoute({
-  children
+  children,
+  publicHome,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
+  /** Shown instead of the login redirect when a signed-out visitor opens "/". */
+  publicHome?: React.ReactNode;
 }) {
   const { session, userSettings, loading } = useAuth();
+  const location = useLocation();
 
   // Still loading auth + settings
   if (loading) {
-    return (
-      <div
-        className="flex h-screen w-screen
-          items-center justify-center"
-        style={{ backgroundColor: 'var(--page-bg)' }}
-      >
-        <SkeletonLoader variant="card" count={4} />
-      </div>
-    );
+    return <PageLoader fullScreen />;
   }
 
-  // Not logged in
+  // Not logged in: the landing page at "/", login everywhere else
   if (!session) {
+    if (publicHome && location.pathname === '/') return <>{publicHome}</>;
     return <Navigate to="/login" replace />;
   }
 
-  // Logged in but no settings row yet
-  // OR onboarding explicitly false
-  // → go to onboarding
-  // Only redirect when loading is complete (prevents race condition during loading)
-  if (!loading && session && (!userSettings || userSettings.onboarding_complete === false)) {
+  // Logged in but no settings row yet, or onboarding not finished
+  if (!userSettings || userSettings.onboarding_complete === false) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // All good → render the page
   return <>{children}</>;
 }

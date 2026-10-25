@@ -1,4 +1,4 @@
-import { corsHeaders, describeBusiness, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, describeBusiness, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
 
 const platformPrompts: Record<string, string> = {
   Instagram: "Short punchy caption, under 150 words, 15 hashtags relevant to the product and Bangladesh market.",
@@ -15,6 +15,9 @@ Deno.serve(async (req) => {
 
     const { product_name, platform, product_features, target_audience } = await req.json();
     if (!product_name) return json({ error: "product_name is required" }, 400);
+
+    const quotaError = await consumeQuota(caller.client, "marketing");
+    if (quotaError) return quotaError;
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("Gemini API key is not configured");

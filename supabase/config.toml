@@ -13,3 +13,14 @@ verify_jwt = true
 
 [functions.send-invite-email]
 verify_jwt = true
+
+[functions.create-payment]
+verify_jwt = true
+
+# Called by SSLCommerz (the customer's browser and its servers), which carry
+# no Supabase session. Both trust only SSLCommerz's validation API.
+[functions.payment-return]
+verify_jwt = false
+
+[functions.sslcommerz-ipn]
+verify_jwt = false

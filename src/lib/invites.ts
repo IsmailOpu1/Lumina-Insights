@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 export type InviteRole = 'manager' | 'viewer';
 
@@ -27,7 +28,7 @@ export async function createInvite(ownerId: string, email: string, role: InviteR
     .select('id')
     .single();
 
-  if (error) return { error: error.message, link: null, emailed: false };
+  if (error) return { error: dbErrorMessage(error.message), link: null, emailed: false };
 
   const { error: emailError } = await supabase.functions.invoke('send-invite-email', {
     body: { invite_id: data.id },

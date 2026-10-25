@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat, subDays, startOfDay, startOfToday } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useExportGate } from '@/hooks/useExportGate';
 
 interface OrderRow {
   id: string;
@@ -44,6 +45,7 @@ const PAGE_SIZE = 20;
 
 export default function Orders() {
   const { formatCurrency, symbol } = useCurrency();
+  const canExport = useExportGate();
   const { openModal } = useFAB();
   const { isViewer } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -165,6 +167,7 @@ export default function Orders() {
   }
 
   async function handleExport() {
+    if (!canExport()) return;
     setExporting(true);
     try {
       const headers = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', 'Selling Price', 'Shipping', 'Ad Cost', 'Profit', 'Date'];

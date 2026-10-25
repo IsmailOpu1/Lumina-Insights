@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 export default function GlobalProductModal() {
   const { symbol } = useCurrency();
@@ -44,7 +45,7 @@ export default function GlobalProductModal() {
       supplier: supplier.trim() || null,
       owner_id: ownerIdForQueries,
     });
-    if (error) { toast.error('Failed to add product', { description: error.message }); setSubmitting(false); return; }
+    if (error) { toast.error('Failed to add product', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
     toast.success('Product added ✓');
     closeModal();
   }

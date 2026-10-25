@@ -1,4 +1,4 @@
-import { corsHeaders, currencySymbol, daysAgo, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, currencySymbol, daysAgo, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
 
 const MAX_HISTORY_MESSAGES = 20;
 const CONTEXT_DAYS = 30;
@@ -17,6 +17,9 @@ Deno.serve(async (req) => {
 
     const { message, conversation_history, image_base64, image_type } = await req.json();
     if (!message || typeof message !== "string") return json({ error: "message is required" }, 400);
+
+    const quotaError = await consumeQuota(caller.client, "ai_chat");
+    if (quotaError) return quotaError;
 
     // Business numbers come from the database, never from the request.
     const snapshot = await fetchSnapshot(caller.client, daysAgo(CONTEXT_DAYS - 1));

@@ -1,17 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { toast } from 'sonner';
+import { acceptInvite } from '@/lib/invites';
 
 export type UserRole = 'owner' | 'manager' | 'viewer';
-
-// Invite tokens no longer survive Supabase's emailRedirectTo (it strips query params on
-// confirmation), so we stash a pending token here before signUp/signIn and redeem it once
-// a confirmed session exists. One source of truth, redeemed exactly once, regardless of
-// whether the user arrives via signup-confirmation or a direct login.
-const PENDING_INVITE_KEY = 'lumina_pending_invite_token';
-export function setPendingInviteToken(token: string) {
-  localStorage.setItem(PENDING_INVITE_KEY, token);
-}
 
 export interface UserSettings {
   id: string;
@@ -69,53 +62,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('user_id', uid)
       .maybeSingle();
 
-    if (data) {
-      setUserSettings(data as unknown as UserSettings);
-      if ((data as any).role === 'owner') {
-        setOwnerIdForQueries(uid);
-      } else {
-        // Use owner_id from user_settings directly
-        // (set correctly during invite acceptance)
-        const ownerId = (data as any).owner_id;
-        if (ownerId) {
-          setOwnerIdForQueries(ownerId);
-        } else {
-          // Fallback: check team_members table
-          const { data: teamRow } = await supabase
-            .from('team_members')
-            .select('owner_id')
-            .eq('member_id', uid)
-            .eq('status', 'active')
-            .limit(1)
-            .maybeSingle();
-          setOwnerIdForQueries(teamRow?.owner_id || uid);
-        }
-      }
-    } else {
-      setUserSettings(null);
-      setOwnerIdForQueries(uid);
-    }
+    const settings = data as unknown as UserSettings | null;
+    setUserSettings(settings);
+    // The database keeps owner_id correct for members (set by
+    // accept_team_invite); owners and new users query their own workspace.
+    setOwnerIdForQueries(settings && settings.role !== 'owner' && settings.owner_id ? settings.owner_id : uid);
   }, []);
 
-  const refreshSettings = useCallback(async () => {
-    if (user) await fetchSettings(user.id);
-  }, [user, fetchSettings]);
-
-  // Redeems a pending invite token (if any) via the server-side accept_team_invite()
-  // function, which validates the invite is real, unexpired and unused before writing
-  // team_members/user_settings. Safe to call on every sign-in; it's a no-op if there's
-  // no pending token.
-  const redeemPendingInvite = useCallback(async () => {
-    const token = localStorage.getItem(PENDING_INVITE_KEY);
+  // An invitee who signed up has the invite token in their metadata; accept it
+  // on their first confirmed sign-in, then clear it.
+  const acceptPendingInvite = useCallback(async (u: User) => {
+    const token = u.user_metadata?.invite_token as string | undefined;
     if (!token) return;
-    localStorage.removeItem(PENDING_INVITE_KEY);
-    const { error } = await supabase.rpc('accept_team_invite', { p_token: token });
-    if (error) {
-      // Invite was invalid/expired/already used — fail quietly and let the user
-      // fall through to normal onboarding rather than blocking sign-in.
-      console.error('Invite redemption failed:', error.message);
-    }
+    const message = await acceptInvite(token);
+    await supabase.auth.updateUser({ data: { invite_token: null } });
+    if (message) toast.error('Could not join the workspace', { description: message });
+    else toast.success('You have joined the workspace');
   }, []);
+
+  const loadUser = useCallback(async (u: User) => {
+    await acceptPendingInvite(u);
+    await fetchSettings(u.id);
+  }, [acceptPendingInvite, fetchSettings]);
+
+  // Reads the session directly: right after sign-in the `user` state may not
+  // be set yet.
+  const refreshSettings = useCallback(async () => {
+    const { data: { session: current } } = await supabase.auth.getSession();
+    if (current) await fetchSettings(current.user.id);
+  }, [fetchSettings]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -142,13 +117,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
             return;
           }
-          // Redeem any pending invite BEFORE fetching settings, so ProtectedRoute's
-          // onboarding-redirect check (driven by `loading`) never fires on a stale,
-          // pre-invite-redemption state.
-          (async () => {
-            await redeemPendingInvite();
-            await fetchSettings(newSession.user.id);
-          })().finally(() => setLoading(false));
+          // Token refreshes don't change settings; skip the refetch.
+          if (event === 'TOKEN_REFRESHED') return;
+          // Hold protected routes on the loader until settings arrive, so a
+          // fresh sign-in is not mistaken for "no settings → onboarding".
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') setLoading(true);
+          // Supabase calls made inside this callback can deadlock the auth
+          // client, so defer them to the next tick.
+          const u = newSession.user;
+          setTimeout(() => {
+            loadUser(u).finally(() => setLoading(false));
+          }, 0);
         } else {
           setUserSettings(null);
           setOwnerIdForQueries(null);
@@ -157,14 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Then check existing session (trigger the auth listener by calling getSession)
-    // The auth listener will fire with INITIAL_SESSION event and handle loading
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      // Don't manipulate loading here - let the auth listener handle it
-    });
-
     return () => subscription.unsubscribe();
-  }, [fetchSettings, redeemPendingInvite]);
+  }, [loadUser]);
 
   return (
     <AuthContext.Provider

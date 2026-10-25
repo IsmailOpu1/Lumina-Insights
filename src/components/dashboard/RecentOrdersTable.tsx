@@ -11,6 +11,7 @@ interface Order {
   order_number: string;
   customer_name: string;
   product_id: string | null;
+  product_name?: string | null;
   quantity: number;
   selling_price: number;
   shipping_cost: number;
@@ -103,7 +104,7 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
             <tr key={o.id} className="table-row-hover border-b border-border/50">
                 <td className="px-3 py-2.5 font-bold text-foreground">{o.order_number}</td>
                 <td className="px-3 py-2.5 text-foreground font-extrabold text-sm">{o.customer_name}</td>
-                <td className="px-3 py-2.5 font-extrabold text-indigo-900">{o.product_id ? invMap.get(o.product_id) || '—' : '—'}</td>
+                <td className="px-3 py-2.5 font-extrabold text-indigo-900">{(o.product_id && invMap.get(o.product_id)) || o.product_name || '—'}</td>
                 <td className="px-3 py-2.5 font-extrabold text-indigo-900">{o.source}</td>
                 <td className="px-3 py-2.5"><StatusBadge status={o.status} /></td>
                 <td className="px-3 py-2.5 font-bold text-foreground">{o.quantity}</td>

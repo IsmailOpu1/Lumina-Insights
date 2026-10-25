@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat } from 'date-fns';
+import { createInvite, inviteLink } from '@/lib/invites';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -41,7 +42,7 @@ const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nu
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, userSettings, isOwner, ownerIdForQueries, signOut, refreshSettings } = useAuth();
+  const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
   const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
   const { refreshCount } = useNotifications();
   const [loading, setLoading] = useState(true);
@@ -245,7 +246,7 @@ export default function SettingsPage() {
       const orders = ordersRes.data || [];
       const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', 'Selling ৳', 'Shipping ৳', 'Ad Cost ৳', 'Profit ৳', 'Date'];
       const oRows = orders.map((o: any) => [
-        o.order_number, o.customer_name, o.inventory?.product_name || '', o.source || '', o.status,
+        o.order_number, o.customer_name, (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
         o.quantity, o.selling_price, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
         fnsFormat(new Date(o.date), 'dd/MM/yyyy'),
       ]);
@@ -324,31 +325,21 @@ export default function SettingsPage() {
   }
 
   async function sendTeamInvite() {
-    if (!inviteEmail.trim() || !user || !ownerIdForQueries) return;
+    if (!inviteEmail.trim() || !user || !isOwner) return;
     setSendingInvite(true);
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error, emailed } = await createInvite(user.id, inviteEmail, inviteRole);
+    setSendingInvite(false);
 
-    const { error: insertError } = await supabase.from('invites').insert({
-      owner_id: ownerIdForQueries,
-      email: inviteEmail.trim(),
-      role: inviteRole,
-      token,
-      expires_at: expiresAt,
-    });
-
-    if (insertError) {
-      toast.error('Failed to create invite', { description: insertError.message });
-      setSendingInvite(false);
+    if (error) {
+      toast.error('Failed to create invite', { description: error });
       return;
     }
 
-    const link = `${window.location.origin}/invite/${token}`;
     setInviteEmail('');
     setInviteModalOpen(false);
     fetchTeamData();
-    setSendingInvite(false);
-    toast.success('Invite created successfully!');
+    if (emailed) toast.success('Invite email sent!');
+    else toast.warning('Invite created, but the email could not be sent. Use the copy-link button to share it.');
   }
 
   async function removeTeamMember(memberId: string) {
@@ -372,8 +363,7 @@ export default function SettingsPage() {
   }
 
   function copyInviteLink(token: string) {
-    const link = `${window.location.origin}/invite/${token}`;
-    navigator.clipboard.writeText(link);
+    navigator.clipboard.writeText(inviteLink(token));
     toast.success('Link copied!');
   }
 

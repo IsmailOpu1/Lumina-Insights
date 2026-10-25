@@ -43,7 +43,7 @@ const PAGE_SIZE = 20;
 export default function Inventory() {
   const { openModal } = useFAB();
   const { getDateRange } = useFilter();
-  const { isViewer } = useAuth();
+  const { isViewer, ownerIdForQueries } = useAuth();
   const [items, setItems] = useState<InvRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -64,7 +64,7 @@ export default function Inventory() {
     setLoading(true);
     const [{ data: inv }, { data: settings }] = await Promise.all([
     supabase.from('inventory').select('*').order('product_name'),
-    supabase.from('user_settings').select('dead_product_days').limit(1).maybeSingle()]
+    supabase.from('user_settings').select('dead_product_days').eq('user_id', ownerIdForQueries).maybeSingle()]
     );
     if (inv) setItems(inv as InvRow[]);
     if (settings && (settings as Record<string, unknown>).dead_product_days) setDeadDays((settings as Record<string, unknown>).dead_product_days as number);
@@ -87,7 +87,7 @@ export default function Inventory() {
       setOrderAggs(Object.entries(map).map(([product_id, v]) => ({ product_id, ...v })));
     }
     setLoading(false);
-  }, [getDateRange]);
+  }, [getDateRange, ownerIdForQueries]);
 
   useEffect(() => {fetchAll();}, [fetchAll]);
 

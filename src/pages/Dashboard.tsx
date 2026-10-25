@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 import { useDashboardData, computeKPIs, getRevenueBySource, getOrdersByStatus, getTopProducts } from '@/hooks/useDashboardData';
 import { formatTaka } from '@/lib/constants';
 import DateFilterBar from '@/components/dashboard/DateFilterBar';
@@ -16,6 +17,7 @@ import ProfitCalculator from '@/components/dashboard/ProfitCalculator';
 
 export default function Dashboard() {
   const { orders, inventory, expenses, loading, refetch } = useDashboardData();
+  const { ownerIdForQueries } = useAuth();
   const [allOrders, setAllOrders] = useState<typeof orders>([]);
   const [deadProductDays, setDeadProductDays] = useState(30);
   const [roasThreshold, setRoasThreshold] = useState(2.0);
@@ -28,16 +30,20 @@ export default function Dashboard() {
     fetchAll();
   }, [orders]);
 
+  // Thresholds are workspace settings, so always read the owner's row.
   useEffect(() => {
+    if (!ownerIdForQueries) return;
     async function fetchSettings() {
-      const { data } = await supabase.from('user_settings').select('dead_product_days, roas_threshold').limit(1).maybeSingle();
-      if (data) {
-        if ((data as any).dead_product_days) setDeadProductDays((data as any).dead_product_days);
-        if ((data as any).roas_threshold) setRoasThreshold((data as any).roas_threshold);
-      }
+      const { data } = await supabase
+        .from('user_settings')
+        .select('dead_product_days, roas_threshold')
+        .eq('user_id', ownerIdForQueries)
+        .maybeSingle();
+      if (data?.dead_product_days) setDeadProductDays(data.dead_product_days);
+      if (data?.roas_threshold) setRoasThreshold(data.roas_threshold);
     }
     fetchSettings();
-  }, []);
+  }, [ownerIdForQueries]);
 
   const kpis = computeKPIs(orders, inventory, expenses);
   const sourceData = getRevenueBySource(orders);
@@ -54,14 +60,9 @@ export default function Dashboard() {
 
   const topProductName = topProducts.length > 0 ? topProducts[0].name : '—';
 
-  // Ad cost from orders
-  const totalOrderAdCost = orders.reduce((s, o) => s + ((o as any).ad_cost ?? 0), 0);
-
-  // Avg Ad Cost per Order
-  const avgAdCostPerOrder = kpis.totalOrders > 0 ? kpis.adSpend / kpis.totalOrders : 0;
-
-  // ROAS
-  const roas = kpis.adSpend > 0 ? kpis.totalRevenue / kpis.adSpend : Infinity;
+  // Ad spend counts both ad expenses and per-order ad costs.
+  const avgAdCostPerOrder = kpis.totalOrders > 0 ? kpis.totalAdSpend / kpis.totalOrders : 0;
+  const roas = kpis.totalAdSpend > 0 ? kpis.totalRevenue / kpis.totalAdSpend : Infinity;
 
   const kpiCards = [
     { label: 'Total Revenue', value: kpis.totalRevenue, format: 'taka' as const },
@@ -106,7 +107,7 @@ export default function Dashboard() {
           cogs={kpis.cogs}
           shipping={kpis.totalShipping}
           adSpend={kpis.adSpend}
-          orderAdCost={totalOrderAdCost}
+          orderAdCost={kpis.orderAdCost}
           netProfit={kpis.netProfit}
           loading={loading}
         />

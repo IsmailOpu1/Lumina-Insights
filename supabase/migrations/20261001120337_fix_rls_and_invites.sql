@@ -1,3 +1,6 @@
+-- Recovered verbatim from supabase_migrations.schema_migrations on the live project.
+-- It was applied to production on 2026-10-01 but never committed to the repo.
+
 -- Fix 1: workspace access helper — owner, or an active team member (optionally write-capable)
 create or replace function public.has_workspace_access(target_owner uuid, require_write boolean default false)
 returns boolean
@@ -16,8 +19,6 @@ as $$
      );
 $$;
 
--- Fix 2: replace owner_id-only RLS on every workspace data table with the helper above,
--- so invited managers/viewers can actually see and (for managers) write the owner's data.
 do $$
 declare
   t text;
@@ -36,12 +37,6 @@ begin
   end loop;
 end $$;
 
--- Fix 3: close the team_members self-insert hole. Previously "owner_id = auth.uid() OR member_id = auth.uid()"
--- applied to ALL commands, including INSERT — meaning any authenticated user could insert themselves
--- as an active member of ANY business by guessing/knowing that owner's uid, without a real invite.
--- Split into granular policies; direct client INSERT is now owner-only. Member rows are instead created
--- by accept_team_invite() below, which runs as SECURITY DEFINER and bypasses this policy safely because
--- it validates a real, unexpired, unused invite first.
 drop policy if exists owner_manages_team on team_members;
 
 create policy team_members_select on team_members
@@ -56,14 +51,9 @@ create policy team_members_owner_update on team_members
 create policy team_members_owner_or_self_delete on team_members
   for delete using (owner_id = auth.uid() or member_id = auth.uid());
 
--- Needed for the upsert in accept_team_invite()
 alter table team_members
   add constraint team_members_owner_member_unique unique (owner_id, member_id);
 
--- Fix 4: single atomic, server-side invite acceptance. Replaces the duplicated client-side logic
--- in Signup.tsx and Login.tsx (team_members insert + user_settings upsert + mark-used, done as three
--- separate unguarded client calls in two different files). Runs as the authenticated user, but as
--- SECURITY DEFINER so it can safely write team_members on their behalf after verifying the invite.
 create or replace function public.accept_team_invite(p_token text)
 returns void
 language plpgsql

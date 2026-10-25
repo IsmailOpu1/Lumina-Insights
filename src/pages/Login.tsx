@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { setPendingInviteToken } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
+import { acceptInvite } from '@/lib/invites';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [email, setEmail] = useState('');
@@ -23,14 +25,6 @@ export default function Login() {
     if (!email.trim() || !password) return;
     setLoading(true);
 
-    // Stash the invite token (if any) before signing in — AuthContext's onAuthStateChange
-    // listener redeems it via the server-side accept_team_invite() function and resolves
-    // userSettings before `loading` flips false, so ProtectedRoute makes the right call
-    // on its own. No manual polling, no duplicated invite logic here.
-    if (token) {
-      setPendingInviteToken(token);
-    }
-
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (error) {
@@ -39,9 +33,14 @@ export default function Login() {
       return;
     }
 
-    // AuthContext handles invite redemption + settings fetch + the onboarding-vs-dashboard
-    // decision; ProtectedRoute reads that state once loading clears. We just need to leave
-    // /login — '/' is enough, ProtectedRoute redirects to /onboarding itself if needed.
+    if (token) {
+      const message = await acceptInvite(token);
+      if (message) toast.error('Could not join the workspace', { description: message });
+      else toast.success('You have joined the workspace');
+    }
+
+    // ProtectedRoute sends users without finished onboarding to /onboarding.
+    await refreshSettings();
     navigate('/', { replace: true });
   };
 

@@ -1,4 +1,50 @@
 
+-- 0. Prerequisites. On production these were created by hand before this
+--    migration ran; they are added here (idempotently) so a fresh database
+--    can be built from the migrations folder.
+CREATE TABLE IF NOT EXISTS public.team_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  member_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  role text NOT NULL DEFAULT 'viewer' CHECK (role IN ('manager', 'viewer')),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active')),
+  invite_token text UNIQUE,
+  invite_expires_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.invites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  role text NOT NULL DEFAULT 'viewer' CHECK (role IN ('manager', 'viewer')),
+  token text NOT NULL UNIQUE,
+  used boolean DEFAULT false,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+DO $$
+DECLARE
+  t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['inventory','orders','expenses','notes','marketing_outputs','notifications','user_settings']
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES auth.users(id) ON DELETE CASCADE', t);
+  END LOOP;
+END $$;
+
+ALTER TABLE public.user_settings
+  ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS business_name text,
+  ADD COLUMN IF NOT EXISTS business_type text,
+  ADD COLUMN IF NOT EXISTS business_description text,
+  ADD COLUMN IF NOT EXISTS currency text DEFAULT 'BDT',
+  ADD COLUMN IF NOT EXISTS user_full_name text,
+  ADD COLUMN IF NOT EXISTS role text DEFAULT 'owner',
+  ADD COLUMN IF NOT EXISTS onboarding_complete boolean DEFAULT false;
+
 -- 1. Create helper function for workspace-based RLS
 CREATE OR REPLACE FUNCTION public.get_my_owner_id()
 RETURNS uuid

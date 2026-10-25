@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { dbErrorMessage } from '@/lib/dbErrors';
 import { format } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
 
@@ -204,7 +205,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
     if (isEdit && editOrder) {
       const { error } = await supabase.from('orders').update(payload).eq('id', editOrder.id);
       if (error) {
-        toast.error('Update failed. Try again.', { description: error.message });
+        toast.error('Update failed', { description: dbErrorMessage(error.message) });
         setSubmitting(false);
         return;
       }
@@ -212,7 +213,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
     } else {
       const { error } = await supabase.from('orders').insert({ ...payload, order_number: orderNumber, owner_id: ownerIdForQueries });
       if (error) {
-        toast.error('Failed to create order', { description: error.message });
+        toast.error('Failed to create order', { description: dbErrorMessage(error.message) });
         setSubmitting(false);
         return;
       }

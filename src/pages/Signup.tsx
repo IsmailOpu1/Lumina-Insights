@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { setPendingInviteToken } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -34,33 +33,17 @@ export default function Signup() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [checking, setChecking] = useState(false);
 
   const strength = getPasswordStrength(password);
 
-  const handleGoToLogin = async () => {
-    setChecking(true);
-    const { data } = await supabase.auth.getSession();
-    const { data: userData } = await supabase.auth.getUser();
-    
-    if (userData?.user?.email_confirmed_at) {
-      navigate('/login');
-    } else {
-      toast.error('Please confirm your email first', {
-        description: 'Check your inbox and click the confirmation link before signing in.'
-      });
-    }
-    setChecking(false);
-  };
-
+  // Pre-fill the invited email so the invite can be accepted on sign-in.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'USER_UPDATED') {
-        navigate('/login');
-      }
+    if (!token) return;
+    supabase.rpc('get_invite_preview', { p_token: token }).then(({ data }) => {
+      const invite = data?.[0];
+      if (invite?.status === 'valid') setEmail(invite.email);
     });
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [token]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,12 +66,14 @@ export default function Signup() {
 
     setLoading(true);
 
+    // With an invite, the token rides along in user metadata; AuthContext
+    // accepts it on the first confirmed sign-in.
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: window.location.origin,
+        data: { full_name: fullName.trim(), ...(token ? { invite_token: token } : {}) },
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
 
@@ -96,14 +81,6 @@ export default function Signup() {
       toast.error('Signup failed', { description: error.message });
       setLoading(false);
       return;
-    }
-
-    // If this signup came from an invite link, stash the token — it can't survive
-    // Supabase's email confirmation redirect (emailRedirectTo gets stripped to the bare
-    // origin), so AuthContext redeems it itself via accept_team_invite() once a confirmed
-    // session actually exists, whether that's right after confirming or on a later login.
-    if (token) {
-      setPendingInviteToken(token);
     }
 
     setEmailSent(true);
@@ -130,11 +107,10 @@ export default function Signup() {
                 We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account, then come back to sign in.
               </p>
               <Button
-                onClick={handleGoToLogin}
-                disabled={checking}
+                onClick={() => navigate('/login')}
                 className="mt-4 h-12 w-full bg-[#4A7C59] font-bold text-white"
               >
-                {checking ? <Loader2 className="animate-spin" size={20} /> : 'Go to Login'}
+                Go to Login
               </Button>
             </div>
           ) : (

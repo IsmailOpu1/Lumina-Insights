@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Sparkles, ArrowRight, Check, Loader2, ShoppingBag, Megaphone, MessageSquare, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { Navigate } from 'react-router-dom';
+import { createInvite, type InviteRole } from '@/lib/invites';
 
 const BUSINESS_TYPES = ['Fashion/Clothing', 'Electronics', 'Food & Beverage', 'Beauty & Skincare', 'Home & Living', 'Other'];
 
@@ -21,30 +21,9 @@ const CURRENCIES = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, userSettings, loading: authLoading, ownerIdForQueries, refreshSettings } = useAuth();
+  const { user, userSettings, loading: authLoading, refreshSettings } = useAuth();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
-
-  // /onboarding is intentionally NOT wrapped in ProtectedRoute (a brand-new user with no
-  // settings row needs to reach it). But that means nothing redirects an already-onboarded
-  // user away from it either — a stale tab, browser back, or an old bookmark would otherwise
-  // show a blank "create your business" form every time, even though setup is long done.
-  if (!authLoading && userSettings?.onboarding_complete === true) {
-    return <Navigate to="/" replace />;
-  }
-
-  // Avoid flashing the blank setup form while we're still confirming whether this
-  // user already finished onboarding.
-  if (authLoading) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)' }}
-      >
-        <Loader2 className="animate-spin text-white" size={32} />
-      </div>
-    );
-  }
 
   // Step 2
   const [businessName, setBusinessName] = useState('');
@@ -68,51 +47,65 @@ export default function Onboarding() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const sendInvite = async () => {
-    if (!inviteEmail.trim() || !user || !ownerIdForQueries) return;
+    if (!inviteEmail.trim() || !user) return;
     setSendingInvite(true);
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error, link, emailed } = await createInvite(user.id, inviteEmail, inviteRole as InviteRole);
+    setSendingInvite(false);
 
-    const { error: insertError } = await supabase.from('invites').insert({
-      owner_id: ownerIdForQueries,
-      email: inviteEmail.trim(),
-      role: inviteRole,
-      token,
-      expires_at: expiresAt,
-    });
-
-    if (insertError) {
-      toast.error('Failed to create invite', { description: insertError.message });
-      setSendingInvite(false);
+    if (error) {
+      toast.error('Failed to create invite', { description: error });
       return;
     }
 
-    const link = `${window.location.origin}/invite/${token}`;
     setSentInvites((prev) => [...prev, { email: inviteEmail.trim(), role: inviteRole, link }]);
     setInviteEmail('');
-    setSendingInvite(false);
-    toast.success('Invite created successfully!');
+    if (emailed) toast.success('Invite email sent!');
+    else toast.warning('Invite created, but the email could not be sent. Copy the link and share it.');
   };
 
-  const finish = async () => {
-    if (!user) return;
-    setSaving(true);
-    await supabase.from('user_settings').upsert({
+  // role and owner_id are enforced by the database for new rows.
+  const saveProfile = async (complete: boolean) => {
+    if (!user) return false;
+    const { error } = await supabase.from('user_settings').upsert({
       user_id: user.id,
-      owner_id: user.id,
       business_name: businessName.trim(),
       business_type: businessType,
       business_description: businessDesc.trim(),
       currency,
       full_name: fullName.trim(),
-      role: 'owner',
-      onboarding_complete: true,
-    } as any, { onConflict: 'user_id' });
-
-    await refreshSettings();
-    setSaving(false);
-    navigate('/', { replace: true });
+      onboarding_complete: complete,
+    }, { onConflict: 'user_id' });
+    if (error) {
+      toast.error('Could not save your business profile', { description: error.message });
+      return false;
+    }
+    return true;
   };
+
+  const finish = async () => {
+    setSaving(true);
+    const ok = await saveProfile(true);
+    if (ok) await refreshSettings();
+    setSaving(false);
+    if (ok) navigate('/', { replace: true });
+  };
+
+  // /onboarding is not behind ProtectedRoute (new users have no settings row
+  // yet), so send already-onboarded users away here. These returns must stay
+  // below every hook call.
+  if (authLoading) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)' }}
+      >
+        <Loader2 className="animate-spin text-white" size={32} />
+      </div>
+    );
+  }
+  if (userSettings?.onboarding_complete === true && !saving) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div
@@ -223,7 +216,10 @@ export default function Onboarding() {
               </div>
               <div className="flex gap-3 mt-2">
                 <Button variant="outline" onClick={prevStep} className="flex-1 h-12">Back</Button>
-                <Button onClick={nextStep} className="flex-1 h-12 bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+                <Button
+                  onClick={async () => { if (await saveProfile(false)) nextStep(); }}
+                  className="flex-1 h-12 bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]"
+                >
                   Continue <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>

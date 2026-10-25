@@ -1,8 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { getChartTheme } from '@/lib/chartTheme';
-import { formatTaka } from '@/lib/constants';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ProductData {
   name: string;
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export default function TopSellingProductsBar({ data, loading }: Props) {
+  const { formatCurrency } = useCurrency();
   const { isDark } = useTheme();
   const theme = getChartTheme(isDark);
 
@@ -57,7 +58,7 @@ export default function TopSellingProductsBar({ data, loading }: Props) {
           />
           <Tooltip
             contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }}
-            formatter={(value: number, _: string, props: any) => [`${value} units sold • ${formatTaka(props.payload.revenue)}`, props.payload.fullName]} />
+            formatter={(value: number, _: string, props: any) => [`${value} units sold • ${formatCurrency(props.payload.revenue)}`, props.payload.fullName]} />
           
           <Bar dataKey="qty" fill="#6366F1" radius={[0, 4, 4, 0]} barSize={24} />
         </BarChart>

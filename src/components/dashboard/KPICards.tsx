@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatTaka } from '@/lib/constants';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface KPI {
   label: string;
@@ -18,6 +18,7 @@ interface KPICardsProps {
 }
 
 function AnimatedNumber({ value, format, color }: {value: number;format: KPI['format'];color?: string;}) {
+  const { formatCurrency } = useCurrency();
   const [displayed, setDisplayed] = useState(0);
   const rafRef = useRef<number>();
   const startRef = useRef<number>();
@@ -39,7 +40,7 @@ function AnimatedNumber({ value, format, color }: {value: number;format: KPI['fo
     return () => {if (rafRef.current) cancelAnimationFrame(rafRef.current);};
   }, [value]);
 
-  const formatted = format === 'taka' ? formatTaka(displayed) :
+  const formatted = format === 'taka' ? formatCurrency(displayed) :
   format === 'percent' ? `${displayed.toFixed(1)}%` :
   format === 'roas' ? `${displayed.toFixed(1)}x` :
   Math.round(displayed).toLocaleString();

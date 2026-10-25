@@ -27,6 +27,8 @@ export interface UserSettings {
   notification_preferences: Record<string, boolean> | null;
 }
 
+export type WorkspaceProfile = Pick<UserSettings, 'business_name' | 'business_type' | 'business_description' | 'currency'>;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -36,6 +38,8 @@ interface AuthContextType {
   isViewer: boolean;
   role: UserRole;
   ownerIdForQueries: string | null;
+  /** Business profile of the workspace being viewed (the owner's, for members). */
+  workspace: WorkspaceProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshSettings: () => Promise<void>;
@@ -48,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [ownerIdForQueries, setOwnerIdForQueries] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<WorkspaceProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const role: UserRole = (userSettings?.role as UserRole) || 'viewer';
@@ -63,10 +68,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle();
 
     const settings = data as unknown as UserSettings | null;
-    setUserSettings(settings);
     // The database keeps owner_id correct for members (set by
     // accept_team_invite); owners and new users query their own workspace.
-    setOwnerIdForQueries(settings && settings.role !== 'owner' && settings.owner_id ? settings.owner_id : uid);
+    const ownerId = settings && settings.role !== 'owner' && settings.owner_id ? settings.owner_id : uid;
+
+    // Members' own rows carry no business profile; read the owner's.
+    let profile: WorkspaceProfile | null = settings;
+    if (ownerId !== uid) {
+      const { data: ownerRow } = await supabase
+        .from('user_settings')
+        .select('business_name, business_type, business_description, currency')
+        .eq('user_id', ownerId)
+        .maybeSingle();
+      profile = ownerRow;
+    }
+
+    setUserSettings(settings);
+    setWorkspace(profile);
+    setOwnerIdForQueries(ownerId);
   }, []);
 
   // An invitee who signed up has the invite token in their metadata; accept it
@@ -98,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setUserSettings(null);
     setOwnerIdForQueries(null);
+    setWorkspace(null);
   }, []);
 
   useEffect(() => {
@@ -114,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(null);
             setUserSettings(null);
             setOwnerIdForQueries(null);
+            setWorkspace(null);
             setLoading(false);
             return;
           }
@@ -131,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUserSettings(null);
           setOwnerIdForQueries(null);
+          setWorkspace(null);
           setLoading(false);
         }
       }
@@ -144,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user, session, userSettings,
         isOwner, isManager, isViewer, role,
-        ownerIdForQueries, loading,
+        ownerIdForQueries, workspace, loading,
         signOut, refreshSettings,
       }}
     >

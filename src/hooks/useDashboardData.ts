@@ -84,7 +84,7 @@ export function useDashboardData(): DashboardData {
 }
 
 // Cancelled orders earn nothing and cost nothing.
-export function activeOrders(orders: Order[]) {
+export function activeOrders<T extends { status: string }>(orders: T[]): T[] {
   return orders.filter(o => o.status !== 'Cancelled');
 }
 

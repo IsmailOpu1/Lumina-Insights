@@ -1,14 +1,17 @@
 import { useMemo } from 'react';
-import { formatTaka } from '@/lib/constants';
 import { format, subDays, startOfDay, isToday, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
+import { activeOrders } from '@/hooks/useDashboardData';
 
 interface Order {
   date: string;
+  status: string;
   selling_price: number;
   quantity: number;
   profit_per_order: number;
   product_id: string | null;
+  product_name?: string | null;
 }
 
 interface InventoryItem {
@@ -31,9 +34,13 @@ interface Props {
   deadProductDays: number;
 }
 
-export default function BusinessMetrics({ orders, allOrders, inventory, expenses, loading, deadProductDays }: Props) {
+export default function BusinessMetrics({ orders: periodOrders, allOrders: recentOrders, inventory, expenses, loading, deadProductDays }: Props) {
+  const { formatCurrency } = useCurrency();
   const metrics = useMemo(() => {
     if (loading) return null;
+    // Cancelled orders are not sales.
+    const orders = activeOrders(periodOrders);
+    const allOrders = activeOrders(recentOrders);
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayOrders = allOrders.filter((o) => o.date === today);
     const dailyRevenue = todayOrders.reduce((s, o) => s + o.selling_price * o.quantity, 0);
@@ -69,7 +76,7 @@ export default function BusinessMetrics({ orders, allOrders, inventory, expenses
     orders.forEach((o) => {
       const pid = o.product_id || 'unknown';
       const inv = inventory.find((i) => i.id === pid);
-      const name = inv?.product_name || 'Unknown';
+      const name = inv?.product_name || o.product_name || 'Unknown';
       if (!productRevenue[pid]) productRevenue[pid] = { name, revenue: 0 };
       productRevenue[pid].revenue += o.selling_price * o.quantity;
     });
@@ -88,7 +95,7 @@ export default function BusinessMetrics({ orders, allOrders, inventory, expenses
       turnover, deadProducts, top1Pct, top1Name: sortedProducts[0]?.name || '—',
       top3Pct, adSpend, shippingExp, miscExp
     };
-  }, [orders, allOrders, inventory, expenses, deadProductDays, loading]);
+  }, [periodOrders, recentOrders, inventory, expenses, deadProductDays, loading]);
 
   const riskColor = (pct: number) => pct > 60 ? '#EF4444' : pct > 40 ? '#F59E0B' : '#10B981';
 
@@ -99,7 +106,7 @@ export default function BusinessMetrics({ orders, allOrders, inventory, expenses
       {/* Today */}
       <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
         <h4 className="mb-3 text-sm font-extrabold text-accent">Today's Performance</h4>
-        <p className="text-xl font-bold" style={{ color: '#6366F1' }}>{formatTaka(metrics.dailyRevenue)}</p>
+        <p className="text-xl font-bold" style={{ color: '#6366F1' }}>{formatCurrency(metrics.dailyRevenue)}</p>
         <p className="text-sm font-extrabold text-accent">Daily Revenue</p>
         <p className="mt-2 font-extrabold text-xl" style={{ color: '#6366F1' }}>{metrics.dailyCount}</p>
         <p className="text-sm font-extrabold text-accent">Daily Orders</p>
@@ -108,10 +115,10 @@ export default function BusinessMetrics({ orders, allOrders, inventory, expenses
       {/* This Week */}
       <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
         <h4 className="mb-3 text-sm font-extrabold text-accent">This Week</h4>
-        <p className="text-xl font-bold" style={{ color: '#6366F1' }}>{formatTaka(metrics.weeklyRevenue)}</p>
+        <p className="text-xl font-bold" style={{ color: '#6366F1' }}>{formatCurrency(metrics.weeklyRevenue)}</p>
         <p className="text-sm font-extrabold text-accent">Weekly Revenue</p>
         <p className="mt-2 text-xl font-bold" style={{ color: metrics.weeklyProfit >= 0 ? '#10B981' : '#EF4444' }}>
-          {formatTaka(metrics.weeklyProfit)}
+          {formatCurrency(metrics.weeklyProfit)}
         </p>
         <p className="text-sm font-extrabold text-accent">Weekly Profit</p>
         <p className="mt-1 text-sm font-bold" style={{ color: metrics.weekGrowth >= 0 ? '#10B981' : '#EF4444' }}>
@@ -160,9 +167,9 @@ export default function BusinessMetrics({ orders, allOrders, inventory, expenses
       <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
         <h4 className="mb-3 text-sm font-bold text-muted-foreground">Expense Summary</h4>
         <div className="space-y-1.5">
-          <p className="text-sm font-bold" style={{ color: '#8B5CF6' }}>Ad Spend: {formatTaka(metrics.adSpend)}</p>
-          <p className="text-sm font-bold" style={{ color: '#3B82F6' }}>Shipping: {formatTaka(metrics.shippingExp)}</p>
-          <p className="text-sm font-bold text-muted-foreground">Misc: {formatTaka(metrics.miscExp)}</p>
+          <p className="text-sm font-bold" style={{ color: '#8B5CF6' }}>Ad Spend: {formatCurrency(metrics.adSpend)}</p>
+          <p className="text-sm font-bold" style={{ color: '#3B82F6' }}>Shipping: {formatCurrency(metrics.shippingExp)}</p>
+          <p className="text-sm font-bold text-muted-foreground">Misc: {formatCurrency(metrics.miscExp)}</p>
         </div>
       </div>
     </div>);

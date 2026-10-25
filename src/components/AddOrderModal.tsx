@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
 import { SOURCES, ORDER_STATUSES, STATUS_COLORS } from '@/lib/constants';
-import { formatTaka } from '@/lib/constants';
 import ModalShell from '@/components/ModalShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +13,7 @@ import { toast } from 'sonner';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { format } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface InventoryItem {
   id: string;
@@ -28,9 +28,13 @@ export interface OrderToEdit {
   id: string;
   order_number: string;
   customer_name: string;
-  product_id: string;
+  /** null when the product was deleted after the order was placed. */
+  product_id: string | null;
+  product_name?: string | null;
   quantity: number;
   selling_price: number;
+  /** Product cost captured when the order was placed. */
+  unit_cost?: number;
   shipping_cost: number;
   ad_cost?: number;
   source: string | null;
@@ -49,6 +53,7 @@ const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
 export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpen }: Props) {
+  const { formatCurrency, symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const fabOpen = activeModal === 'order';
@@ -92,7 +97,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
     if (editOrder) {
       setCustomerName(editOrder.customer_name);
-      setProductId(editOrder.product_id);
+      setProductId(editOrder.product_id ?? '');
       setQuantity(editOrder.quantity.toString());
       setSellingPrice(editOrder.selling_price.toString());
       setShippingCost(editOrder.shipping_cost.toString());
@@ -125,16 +130,19 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   );
 
   const qtyNum = parseInt(quantity) || 0;
-  const maxStock = selectedProduct
-    ? selectedProduct.stock_quantity + (isEdit && editOrder?.product_id === productId ? editOrder.quantity : 0)
-    : 0;
-  const stockError = selectedProduct && qtyNum > maxStock
+  const keepsOriginalProduct = isEdit && (editOrder?.product_id ?? '') === productId;
+  // Units this order already holds; cancelled orders hold none.
+  const heldByOrder = keepsOriginalProduct && editOrder?.status !== 'Cancelled' ? editOrder?.quantity ?? 0 : 0;
+  const maxStock = selectedProduct ? selectedProduct.stock_quantity + heldByOrder : 0;
+  const stockError = selectedProduct && status !== 'Cancelled' && qtyNum > maxStock
     ? `Only ${maxStock} units available`
     : '';
+  // An order whose product was deleted can still be edited without one.
+  const productDeleted = isEdit && !editOrder?.product_id;
 
   const errors = {
     customerName: !customerName.trim() ? 'Customer name is required' : '',
-    productId: !productId ? 'Please select a product' : '',
+    productId: !productId && !(productDeleted && keepsOriginalProduct) ? 'Please select a product' : '',
     quantity: !quantity || qtyNum < 1 ? 'Minimum quantity is 1' : stockError,
     sellingPrice: !sellingPrice || parseFloat(sellingPrice) <= 0 ? 'Selling price is required' : '',
     source: !source ? 'Please select a source' : '',
@@ -145,8 +153,11 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   const isValid = Object.values(errors).every((e) => !e);
   const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
 
-  // Live profit preview
-  const costPrice = selectedProduct?.cost_price ?? 0;
+  // Live profit preview. An existing order keeps the cost it was placed at,
+  // matching how the database calculates its profit.
+  const costPrice = keepsOriginalProduct && editOrder?.unit_cost !== undefined
+    ? editOrder.unit_cost
+    : selectedProduct?.cost_price ?? 0;
   const sp = parseFloat(sellingPrice) || 0;
   const sc = parseFloat(shippingCost) || 0;
   const ac = parseFloat(adCost) || 0;
@@ -192,7 +203,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
     const payload = {
       customer_name: customerName.trim(),
-      product_id: productId,
+      product_id: productId || null,
       quantity: qtyNum,
       selling_price: parseFloat(sellingPrice),
       shipping_cost: sc,
@@ -257,7 +268,9 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
                 <option disabled value="">No products — add in Inventory first</option>
               ) : (
                 <>
-                  <option value="">Select Product</option>
+                  <option value="">
+                    {productDeleted ? `${editOrder?.product_name || 'Product'} (deleted)` : 'Select Product'}
+                  </option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.product_name} — {p.stock_quantity} in stock
@@ -273,7 +286,9 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               selectedProduct.stock_quantity < selectedProduct.low_stock_threshold ? 'text-[#F59E0B]' :
               'text-muted-foreground'
             )}>
-              {selectedProduct.stock_quantity} units in stock
+              {heldByOrder > 0
+                ? `${maxStock} units available (${selectedProduct.stock_quantity} in stock + ${heldByOrder} held by this order)`
+                : `${selectedProduct.stock_quantity} units in stock`}
             </p>
           )}
           {touched.productId && errors.productId && <p className="mt-1 text-xs font-medium text-destructive">{errors.productId}</p>}
@@ -286,7 +301,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
             {touched.quantity && errors.quantity && <p className="mt-1 text-xs font-medium text-destructive">{errors.quantity}</p>}
           </div>
           <div>
-            <Label htmlFor="sellingPrice">Selling Price ৳ *</Label>
+            <Label htmlFor="sellingPrice">Selling Price {symbol} *</Label>
             <Input id="sellingPrice" type="number" min={0} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} onBlur={() => touch('sellingPrice')} placeholder="0" />
             {touched.sellingPrice && errors.sellingPrice && <p className="mt-1 text-xs font-medium text-destructive">{errors.sellingPrice}</p>}
           </div>
@@ -294,11 +309,11 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="shippingCost">Shipping Cost ৳</Label>
+            <Label htmlFor="shippingCost">Shipping Cost {symbol}</Label>
             <Input id="shippingCost" type="number" min={0} step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label htmlFor="adCost">Ad Cost ৳</Label>
+            <Label htmlFor="adCost">Ad Cost {symbol}</Label>
             <Input id="adCost" type="number" min={0} step="0.01" value={adCost} onChange={(e) => setAdCost(e.target.value)} placeholder="0" />
             <p className="mt-1 text-xs text-muted-foreground">Ad spend for this specific order</p>
           </div>
@@ -351,21 +366,21 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
         {selectedProduct && (
           <div className={cn('rounded-lg border p-4', profit > 0 ? 'border-primary/30 bg-primary/5' : 'border-destructive/30 bg-destructive/5')}>
             <div className="space-y-1 text-sm text-muted-foreground">
-              <div className="flex justify-between"><span>Revenue ৳</span><span>{formatTaka(revenue)}</span></div>
-              <div className="flex justify-between"><span>COGS ৳</span><span>{formatTaka(cogs)}</span></div>
-              <div className="flex justify-between"><span>Shipping ৳</span><span>{formatTaka(sc)}</span></div>
-              <div className="flex justify-between"><span>Ad Cost ৳</span><span>{formatTaka(ac)}</span></div>
+              <div className="flex justify-between"><span>Revenue {symbol}</span><span>{formatCurrency(revenue)}</span></div>
+              <div className="flex justify-between"><span>COGS {symbol}</span><span>{formatCurrency(cogs)}</span></div>
+              <div className="flex justify-between"><span>Shipping {symbol}</span><span>{formatCurrency(sc)}</span></div>
+              <div className="flex justify-between"><span>Ad Cost {symbol}</span><span>{formatCurrency(ac)}</span></div>
             </div>
             <div className="mt-2 border-t border-border pt-2">
               <div className="flex items-center justify-between">
                 <span className={cn('text-xl font-bold', profit > 0 ? 'text-primary' : 'text-destructive')}>
-                  {formatTaka(profit)}
+                  {formatCurrency(profit)}
                 </span>
                 <span className={cn('text-base font-bold', profit > 0 ? 'text-primary' : 'text-destructive')}>
                   {margin}%
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Break-even Ad ৳: {formatTaka(Math.max(breakevenAd, 0))}</p>
+              <p className="text-xs text-muted-foreground mt-1">Break-even Ad {symbol}: {formatCurrency(Math.max(breakevenAd, 0))}</p>
             </div>
           </div>
         )}

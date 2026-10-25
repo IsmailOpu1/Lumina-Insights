@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
-import { formatTaka, ORDER_STATUSES } from '@/lib/constants';
+import { ORDER_STATUSES } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
 import AddOrderModal, { OrderToEdit } from '@/components/AddOrderModal';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -16,16 +16,18 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat, subDays, startOfDay, startOfToday } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface OrderRow {
   id: string;
   order_number: string;
   customer_name: string;
-  product_id: string;
+  product_id: string | null;
   source: string | null;
   status: string;
   quantity: number;
   selling_price: number;
+  unit_cost: number;
   shipping_cost: number;
   ad_cost: number;
   profit_per_order: number | null;
@@ -41,6 +43,7 @@ type DateFilter = 'today' | '7days' | '30days' | 'custom';
 const PAGE_SIZE = 20;
 
 export default function Orders() {
+  const { formatCurrency, symbol } = useCurrency();
   const { openModal } = useFAB();
   const { isViewer } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -148,8 +151,10 @@ export default function Orders() {
       order_number: o.order_number,
       customer_name: o.customer_name,
       product_id: o.product_id,
+      product_name: o.inventory?.product_name ?? o.product_name,
       quantity: o.quantity,
       selling_price: o.selling_price,
+      unit_cost: o.unit_cost,
       shipping_cost: o.shipping_cost,
       ad_cost: o.ad_cost ?? 0,
       source: o.source,
@@ -246,9 +251,9 @@ export default function Orders() {
                   <th className={thClass} onClick={() => toggleSort('source')}>Source <SortIcon col="source" /></th>
                   <th className={thClass} onClick={() => toggleSort('status')}>Status <SortIcon col="status" /></th>
                   <th className={thClass} onClick={() => toggleSort('quantity')}>Qty <SortIcon col="quantity" /></th>
-                  <th className={thClass} onClick={() => toggleSort('selling_price')}>Selling ৳ <SortIcon col="selling_price" /></th>
-                  <th className={thClass} onClick={() => toggleSort('shipping_cost')}>Shipping ৳ <SortIcon col="shipping_cost" /></th>
-                  <th className={thClass} onClick={() => toggleSort('profit_per_order')}>Profit ৳ <SortIcon col="profit_per_order" /></th>
+                  <th className={thClass} onClick={() => toggleSort('selling_price')}>Selling {symbol} <SortIcon col="selling_price" /></th>
+                  <th className={thClass} onClick={() => toggleSort('shipping_cost')}>Shipping {symbol} <SortIcon col="shipping_cost" /></th>
+                  <th className={thClass} onClick={() => toggleSort('profit_per_order')}>Profit {symbol} <SortIcon col="profit_per_order" /></th>
                   <th className={thClass} onClick={() => toggleSort('date')}>Date <SortIcon col="date" /></th>
                   <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
                 </tr>
@@ -264,10 +269,10 @@ export default function Orders() {
                       <td className="px-3 py-2.5 border-[var(--chart-card-bg)] bg-[var(--chart-card-bg)] font-extrabold text-sm"><span className="font-extrabold text-sm text-orange-300">{o.source || '—'}</span></td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold"><StatusBadge status={o.status} /></td>
                       <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{o.quantity}</td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatTaka(o.selling_price)}</td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatTaka(o.shipping_cost)}</td>
+                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatCurrency(o.selling_price)}</td>
+                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatCurrency(o.shipping_cost)}</td>
                       <td className={cn("px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold", profit > 0 ? 'text-[#1bad0b]' : 'text-destructive')}>
-                        {formatTaka(profit)}
+                        {formatCurrency(profit)}
                       </td>
                       <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(new Date(o.date), 'dd/MM/yyyy')}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">

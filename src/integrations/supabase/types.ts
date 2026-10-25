@@ -200,6 +200,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_states: {
+        Row: {
+          dismissed_at: string | null
+          notification_id: string
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string | null
+          notification_id: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          dismissed_at?: string | null
+          notification_id?: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_states_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "my_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_states_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -405,11 +441,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      my_notifications: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_read: boolean | null
+          message: string | null
+          owner_id: string | null
+          title: string | null
+          type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_team_invite: { Args: { p_token: string }; Returns: undefined }
+      business_snapshot: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
       currency_symbol: { Args: { p_owner: string }; Returns: string }
+      dismiss_notifications: { Args: { p_ids?: string[] }; Returns: undefined }
+      generate_weekly_summaries: { Args: never; Returns: number }
       get_invite_preview: {
         Args: { p_token: string }
         Returns: {
@@ -422,6 +475,10 @@ export type Database = {
       has_workspace_access: {
         Args: { require_write?: boolean; target_owner: string }
         Returns: boolean
+      }
+      mark_notifications_read: {
+        Args: { p_ids?: string[] }
+        Returns: undefined
       }
       notification_enabled: {
         Args: { p_owner: string; p_type: string }

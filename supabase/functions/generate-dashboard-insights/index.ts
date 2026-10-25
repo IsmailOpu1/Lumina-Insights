@@ -1,21 +1,40 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Rejects callers without a valid Supabase session.
+async function getUser(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return null;
+  const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user } } = await client.auth.getUser();
+  return user;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const user = await getUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { context, focusQuestion, business_context } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const contextStr = Object.entries(context || {})
       .map(([k, v]) => {
-        if (Array.isArray(v)) return `${k}: ${v.length > 0 ? v.map((i: any) => typeof i === 'object' ? JSON.stringify(i) : i).join(', ') : 'none'}`;
+        if (Array.isArray(v)) return `${k}: ${v.length > 0 ? v.map((i: unknown) => typeof i === 'object' ? JSON.stringify(i) : i).join(', ') : 'none'}`;
         return `${k}: ${v}`;
       })
       .join('\n');

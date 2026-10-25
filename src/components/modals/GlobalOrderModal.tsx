@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { dbErrorMessage } from '@/lib/dbErrors';
 import { format } from 'date-fns';
 
 interface InventoryItem {
@@ -105,7 +106,7 @@ export default function GlobalOrderModal() {
       source, status, date,
       owner_id: ownerIdForQueries,
     });
-    if (error) { toast.error('Failed to create order', { description: error.message }); setSubmitting(false); return; }
+    if (error) { toast.error('Failed to create order', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
     toast.success('Order added ✓');
     closeModal();
   }

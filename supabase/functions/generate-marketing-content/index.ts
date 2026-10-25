@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,10 +12,28 @@ const platformPrompts: Record<string, string> = {
   TikTok: "Video script with hook (first 3 seconds), engaging middle section, and clear CTA. Designed for a 30-60 second video.",
 };
 
+// Rejects callers without a valid Supabase session.
+async function getUser(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return null;
+  const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user } } = await client.auth.getUser();
+  return user;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const user = await getUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { product_name, platform, product_features, target_audience, business_context } = await req.json();
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");

@@ -30,6 +30,7 @@ interface OrderRow {
   ad_cost: number;
   profit_per_order: number | null;
   date: string;
+  product_name: string | null;
   inventory?: {product_name: string;} | null;
 }
 
@@ -104,7 +105,7 @@ export default function Orders() {
       switch (sortKey) {
         case 'order_number':va = a.order_number;vb = b.order_number;break;
         case 'customer_name':va = a.customer_name;vb = b.customer_name;break;
-        case 'product':va = a.inventory?.product_name || '';vb = b.inventory?.product_name || '';break;
+        case 'product':va = (a.inventory?.product_name ?? a.product_name) || '';vb = (b.inventory?.product_name ?? b.product_name) || '';break;
         case 'source':va = a.source || '';vb = b.source || '';break;
         case 'status':va = a.status;vb = b.status;break;
         case 'quantity':va = a.quantity;vb = b.quantity;break;
@@ -165,7 +166,7 @@ export default function Orders() {
       const rows = filtered.map((o) => [
       o.order_number,
       o.customer_name,
-      o.inventory?.product_name || '',
+      (o.inventory?.product_name ?? o.product_name) || '',
       o.source || '',
       o.status,
       o.quantity,
@@ -259,7 +260,7 @@ export default function Orders() {
                   <tr key={o.id} className="table-row-hover border-b border-border last:border-0">
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{o.order_number}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{o.customer_name}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{o.inventory?.product_name || '—'}</td>
+                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{(o.inventory?.product_name ?? o.product_name) || '—'}</td>
                       <td className="px-3 py-2.5 border-[var(--chart-card-bg)] bg-[var(--chart-card-bg)] font-extrabold text-sm"><span className="font-extrabold text-sm text-orange-300">{o.source || '—'}</span></td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold"><StatusBadge status={o.status} /></td>
                       <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{o.quantity}</td>

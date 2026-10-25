@@ -8,9 +8,12 @@ interface Order {
   order_number: string;
   customer_name: string;
   product_id: string | null;
+  product_name: string | null;
   quantity: number;
   selling_price: number;
+  unit_cost: number;
   shipping_cost: number;
+  ad_cost: number;
   source: string;
   status: string;
   date: string;
@@ -80,16 +83,22 @@ export function useDashboardData(): DashboardData {
   return { orders, inventory, expenses, loading, refetch: fetchData };
 }
 
+// Cancelled orders earn nothing and cost nothing.
+export function activeOrders(orders: Order[]) {
+  return orders.filter(o => o.status !== 'Cancelled');
+}
+
 // Computed helpers
-export function computeKPIs(orders: Order[], inventory: InventoryItem[], expenses: Expense[]) {
+export function computeKPIs(allOrders: Order[], inventory: InventoryItem[], expenses: Expense[]) {
+  const orders = activeOrders(allOrders);
   const totalRevenue = orders.reduce((s, o) => s + o.selling_price * o.quantity, 0);
   const inventoryMap = new Map(inventory.map(i => [i.id, i]));
-  const cogs = orders.reduce((s, o) => {
-    const inv = o.product_id ? inventoryMap.get(o.product_id) : null;
-    return s + (inv?.cost_price ?? 0) * o.quantity;
-  }, 0);
+  // unit_cost is the product cost captured when the order was placed.
+  const cogs = orders.reduce((s, o) => s + (o.unit_cost ?? 0) * o.quantity, 0);
+  const orderShipping = orders.reduce((s, o) => s + o.shipping_cost, 0);
+  const orderAdCost = orders.reduce((s, o) => s + (o.ad_cost ?? 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-  const netProfit = totalRevenue - cogs - totalExpenses;
+  const netProfit = totalRevenue - cogs - orderShipping - orderAdCost - totalExpenses;
   const totalOrders = orders.length;
   const inventoryValue = inventory.reduce((s, i) => s + i.stock_quantity * i.cost_price, 0);
   const lowStockItems = inventory.filter(i => i.stock_quantity < i.low_stock_threshold);
@@ -106,25 +115,23 @@ export function computeKPIs(orders: Order[], inventory: InventoryItem[], expense
   const topCustomerEntry = Object.entries(customerRevenue).sort((a, b) => b[1] - a[1])[0];
   const topCustomer = topCustomerEntry ? { name: topCustomerEntry[0], revenue: topCustomerEntry[1] } : null;
 
-  // Shipping costs from orders
-  const totalShipping = orders.reduce((s, o) => s + o.shipping_cost, 0);
-
-  // Ad spend
   const adSpend = expenses.filter(e => e.type === 'Ad Spend').reduce((s, e) => s + e.amount, 0);
   const shippingExpense = expenses.filter(e => e.type === 'Shipping').reduce((s, e) => s + e.amount, 0);
   const miscExpense = expenses.filter(e => e.type === 'Miscellaneous').reduce((s, e) => s + e.amount, 0);
+  const totalShipping = orderShipping + shippingExpense;
+  const totalAdSpend = adSpend + orderAdCost;
 
   return {
     totalRevenue, netProfit, totalOrders, inventoryValue,
     lowStockItems, profitMargin, repeatCustomers, topCustomer,
-    cogs, totalShipping, adSpend, shippingExpense, miscExpense, totalExpenses,
+    cogs, totalShipping, adSpend, orderAdCost, totalAdSpend, shippingExpense, miscExpense, totalExpenses,
     inventoryMap,
   };
 }
 
 export function getRevenueBySource(orders: Order[]) {
   const map: Record<string, number> = {};
-  orders.forEach(o => {
+  activeOrders(orders).forEach(o => {
     const src = o.source || 'Unknown';
     map[src] = (map[src] || 0) + o.selling_price * o.quantity;
   });
@@ -140,9 +147,9 @@ export function getOrdersByStatus(orders: Order[]) {
 export function getTopProducts(orders: Order[], inventory: InventoryItem[]) {
   const invMap = new Map(inventory.map(i => [i.id, i]));
   const productData: Record<string, { name: string; qty: number; revenue: number }> = {};
-  orders.forEach(o => {
+  activeOrders(orders).forEach(o => {
     const inv = o.product_id ? invMap.get(o.product_id) : null;
-    const name = inv?.product_name || 'Unknown';
+    const name = inv?.product_name || o.product_name || 'Unknown';
     if (!productData[name]) productData[name] = { name, qty: 0, revenue: 0 };
     productData[name].qty += o.quantity;
     productData[name].revenue += o.selling_price * o.quantity;
@@ -152,7 +159,7 @@ export function getTopProducts(orders: Order[], inventory: InventoryItem[]) {
 
 export function getRevenueOverTime(orders: Order[], granularity: 'daily' | 'weekly' | 'monthly') {
   const map: Record<string, number> = {};
-  orders.forEach(o => {
+  activeOrders(orders).forEach(o => {
     let key: string;
     const d = new Date(o.date);
     if (granularity === 'daily') {

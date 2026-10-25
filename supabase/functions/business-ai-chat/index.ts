@@ -1,3 +1,18 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+// Rejects callers without a valid Supabase session.
+async function getUser(req: Request) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return null;
+  const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user } } = await client.auth.getUser();
+  return user;
+}
+
+const MAX_HISTORY_MESSAGES = 20;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -13,6 +28,13 @@ Deno.serve(async (req) => {
     if (!GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: 'GEMINI_API_KEY not set' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const user = await getUser(req);
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -59,15 +81,15 @@ English only. No Bengali.`;
 
     let historyText = '';
     if (conversation_history && conversation_history.length > 0) {
-      historyText = '\n\nCONVERSATION HISTORY:\n' + conversation_history.map((m: { role: string; content: string }) =>
+      historyText = '\n\nCONVERSATION HISTORY:\n' + conversation_history.slice(-MAX_HISTORY_MESSAGES).map((m: { role: string; content: string }) =>
         `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
       ).join('\n');
     }
 
     const fullPrompt = contextBlock + historyText + '\n\nUser: ' + message;
 
-    // Build parts array
-    const parts: any[] = [{ text: fullPrompt }];
+    // Build parts array (the image, if any, goes alongside the text)
+    const parts: Record<string, unknown>[] = [{ text: systemPrompt + "\n\n" + fullPrompt }];
     if (image_base64 && image_type) {
       parts.push({
         inline_data: {
@@ -83,13 +105,20 @@ English only. No Bengali.`;
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: systemPrompt + "\n\n" + fullPrompt }] },
-          ],
+          contents: [{ role: 'user', parts }],
           generationConfig: { temperature: 0.8, maxOutputTokens: 2048 },
         }),
       }
     );
+
+    if (!res.ok) {
+      console.error('Gemini API error:', res.status, await res.text());
+      const status = res.status === 429 ? 429 : 500;
+      const error = status === 429 ? 'Rate limit reached. Please wait a minute and try again.' : 'Failed to generate response';
+      return new Response(JSON.stringify({ error }), {
+        status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'I could not generate a response. Please try again.';

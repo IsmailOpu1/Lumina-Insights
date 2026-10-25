@@ -239,13 +239,15 @@ export type Database = {
           id: string
           order_number: string
           owner_id: string | null
-          product_id: string
+          product_id: string | null
+          product_name: string | null
           profit_per_order: number | null
           quantity: number
           selling_price: number
           shipping_cost: number
           source: string | null
           status: string
+          unit_cost: number
         }
         Insert: {
           ad_cost?: number
@@ -255,13 +257,15 @@ export type Database = {
           id?: string
           order_number: string
           owner_id?: string | null
-          product_id: string
+          product_id?: string | null
+          product_name?: string | null
           profit_per_order?: number | null
           quantity?: number
           selling_price?: number
           shipping_cost?: number
           source?: string | null
           status?: string
+          unit_cost?: number
         }
         Update: {
           ad_cost?: number
@@ -271,13 +275,15 @@ export type Database = {
           id?: string
           order_number?: string
           owner_id?: string | null
-          product_id?: string
+          product_id?: string | null
+          product_name?: string | null
           profit_per_order?: number | null
           quantity?: number
           selling_price?: number
           shipping_cost?: number
           source?: string | null
           status?: string
+          unit_cost?: number
         }
         Relationships: [
           {
@@ -337,6 +343,7 @@ export type Database = {
           dashboard_filter: string | null
           dead_product_days: number | null
           font_style: string | null
+          full_name: string | null
           id: string
           notification_preferences: Json | null
           onboarding_complete: boolean | null
@@ -359,6 +366,7 @@ export type Database = {
           dashboard_filter?: string | null
           dead_product_days?: number | null
           font_style?: string | null
+          full_name?: string | null
           id?: string
           notification_preferences?: Json | null
           onboarding_complete?: boolean | null
@@ -381,6 +389,7 @@ export type Database = {
           dashboard_filter?: string | null
           dead_product_days?: number | null
           font_style?: string | null
+          full_name?: string | null
           id?: string
           notification_preferences?: Json | null
           onboarding_complete?: boolean | null
@@ -399,7 +408,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_my_owner_id: { Args: never; Returns: string }
+      accept_team_invite: { Args: { p_token: string }; Returns: undefined }
+      currency_symbol: { Args: { p_owner: string }; Returns: string }
+      get_invite_preview: {
+        Args: { p_token: string }
+        Returns: {
+          business_name: string
+          email: string
+          role: string
+          status: string
+        }[]
+      }
+      has_workspace_access: {
+        Args: { require_write?: boolean; target_owner: string }
+        Returns: boolean
+      }
+      notification_enabled: {
+        Args: { p_owner: string; p_type: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

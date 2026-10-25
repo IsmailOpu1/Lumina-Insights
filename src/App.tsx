@@ -4,7 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ThemeProvider, useTheme, type FontStyle, type ThemeName } from '@/context/ThemeContext';
+import { ThemeProvider, useTheme, THEMES, type FontStyle, type ThemeName } from '@/context/ThemeContext';
 import { FilterProvider, useFilter } from '@/context/FilterContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { FABProvider } from '@/context/FABContext';
@@ -32,10 +32,11 @@ import Onboarding from '@/pages/Onboarding';
 const queryClient = new QueryClient();
 
 const VALID_FONTS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nunito', 'dmsans'];
-const VALID_THEMES: ThemeName[] = ['avocado', 'ocean', 'sunset', 'purple', 'forest', 'rosegold'];
+const VALID_THEMES = Object.keys(THEMES) as ThemeName[];
 
+// Dark mode is synced from settings by ThemeProvider itself.
 function SettingsBootstrap({ children }: { children: React.ReactNode }) {
-  const { toggleDark, setFontStyle, setThemeName, isDark } = useTheme();
+  const { setFontStyle, setThemeName } = useTheme();
   const { setDateFilter } = useFilter();
   const { userSettings } = useAuth();
 
@@ -43,13 +44,10 @@ function SettingsBootstrap({ children }: { children: React.ReactNode }) {
     if (!userSettings) return;
     const d = userSettings as unknown as Record<string, unknown>;
 
-    const settingsDark = d.dark_mode as boolean;
-    if (settingsDark !== isDark) toggleDark();
-
     const settingsFont = (d.font_style as string) || 'inter';
     if (VALID_FONTS.includes(settingsFont as FontStyle)) setFontStyle(settingsFont as FontStyle);
 
-    const settingsTheme = (d.theme as string) || 'avocado';
+    const settingsTheme = (d.theme as string) || 'purple';
     if (VALID_THEMES.includes(settingsTheme as ThemeName)) setThemeName(settingsTheme as ThemeName);
 
     const settingsFilter = (d.dashboard_filter as string) || '7days';

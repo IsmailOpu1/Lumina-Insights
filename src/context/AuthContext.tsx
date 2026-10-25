@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { toast } from 'sonner';
+import { acceptInvite } from '@/lib/invites';
 
 export type UserRole = 'owner' | 'manager' | 'viewer';
 
@@ -60,37 +62,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('user_id', uid)
       .maybeSingle();
 
-    if (data) {
-      setUserSettings(data as unknown as UserSettings);
-      if ((data as any).role === 'owner') {
-        setOwnerIdForQueries(uid);
-      } else {
-        // Use owner_id from user_settings directly
-        // (set correctly during invite acceptance)
-        const ownerId = (data as any).owner_id;
-        if (ownerId) {
-          setOwnerIdForQueries(ownerId);
-        } else {
-          // Fallback: check team_members table
-          const { data: teamRow } = await supabase
-            .from('team_members')
-            .select('owner_id')
-            .eq('member_id', uid)
-            .eq('status', 'active')
-            .limit(1)
-            .maybeSingle();
-          setOwnerIdForQueries(teamRow?.owner_id || uid);
-        }
-      }
-    } else {
-      setUserSettings(null);
-      setOwnerIdForQueries(uid);
-    }
+    const settings = data as unknown as UserSettings | null;
+    setUserSettings(settings);
+    // The database keeps owner_id correct for members (set by
+    // accept_team_invite); owners and new users query their own workspace.
+    setOwnerIdForQueries(settings && settings.role !== 'owner' && settings.owner_id ? settings.owner_id : uid);
   }, []);
 
+  // An invitee who signed up has the invite token in their metadata; accept it
+  // on their first confirmed sign-in, then clear it.
+  const acceptPendingInvite = useCallback(async (u: User) => {
+    const token = u.user_metadata?.invite_token as string | undefined;
+    if (!token) return;
+    const message = await acceptInvite(token);
+    await supabase.auth.updateUser({ data: { invite_token: null } });
+    if (message) toast.error('Could not join the workspace', { description: message });
+    else toast.success('You have joined the workspace');
+  }, []);
+
+  const loadUser = useCallback(async (u: User) => {
+    await acceptPendingInvite(u);
+    await fetchSettings(u.id);
+  }, [acceptPendingInvite, fetchSettings]);
+
+  // Reads the session directly: right after sign-in the `user` state may not
+  // be set yet.
   const refreshSettings = useCallback(async () => {
-    if (user) await fetchSettings(user.id);
-  }, [user, fetchSettings]);
+    const { data: { session: current } } = await supabase.auth.getSession();
+    if (current) await fetchSettings(current.user.id);
+  }, [fetchSettings]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -117,8 +117,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
             return;
           }
-          // Call fetchSettings directly and chain setLoading(false) to ensure it waits
-          fetchSettings(newSession.user.id).finally(() => setLoading(false));
+          // Token refreshes don't change settings; skip the refetch.
+          if (event === 'TOKEN_REFRESHED') return;
+          // Hold protected routes on the loader until settings arrive, so a
+          // fresh sign-in is not mistaken for "no settings → onboarding".
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') setLoading(true);
+          // Supabase calls made inside this callback can deadlock the auth
+          // client, so defer them to the next tick.
+          const u = newSession.user;
+          setTimeout(() => {
+            loadUser(u).finally(() => setLoading(false));
+          }, 0);
         } else {
           setUserSettings(null);
           setOwnerIdForQueries(null);
@@ -127,14 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Then check existing session (trigger the auth listener by calling getSession)
-    // The auth listener will fire with INITIAL_SESSION event and handle loading
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      // Don't manipulate loading here - let the auth listener handle it
-    });
-
     return () => subscription.unsubscribe();
-  }, [fetchSettings]);
+  }, [loadUser]);
 
   return (
     <AuthContext.Provider

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -24,7 +23,6 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [fullName, setFullName] = useState('');
@@ -35,33 +33,17 @@ export default function Signup() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [checking, setChecking] = useState(false);
 
   const strength = getPasswordStrength(password);
 
-  const handleGoToLogin = async () => {
-    setChecking(true);
-    const { data } = await supabase.auth.getSession();
-    const { data: userData } = await supabase.auth.getUser();
-    
-    if (userData?.user?.email_confirmed_at) {
-      navigate('/login');
-    } else {
-      toast.error('Please confirm your email first', {
-        description: 'Check your inbox and click the confirmation link before signing in.'
-      });
-    }
-    setChecking(false);
-  };
-
+  // Pre-fill the invited email so the invite can be accepted on sign-in.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'USER_UPDATED') {
-        navigate('/login');
-      }
+    if (!token) return;
+    supabase.rpc('get_invite_preview', { p_token: token }).then(({ data }) => {
+      const invite = data?.[0];
+      if (invite?.status === 'valid') setEmail(invite.email);
     });
-    return () => subscription.unsubscribe();
-  }, []);
+  }, [token]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,12 +66,14 @@ export default function Signup() {
 
     setLoading(true);
 
+    // With an invite, the token rides along in user metadata; AuthContext
+    // accepts it on the first confirmed sign-in.
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: window.location.origin,
+        data: { full_name: fullName.trim(), ...(token ? { invite_token: token } : {}) },
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
 
@@ -97,41 +81,6 @@ export default function Signup() {
       toast.error('Signup failed', { description: error.message });
       setLoading(false);
       return;
-    }
-
-    // If invite token, handle join
-    if (token) {
-      const { data: invite } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .eq('used', false)
-        .maybeSingle();
-
-      if (invite && new Date(invite.expires_at) > new Date()) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('team_members').insert({
-            owner_id: invite.owner_id,
-            member_id: user.id,
-            email: user.email || invite.email,
-            role: invite.role,
-            status: 'active',
-          });
-          await supabase.from('user_settings').upsert({
-            user_id: user.id,
-            owner_id: invite.owner_id,
-            role: invite.role,
-            onboarding_complete: true,
-            full_name: fullName.trim(),
-          } as any, { onConflict: 'user_id' });
-          await supabase.from('invites').update({ used: true } as any).eq('id', invite.id);
-          await refreshSettings();
-          setEmailSent(true);
-          setLoading(false);
-          return;
-        }
-      }
     }
 
     setEmailSent(true);
@@ -158,11 +107,10 @@ export default function Signup() {
                 We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account, then come back to sign in.
               </p>
               <Button
-                onClick={handleGoToLogin}
-                disabled={checking}
+                onClick={() => navigate('/login')}
                 className="mt-4 h-12 w-full bg-[#4A7C59] font-bold text-white"
               >
-                {checking ? <Loader2 className="animate-spin" size={20} /> : 'Go to Login'}
+                Go to Login
               </Button>
             </div>
           ) : (

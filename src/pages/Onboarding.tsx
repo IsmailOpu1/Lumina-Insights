@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ const CURRENCIES = [
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, refreshSettings } = useAuth();
+  const { user, userSettings, loading: authLoading, refreshSettings } = useAuth();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
@@ -89,6 +89,23 @@ export default function Onboarding() {
     setSaving(false);
     if (ok) navigate('/', { replace: true });
   };
+
+  // /onboarding is not behind ProtectedRoute (new users have no settings row
+  // yet), so send already-onboarded users away here. These returns must stay
+  // below every hook call.
+  if (authLoading) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)' }}
+      >
+        <Loader2 className="animate-spin text-white" size={32} />
+      </div>
+    );
+  }
+  if (userSettings?.onboarding_complete === true && !saving) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div

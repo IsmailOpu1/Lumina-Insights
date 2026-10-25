@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { formatTaka } from '@/lib/constants';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function ProfitCalculator() {
+  const { formatCurrency, symbol } = useCurrency();
   const [cost, setCost] = useState(0);
   const [shipping, setShipping] = useState(0);
   const [ad, setAd] = useState(0);
@@ -21,10 +22,10 @@ export default function ProfitCalculator() {
         {/* Inputs */}
         <div className="space-y-3">
           {[
-          { label: 'Cost Price ৳', value: cost, set: setCost },
-          { label: 'Shipping Cost ৳', value: shipping, set: setShipping },
-          { label: 'Ad Cost ৳', value: ad, set: setAd },
-          { label: 'Selling Price ৳', value: selling, set: setSelling }].
+          { label: `Cost Price ${symbol}`, value: cost, set: setCost },
+          { label: `Shipping Cost ${symbol}`, value: shipping, set: setShipping },
+          { label: `Ad Cost ${symbol}`, value: ad, set: setAd },
+          { label: `Selling Price ${symbol}`, value: selling, set: setSelling }].
           map((f) =>
           <div key={f.label}>
               <label className="mb-1 block text-sm font-extrabold text-accent">{f.label}</label>
@@ -44,7 +45,7 @@ export default function ProfitCalculator() {
           <div>
             <p className="text-accent text-sm font-extrabold">Profit per Unit</p>
             <p className="text-2xl font-bold" style={{ color: !hasPrice ? undefined : profit >= 0 ? '#10B981' : '#EF4444' }}>
-              {hasPrice ? formatTaka(profit) : '—'}
+              {hasPrice ? formatCurrency(profit) : '—'}
             </p>
           </div>
           <div>
@@ -56,7 +57,7 @@ export default function ProfitCalculator() {
           <div>
             <p className="text-sm font-extrabold text-accent">Break-even Ad Cost</p>
             <p className="text-lg font-bold text-muted-foreground">
-              {hasPrice ? formatTaka(breakeven) : '—'}
+              {hasPrice ? formatCurrency(breakeven) : '—'}
             </p>
           </div>
         </div>

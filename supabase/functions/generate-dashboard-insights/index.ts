@@ -1,51 +1,30 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Rejects callers without a valid Supabase session.
-async function getUser(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return null;
-  const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user } } = await client.auth.getUser();
-  return user;
-}
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const user = await getUser(req);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const caller = await getCaller(req);
+    if (!caller) return json({ error: "Unauthorized" }, 401);
 
-    const { context, focusQuestion, business_context } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
-    const contextStr = Object.entries(context || {})
-      .map(([k, v]) => {
-        if (Array.isArray(v)) return `${k}: ${v.length > 0 ? v.map((i: unknown) => typeof i === 'object' ? JSON.stringify(i) : i).join(', ') : 'none'}`;
-        return `${k}: ${v}`;
-      })
-      .join('\n');
-
-    const contextBlock = business_context ? `\n\nBUSINESS PROFILE:\nName: ${business_context.business_name || 'N/A'}\nType: ${business_context.business_type || 'N/A'}\nDescription: ${business_context.business_description || 'N/A'}\nCurrency: ${business_context.currency || 'BDT'}\n\nLIVE BUSINESS DATA:\nRevenue: ${business_context.currency === 'INR' ? '₹' : business_context.currency === 'USD' ? '$' : '৳'}${business_context.revenue || 0}\nProfit: ${business_context.currency === 'INR' ? '₹' : business_context.currency === 'USD' ? '$' : '৳'}${business_context.profit || 0}\nMargin: ${business_context.margin || 0}%\nTop Product: ${business_context.top_product || 'N/A'}\nLow Stock: ${business_context.low_stock || 0}\nBest Channel: ${business_context.top_sales_source || 'N/A'}\nTotal Orders: ${business_context.total_orders || 0}\nAd Spend: ${business_context.currency === 'INR' ? '₹' : business_context.currency === 'USD' ? '$' : '৳'}${business_context.total_ad_spend || 0}\n` : '';
+    // Only the date range and an optional question come from the client;
+    // the numbers are computed by the database for the caller's workspace.
+    const { from, to, focusQuestion } = await req.json();
+    if ((from && !DATE_RE.test(from)) || (to && !DATE_RE.test(to))) {
+      return json({ error: "from/to must be YYYY-MM-DD" }, 400);
+    }
+    const snapshot = await fetchSnapshot(caller.client, from, to);
 
     const systemPrompt = `You are a sharp business advisor for a small business owner. Analyze this exact business data and give exactly 5 bold, specific, numbered, actionable insights. Use the currency symbol provided. Reference the actual numbers provided. Be direct — no fluff, no generic advice. Each insight must be 1-2 sentences maximum.`;
 
     const userPrompt = focusQuestion
-      ? `Here is my current business data:\n${contextStr}${contextBlock}\n\nFocus on this question: ${focusQuestion}\n\nGive 5 insights with emphasis on the question.`
-      : `Here is my current business data:\n${contextStr}${contextBlock}\n\nGive me 5 actionable insights.`;
+      ? `${describeSnapshot(snapshot)}\n\nFocus on this question: ${focusQuestion}\n\nGive 5 insights with emphasis on the question.`
+      : `${describeSnapshot(snapshot)}\n\nGive me 5 actionable insights.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
@@ -53,12 +32,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: systemPrompt + "\n\n" + userPrompt }],
-            },
-          ],
+          contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
           generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
         }),
       }
@@ -66,28 +40,17 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit reached. Please wait 1 minute and try again." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return json({ error: "Rate limit reached. Please wait 1 minute and try again." }, 429);
       }
-      const t = await response.text();
-      console.error("Gemini API error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Gemini API error:", response.status, await response.text());
+      return json({ error: "AI generation failed" }, 500);
     }
 
     const data = await response.json();
     const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No insights generated.";
-
-    return new Response(JSON.stringify({ insights: content }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ insights: content });
   } catch (e) {
-    console.error("Edge function error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("generate-dashboard-insights error:", e);
+    return json({ error: "AI generation failed" }, 500);
   }
 });

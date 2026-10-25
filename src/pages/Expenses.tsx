@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
-import { formatTaka, EXPENSE_TYPES } from '@/lib/constants';
+import { EXPENSE_TYPES } from '@/lib/constants';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import EmptyState from '@/components/EmptyState';
 import ModalShell from '@/components/ModalShell';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat, subDays, startOfDay, startOfToday } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface ExpenseRow {
   id: string;
@@ -53,6 +54,7 @@ const TYPE_BADGE: Record<string, string> = {
 };
 
 export default function Expenses() {
+  const { formatCurrency, symbol } = useCurrency();
   const { openModal } = useFAB();
   const { ownerIdForQueries, isViewer } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
@@ -207,7 +209,7 @@ export default function Expenses() {
   async function handleExport() {
     setExporting(true);
     try {
-      const headers = ['Type', 'Amount ৳', 'Platform', 'Notes', 'Date'];
+      const headers = ['Type', `Amount ${symbol}`, 'Platform', 'Notes', 'Date'];
       const rows = filtered.map(e => [
         e.type, e.amount, e.platform || '', e.notes || '',
         fnsFormat(new Date(e.date), 'dd/MM/yyyy'),
@@ -269,7 +271,7 @@ export default function Expenses() {
         {metricCards.map(m => (
           <div key={m.label} className="stat-hover rounded-lg border border-border p-4 bg-[var(--chart-card-bg)] text-accent font-extrabold text-sm cursor-pointer">
             <p className="uppercase tracking-wider text-muted-foreground font-extrabold text-sm">{m.label}</p>
-            <p className="mt-1 text-xl font-extrabold text-cyan-500">{formatTaka(m.value)}</p>
+            <p className="mt-1 text-xl font-extrabold text-cyan-500">{formatCurrency(m.value)}</p>
           </div>
         ))}
       </div>
@@ -291,7 +293,7 @@ export default function Expenses() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className={cn(thStatic, "bg-secondary")}>Type</th>
-                  <th className={thClass} onClick={() => toggleSort('amount')}>Amount ৳ <SortIcon col="amount" /></th>
+                  <th className={thClass} onClick={() => toggleSort('amount')}>Amount {symbol} <SortIcon col="amount" /></th>
                   <th className={thStatic}>Platform</th>
                   <th className={thStatic}>Notes</th>
                   <th className={thClass} onClick={() => toggleSort('date')}>Date <SortIcon col="date" /></th>
@@ -307,7 +309,7 @@ export default function Expenses() {
                           {e.type}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatTaka(e.amount)}</td>
+                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatCurrency(e.amount)}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold text-sm text-orange-300">{e.platform || '—'}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold text-xs max-w-[200px]">
                         {e.notes ? (
@@ -383,7 +385,7 @@ export default function Expenses() {
             </select>
           </div>
           <div>
-            <Label>Amount ৳ *</Label>
+            <Label>Amount {symbol} *</Label>
             <Input type="number" min={0} step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} placeholder="0" />
           </div>
           <div>

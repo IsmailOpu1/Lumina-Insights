@@ -30,8 +30,9 @@ export function formatCurrency(amount: number, currency: string = 'BDT'): string
 }
 
 export function useCurrency() {
-  const { userSettings } = useAuth();
-  const currency = userSettings?.currency || 'BDT';
+  // Members use the workspace owner's currency, not their own row's default.
+  const { workspace } = useAuth();
+  const currency = workspace?.currency || 'BDT';
   const symbol = CURRENCY_SYMBOLS[currency] || '৳';
 
   return {

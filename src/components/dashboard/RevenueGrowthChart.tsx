@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { getChartTheme } from '@/lib/chartTheme';
-import { formatTaka } from '@/lib/constants';
 import { getRevenueOverTime } from '@/hooks/useDashboardData';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 type Granularity = 'daily' | 'weekly' | 'monthly';
 
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export default function RevenueGrowthChart({ orders, loading }: Props) {
+  const { formatCurrency } = useCurrency();
   const [granularity, setGranularity] = useState<Granularity>('daily');
   const { isDark } = useTheme();
   const theme = getChartTheme(isDark);
@@ -45,10 +46,10 @@ export default function RevenueGrowthChart({ orders, loading }: Props) {
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme.gridColor} vertical={false} />
           <XAxis dataKey="date" tick={{ fill: theme.labelColor, fontWeight: 700, fontSize: 12 }} axisLine={{ stroke: theme.axisColor }} tickLine={false} />
-          <YAxis tick={{ fill: theme.labelColor, fontWeight: 700, fontSize: 12 }} axisLine={{ stroke: theme.axisColor }} tickLine={false} tickFormatter={(v) => formatTaka(v)} />
+          <YAxis tick={{ fill: theme.labelColor, fontWeight: 700, fontSize: 12 }} axisLine={{ stroke: theme.axisColor }} tickLine={false} tickFormatter={(v) => formatCurrency(v)} />
           <Tooltip
             contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }}
-            formatter={(value: number) => [formatTaka(value), 'Revenue']} />
+            formatter={(value: number) => [formatCurrency(value), 'Revenue']} />
           
           <Line type="monotone" dataKey="revenue" stroke={theme.primaryLine} strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: theme.primaryLine }} />
         </LineChart>

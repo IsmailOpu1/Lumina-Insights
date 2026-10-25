@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export interface ProductToEdit {
   id: string;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function AddProductModal({ editProduct, onClose, onSaved, externalOpen }: Props) {
+  const { symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const fabOpen = activeModal === 'product';
@@ -122,12 +124,12 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="costPrice">Cost Price ৳ *</Label>
+            <Label htmlFor="costPrice">Cost Price {symbol} *</Label>
             <Input id="costPrice" type="number" min={0.01} step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} onBlur={() => touch('costPrice')} placeholder="0" />
             {touched.costPrice && errors.costPrice && <p className="mt-1 text-xs font-medium text-destructive">{errors.costPrice}</p>}
           </div>
           <div>
-            <Label htmlFor="sprice">Selling Price ৳ *</Label>
+            <Label htmlFor="sprice">Selling Price {symbol} *</Label>
             <Input id="sprice" type="number" min={0.01} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} onBlur={() => touch('sellingPrice')} placeholder="0" />
             {touched.sellingPrice && errors.sellingPrice && <p className="mt-1 text-xs font-medium text-destructive">{errors.sellingPrice}</p>}
           </div>

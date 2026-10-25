@@ -59,7 +59,7 @@ const PAGE_SIZE = 20;
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const { markAllRead, refreshCount } = useNotifications();
+  const { markAllRead, markOneRead, dismiss } = useNotifications();
   const [notifs, setNotifs] = useState<NotifRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<FilterTab>('all');
@@ -68,8 +68,9 @@ export default function Notifications() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
+    // Read/dismissed state is per user (see my_notifications).
     const { data } = await supabase
-      .from('notifications')
+      .from('my_notifications')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
@@ -111,33 +112,24 @@ export default function Notifications() {
     toast.success('All marked as read');
   }
 
+  // Clearing hides notifications for this user only, not the whole team.
   async function handleClearAll() {
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000');
-    if (error) { toast.error('Failed to clear'); return; }
+    await dismiss();
     setNotifs([]);
-    await refreshCount();
     toast.success('Cleared ✓');
     setClearOpen(false);
   }
 
   async function handleMarkRead(id: string) {
-    await supabase
-      .from('notifications')
-      .update({ is_read: true } as never)
-      .eq('id', id);
+    await markOneRead(id);
     setNotifs(prev =>
       prev.map(n => n.id === id ? { ...n, is_read: true } : n)
     );
-    await refreshCount();
   }
 
   async function handleDelete(id: string) {
-    await supabase.from('notifications').delete().eq('id', id);
+    await dismiss([id]);
     setNotifs(prev => prev.filter(n => n.id !== id));
-    await refreshCount();
   }
 
   const handleNotifClick = (n: NotifRow) => {

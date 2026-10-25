@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
 import { SOURCES, ORDER_STATUSES } from '@/lib/constants';
-import { formatTaka } from '@/lib/constants';
 import ModalShell from '@/components/ModalShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { format } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface InventoryItem {
   id: string;
@@ -27,6 +27,7 @@ const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
 export default function GlobalOrderModal() {
+  const { formatCurrency, symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const isOpen = activeModal === 'order';
@@ -78,7 +79,11 @@ export default function GlobalOrderModal() {
   const profit = revenue - cogs - sc - ac;
   const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
 
-  const isValid = customerName.trim() && productId && qtyNum >= 1 && sp > 0 && source && status && date;
+  const stockError = selectedProduct && status !== 'Cancelled' && qtyNum > selectedProduct.stock_quantity
+    ? `Only ${selectedProduct.stock_quantity} units available`
+    : '';
+
+  const isValid = customerName.trim() && productId && qtyNum >= 1 && !stockError && sp > 0 && source && status && date;
 
   function resetForm() {
     setCustomerName(''); setProductId(''); setQuantity('1'); setSellingPrice('');
@@ -150,19 +155,20 @@ export default function GlobalOrderModal() {
           <div>
             <Label>Quantity *</Label>
             <Input type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+            {stockError && <p className="mt-1 text-xs font-medium text-destructive">{stockError}</p>}
           </div>
           <div>
-            <Label>Selling Price ৳ *</Label>
+            <Label>Selling Price {symbol} *</Label>
             <Input type="number" min={0} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="0" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Shipping Cost ৳</Label>
+            <Label>Shipping Cost {symbol}</Label>
             <Input type="number" min={0} step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label>Ad Cost ৳</Label>
+            <Label>Ad Cost {symbol}</Label>
             <Input type="number" min={0} step="0.01" value={adCost} onChange={(e) => setAdCost(e.target.value)} placeholder="0" />
           </div>
         </div>
@@ -188,14 +194,14 @@ export default function GlobalOrderModal() {
         {selectedProduct && (
           <div className={cn('rounded-lg border p-4', profit > 0 ? 'border-primary/30 bg-primary/5' : 'border-destructive/30 bg-destructive/5')}>
             <div className="space-y-1 text-sm text-muted-foreground">
-              <div className="flex justify-between"><span>Revenue ৳</span><span>{formatTaka(revenue)}</span></div>
-              <div className="flex justify-between"><span>COGS ৳</span><span>{formatTaka(cogs)}</span></div>
-              <div className="flex justify-between"><span>Shipping ৳</span><span>{formatTaka(sc)}</span></div>
-              <div className="flex justify-between"><span>Ad Cost ৳</span><span>{formatTaka(ac)}</span></div>
+              <div className="flex justify-between"><span>Revenue {symbol}</span><span>{formatCurrency(revenue)}</span></div>
+              <div className="flex justify-between"><span>COGS {symbol}</span><span>{formatCurrency(cogs)}</span></div>
+              <div className="flex justify-between"><span>Shipping {symbol}</span><span>{formatCurrency(sc)}</span></div>
+              <div className="flex justify-between"><span>Ad Cost {symbol}</span><span>{formatCurrency(ac)}</span></div>
             </div>
             <div className="mt-2 border-t border-border pt-2">
               <div className="flex items-center justify-between">
-                <span className={cn('text-xl font-bold', profit > 0 ? 'text-primary' : 'text-destructive')}>{formatTaka(profit)}</span>
+                <span className={cn('text-xl font-bold', profit > 0 ? 'text-primary' : 'text-destructive')}>{formatCurrency(profit)}</span>
                 <span className={cn('text-base font-bold', profit > 0 ? 'text-primary' : 'text-destructive')}>{margin}%</span>
               </div>
             </div>

@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useFilter } from '@/context/FilterContext';
 import { useAuth } from '@/context/AuthContext';
-import { formatTaka } from '@/lib/constants';
 import AddProductModal, { ProductToEdit } from '@/components/AddProductModal';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import EmptyState from '@/components/EmptyState';
@@ -17,6 +16,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat, subDays } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface InvRow {
   id: string;
@@ -41,6 +41,7 @@ type SortDir = 'asc' | 'desc';
 const PAGE_SIZE = 20;
 
 export default function Inventory() {
+  const { formatCurrency, symbol } = useCurrency();
   const { openModal } = useFAB();
   const { getDateRange } = useFilter();
   const { isViewer, ownerIdForQueries } = useAuth();
@@ -59,6 +60,7 @@ export default function Inventory() {
   // Metrics data
   const [orderAggs, setOrderAggs] = useState<OrderAgg[]>([]);
   const [deadDays, setDeadDays] = useState(30);
+  const [soldRecently, setSoldRecently] = useState<Set<string>>(new Set());
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -67,25 +69,39 @@ export default function Inventory() {
     supabase.from('user_settings').select('dead_product_days').eq('user_id', ownerIdForQueries).maybeSingle()]
     );
     if (inv) setItems(inv as InvRow[]);
-    if (settings && (settings as Record<string, unknown>).dead_product_days) setDeadDays((settings as Record<string, unknown>).dead_product_days as number);
+    const days = settings?.dead_product_days || 30;
+    setDeadDays(days);
 
-    // Fetch order aggregates for metrics
+    // Sales metrics cover the selected period; "dead" products are judged on
+    // their own window. Cancelled orders are not sales.
     const range = getDateRange();
-    const { data: ordersData } = await supabase.
-    from('orders').
-    select('product_id, quantity, selling_price').
-    gte('date', fnsFormat(range.from, 'yyyy-MM-dd')).
-    lte('date', fnsFormat(range.to, 'yyyy-MM-dd'));
+    const [{ data: ordersData }, { data: recentSales }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('product_id, quantity, selling_price')
+        .neq('status', 'Cancelled')
+        .not('product_id', 'is', null)
+        .gte('date', fnsFormat(range.from, 'yyyy-MM-dd'))
+        .lte('date', fnsFormat(range.to, 'yyyy-MM-dd')),
+      supabase
+        .from('orders')
+        .select('product_id')
+        .neq('status', 'Cancelled')
+        .not('product_id', 'is', null)
+        .gte('date', fnsFormat(subDays(new Date(), days), 'yyyy-MM-dd')),
+    ]);
 
     if (ordersData) {
       const map: Record<string, {total_qty: number;total_revenue: number;}> = {};
       ordersData.forEach((o) => {
-        if (!map[o.product_id]) map[o.product_id] = { total_qty: 0, total_revenue: 0 };
-        map[o.product_id].total_qty += o.quantity;
-        map[o.product_id].total_revenue += o.selling_price * o.quantity;
+        const pid = o.product_id as string;
+        if (!map[pid]) map[pid] = { total_qty: 0, total_revenue: 0 };
+        map[pid].total_qty += o.quantity;
+        map[pid].total_revenue += o.selling_price * o.quantity;
       });
       setOrderAggs(Object.entries(map).map(([product_id, v]) => ({ product_id, ...v })));
     }
+    setSoldRecently(new Set((recentSales || []).map((o) => o.product_id as string)));
     setLoading(false);
   }, [getDateRange, ownerIdForQueries]);
 
@@ -178,12 +194,11 @@ export default function Inventory() {
   const turnover = avgStock > 0 ? totalSold / avgStock : 0;
 
   // Dead products
-  const deadProducts = useMemo(() => {
-    const cutoff = fnsFormat(subDays(new Date(), deadDays), 'yyyy-MM-dd');
-    const activeIds = new Set(orderAggs.map((a) => a.product_id));
-    // Also check date range — we need to re-query but for simplicity use orderAggs
-    return items.filter((i) => !activeIds.has(i.id));
-  }, [items, orderAggs, deadDays]);
+  // No (non-cancelled) sale in the last `deadDays` days.
+  const deadProducts = useMemo(
+    () => items.filter((i) => !soldRecently.has(i.id)),
+    [items, soldRecently]
+  );
 
   // Dependency risk
   const { topProduct, topPct, top3Pct } = useMemo(() => {
@@ -236,7 +251,7 @@ export default function Inventory() {
         </CardContent></Card>
         <Card><CardContent className="p-5">
           <p className="text-sm font-extrabold text-accent">Total Inventory Value</p>
-          <p className="text-2xl font-bold text-foreground">{formatTaka(totalInvValue)}</p>
+          <p className="text-2xl font-bold text-foreground">{formatCurrency(totalInvValue)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-5">
           <p className="text-sm font-extrabold text-accent">Low Stock Items</p>
@@ -259,11 +274,11 @@ export default function Inventory() {
                 <tr className="border-b border-border bg-muted/50">
                   <th className={thClass} onClick={() => toggleSort('product_name')}>Product <SortIcon col="product_name" /></th>
                   <th className={thClass} onClick={() => toggleSort('sku')}>SKU <SortIcon col="sku" /></th>
-                  <th className={thClass} onClick={() => toggleSort('cost_price')}>Cost ৳ <SortIcon col="cost_price" /></th>
-                  <th className={thClass} onClick={() => toggleSort('selling_price')}>Selling ৳ <SortIcon col="selling_price" /></th>
+                  <th className={thClass} onClick={() => toggleSort('cost_price')}>Cost {symbol} <SortIcon col="cost_price" /></th>
+                  <th className={thClass} onClick={() => toggleSort('selling_price')}>Selling {symbol} <SortIcon col="selling_price" /></th>
                   <th className={thClass} onClick={() => toggleSort('stock_quantity')}>Stock <SortIcon col="stock_quantity" /></th>
                   <th className={thClass} onClick={() => toggleSort('low_stock_threshold')}>Threshold <SortIcon col="low_stock_threshold" /></th>
-                  <th className={thClass} onClick={() => toggleSort('inv_value')}>Inv. Value ৳ <SortIcon col="inv_value" /></th>
+                  <th className={thClass} onClick={() => toggleSort('inv_value')}>Inv. Value {symbol} <SortIcon col="inv_value" /></th>
                   <th className={thClass} onClick={() => toggleSort('supplier')}>Supplier <SortIcon col="supplier" /></th>
                   <th className="px-3 py-3 text-left uppercase tracking-wider text-muted-foreground font-extrabold text-sm">Actions</th>
                 </tr>
@@ -276,11 +291,11 @@ export default function Inventory() {
                   <tr key={i.id} className={cn('table-row-hover border-b border-border last:border-0', isOut ? 'border-l-4 border-l-red-500' : isLow ? 'border-l-4 border-l-orange-400' : '')}>
                       <td className="px-3 py-2.5 text-sm font-extrabold bg-[var(--chart-card-bg)]">{i.product_name}</td>
                       <td className="px-3 py-2.5 text-sm font-extrabold bg-[var(--chart-card-bg)] text-orange-300">{i.sku || '—'}</td>
-                      <td className="px-3 py-2.5 tabular-nums text-sm font-extrabold bg-[var(--chart-card-bg)]">{formatTaka(i.cost_price)}</td>
-                      <td className="px-3 py-2.5 tabular-nums text-sm font-extrabold bg-[var(--chart-card-bg)]">{formatTaka(i.selling_price)}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-sm font-extrabold bg-[var(--chart-card-bg)]">{formatCurrency(i.cost_price)}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-sm font-extrabold bg-[var(--chart-card-bg)]">{formatCurrency(i.selling_price)}</td>
                       <td className={cn("px-3 py-2.5 tabular-nums font-extrabold bg-[var(--chart-card-bg)]", isOut ? 'text-red-600 dark:text-red-400' : isLow ? 'text-orange-500' : '')}>{i.stock_quantity}</td>
                       <td className="px-3 py-2.5 tabular-nums font-extrabold text-sm bg-[var(--chart-card-bg)]">{i.low_stock_threshold}</td>
-                      <td className="px-3 py-2.5 tabular-nums font-extrabold text-sm bg-[var(--chart-card-bg)]">{formatTaka(i.stock_quantity * i.cost_price)}</td>
+                      <td className="px-3 py-2.5 tabular-nums font-extrabold text-sm bg-[var(--chart-card-bg)]">{formatCurrency(i.stock_quantity * i.cost_price)}</td>
                       <td className="px-3 py-2.5 font-extrabold text-sm text-accent bg-[var(--chart-card-bg)]">{i.supplier || '—'}</td>
                       <td className="px-3 py-2.5 text-sm font-extrabold border-[var(--chart-card-bg)]">
                         {!isViewer && (

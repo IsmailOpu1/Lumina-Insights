@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { formatTaka } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { format } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface Order {
   id: string;
@@ -36,6 +36,7 @@ interface Props {
 type SortKey = 'order_number' | 'customer_name' | 'source' | 'status' | 'quantity' | 'selling_price' | 'shipping_cost' | 'profit_per_order' | 'date';
 
 export default function RecentOrdersTable({ orders, inventory, loading }: Props) {
+  const { formatCurrency, symbol } = useCurrency();
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortAsc, setSortAsc] = useState(false);
@@ -70,9 +71,9 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
   { label: 'Source', key: 'source' },
   { label: 'Status', key: 'status' },
   { label: 'Qty', key: 'quantity' },
-  { label: 'Price ৳', key: 'selling_price' },
-  { label: 'Shipping ৳', key: 'shipping_cost' },
-  { label: 'Profit ৳', key: 'profit_per_order' },
+  { label: `Price ${symbol}`, key: 'selling_price' },
+  { label: `Shipping ${symbol}`, key: 'shipping_cost' },
+  { label: `Profit ${symbol}`, key: 'profit_per_order' },
   { label: 'Date', key: 'date' }];
 
 
@@ -108,10 +109,10 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
                 <td className="px-3 py-2.5 font-extrabold text-indigo-900">{o.source}</td>
                 <td className="px-3 py-2.5"><StatusBadge status={o.status} /></td>
                 <td className="px-3 py-2.5 font-bold text-foreground">{o.quantity}</td>
-                <td className="px-3 py-2.5 font-bold text-foreground">{formatTaka(o.selling_price)}</td>
-                <td className="px-3 py-2.5 font-extrabold text-sm text-accent">{formatTaka(o.shipping_cost)}</td>
+                <td className="px-3 py-2.5 font-bold text-foreground">{formatCurrency(o.selling_price)}</td>
+                <td className="px-3 py-2.5 font-extrabold text-sm text-accent">{formatCurrency(o.shipping_cost)}</td>
                 <td className="px-3 py-2.5 text-[#07ab4c] font-extrabold" style={{ color: o.profit_per_order >= 0 ? '#10B981' : '#EF4444' }}>
-                  {formatTaka(o.profit_per_order)}
+                  {formatCurrency(o.profit_per_order)}
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground text-sm font-extrabold">{format(new Date(o.date), 'dd MMM')}</td>
               </tr>

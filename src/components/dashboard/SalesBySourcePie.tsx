@@ -1,8 +1,8 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { getChartTheme } from '@/lib/chartTheme';
-import { formatTaka } from '@/lib/constants';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const SOURCE_COLORS: Record<string, string> = {
   Instagram: '#E1306C',
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default function SalesBySourcePie({ data, loading }: Props) {
+  const { formatCurrency } = useCurrency();
   const { isDark } = useTheme();
   const theme = getChartTheme(isDark);
 
@@ -40,7 +41,7 @@ export default function SalesBySourcePie({ data, loading }: Props) {
             })}
           </Pie>
           <Tooltip
-            formatter={(value: number, name: string) => [`${formatTaka(value)} (${total > 0 ? Math.round(value / total * 100) : 0}%)`, name]}
+            formatter={(value: number, name: string) => [`${formatCurrency(value)} (${total > 0 ? Math.round(value / total * 100) : 0}%)`, name]}
             contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }} />
           
         </PieChart>

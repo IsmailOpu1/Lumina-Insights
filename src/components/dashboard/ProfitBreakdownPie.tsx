@@ -1,8 +1,8 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { getChartTheme } from '@/lib/chartTheme';
-import { formatTaka } from '@/lib/constants';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const COLORS = ['#4A7C59', '#F59E0B', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
 const LABELS = ['Revenue', 'COGS', 'Shipping', 'Ad Spend (Expenses)', 'Ad Cost (Orders)', 'Net Profit'];
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export default function ProfitBreakdownPie({ revenue, cogs, shipping, adSpend, orderAdCost = 0, netProfit, loading }: Props) {
+  const { formatCurrency } = useCurrency();
   const { isDark } = useTheme();
   const theme = getChartTheme(isDark);
 
@@ -38,11 +39,11 @@ export default function ProfitBreakdownPie({ revenue, cogs, shipping, adSpend, o
       <ResponsiveContainer width="100%" height={260}>
         <PieChart className="text-sm font-extrabold">
           <Pie data={data} cx="50%" cy="50%" innerRadius={40} outerRadius={90} dataKey="value" paddingAngle={2}
-          label={({ name, value }) => `${name} ${formatTaka(value)}`}>
+          label={({ name, value }) => `${name} ${formatCurrency(value)}`}>
             
             {data.map((d, i) => <Cell key={i} fill={COLORS[LABELS.indexOf(d.name)] || COLORS[i % COLORS.length]} />)}
           </Pie>
-          <Tooltip formatter={(value: number) => formatTaka(value)} contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }} />
+          <Tooltip formatter={(value: number) => formatCurrency(value)} contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }} />
         </PieChart>
       </ResponsiveContainer>
       <div className="mt-3 flex flex-wrap justify-center gap-3">

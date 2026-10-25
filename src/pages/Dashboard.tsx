@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useDashboardData, computeKPIs, getRevenueBySource, getOrdersByStatus, getTopProducts } from '@/hooks/useDashboardData';
-import { formatTaka } from '@/lib/constants';
 import DateFilterBar from '@/components/dashboard/DateFilterBar';
 import KPICards from '@/components/dashboard/KPICards';
 import RevenueGrowthChart from '@/components/dashboard/RevenueGrowthChart';
@@ -14,21 +13,32 @@ import InventoryAlerts from '@/components/dashboard/InventoryAlerts';
 import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
 import ProfitCalculator from '@/components/dashboard/ProfitCalculator';
+import { useCurrency } from '@/hooks/useCurrency';
+import { format, min, startOfWeek, subDays, subWeeks } from 'date-fns';
 
 export default function Dashboard() {
+  const { formatCurrency, symbol } = useCurrency();
   const { orders, inventory, expenses, loading, refetch } = useDashboardData();
   const { ownerIdForQueries } = useAuth();
   const [allOrders, setAllOrders] = useState<typeof orders>([]);
   const [deadProductDays, setDeadProductDays] = useState(30);
   const [roasThreshold, setRoasThreshold] = useState(2.0);
 
+  // Recent orders independent of the date filter: enough for last week's
+  // comparison, the dead-product window and the recent orders table.
   useEffect(() => {
-    async function fetchAll() {
-      const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    async function fetchRecent() {
+      const now = new Date();
+      const since = min([startOfWeek(subWeeks(now, 1)), subDays(now, deadProductDays)]);
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .gte('date', format(since, 'yyyy-MM-dd'))
+        .order('created_at', { ascending: false });
       setAllOrders((data as typeof orders) || []);
     }
-    fetchAll();
-  }, [orders]);
+    fetchRecent();
+  }, [orders, deadProductDays]);
 
   // Thresholds are workspace settings, so always read the owner's row.
   useEffect(() => {
@@ -77,7 +87,7 @@ export default function Dashboard() {
       value: 0,
       format: 'name' as const,
       nameValue: kpis.topCustomer?.name,
-      subValue: kpis.topCustomer ? formatTaka(kpis.topCustomer.revenue) : undefined,
+      subValue: kpis.topCustomer ? formatCurrency(kpis.topCustomer.revenue) : undefined,
     },
     {
       label: 'Avg Ad Cost/Order',
@@ -91,7 +101,7 @@ export default function Dashboard() {
       value: roas,
       format: 'roas' as const,
       color: roas >= roasThreshold ? '#4A7C59' : '#EF4444',
-      tooltip: `Revenue per ৳1 spent on ads. Your threshold: ${roasThreshold}x. Higher is better.`,
+      tooltip: `Revenue per ${symbol}1 spent on ads. Your threshold: ${roasThreshold}x. Higher is better.`,
     },
   ];
 

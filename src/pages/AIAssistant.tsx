@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import SkeletonLoader from '@/components/SkeletonLoader';
+import { useCurrency } from '@/hooks/useCurrency';
+import { fetchRecentSnapshot } from '@/lib/businessSnapshot';
 
 interface ChatMessage {
   id: string;
@@ -28,6 +30,9 @@ interface BusinessContext {
   total_ad_spend: number;
 }
 
+// The AI and the context panel both look at this many recent days.
+const CONTEXT_DAYS = 30;
+
 const EXAMPLES = [
   "What's my most profitable product?",
   'How is my business this week?',
@@ -35,7 +40,8 @@ const EXAMPLES = [
 ];
 
 export default function AIAssistant() {
-  const { ownerIdForQueries, userSettings } = useAuth();
+  const { ownerIdForQueries } = useAuth();
+  const { formatCurrency } = useCurrency();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -55,80 +61,26 @@ export default function AIAssistant() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const contextRef = useRef<BusinessContext | null>(null);
 
+  // Same numbers the AI sees: business_snapshot() over the last CONTEXT_DAYS.
   async function fetchContext() {
     setContextLoading(true);
-    try {
-      const [ordersRes, inventoryRes, expensesRes] = await Promise.all([
-        supabase.from('orders').select(
-          'selling_price, quantity, profit_per_order, product_id, source, ad_cost, status'
-        ),
-        supabase.from('inventory').select(
-          'id, product_name, stock_quantity, low_stock_threshold'
-        ),
-        supabase.from('expenses').select('amount, type'),
-      ]);
-
-      const orders = ordersRes.data || [];
-      const inventory = inventoryRes.data || [];
-      const expenses = expensesRes.data || [];
-
-      const revenue = orders.reduce(
-        (s, o) => s + o.selling_price * o.quantity, 0
-      );
-      const profit = orders.reduce(
-        (s, o) => s + (o.profit_per_order || 0), 0
-      );
-      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-      const productSales: Record<string, number> = {};
-      orders.forEach((o) => {
-        productSales[o.product_id] =
-          (productSales[o.product_id] || 0) + o.quantity;
-      });
-      const topPid = Object.entries(productSales)
-        .sort((a, b) => b[1] - a[1])[0];
-      const topProd = topPid
-        ? inventory.find((i) => i.id === topPid[0])
-        : null;
-      const lowStock = inventory.filter(
-        (i) => i.stock_quantity <= i.low_stock_threshold
-      ).length;
-
-      const sourceCounts: Record<string, number> = {};
-      orders.forEach((o) => {
-        if (o.source)
-          sourceCounts[o.source] = (sourceCounts[o.source] || 0) + 1;
-      });
-      const topSource = Object.entries(sourceCounts)
-        .sort((a, b) => b[1] - a[1])[0];
-      const topSourcePct =
-        topSource && orders.length > 0
-          ? ((topSource[1] / orders.length) * 100).toFixed(0)
-          : '0';
-      const adSpend = expenses
-        .filter((e) => e.type === 'Ad Spend')
-        .reduce((s, e) => s + e.amount, 0);
-
-      const newContext = {
-        revenue: Math.round(revenue),
-        profit: Math.round(profit),
-        margin: Math.round(margin * 10) / 10,
-        top_product: topProd
-          ? `${topProd.product_name} (${topPid![1]} units)`
+    const s = await fetchRecentSnapshot(CONTEXT_DAYS);
+    if (s) {
+      const top = s.top_products[0];
+      const channel = s.sales_by_channel[0];
+      setContext({
+        revenue: Math.round(s.revenue),
+        profit: Math.round(s.net_profit),
+        margin: s.margin_pct,
+        top_product: top ? `${top.name} (${top.units} units)` : 'N/A',
+        low_stock: s.low_stock.length,
+        top_sales_source: channel && s.revenue > 0
+          ? `${channel.channel} (${Math.round((channel.revenue / s.revenue) * 100)}%)`
           : 'N/A',
-        low_stock: lowStock,
-        top_sales_source: topSource
-          ? `${topSource[0]} (${topSourcePct}%)`
-          : 'N/A',
-        total_orders: orders.length,
-        total_ad_spend: Math.round(adSpend),
-      };
-      setContext(newContext);
-      contextRef.current = newContext;
-    } catch {
-      // silent
+        total_orders: s.orders,
+        total_ad_spend: Math.round(s.ad_spend),
+      });
     }
     setContextLoading(false);
   }
@@ -167,30 +119,9 @@ export default function AIAssistant() {
     fetchContext();
     loadHistory();
 
-    const interval = setInterval(() => {
-      fetchContext();
-    }, 30000);
-
-    const channel = supabase
-      .channel('ai-context-refresh')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => fetchContext()
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'expenses' },
-        () => fetchContext()
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory' },
-        () => fetchContext()
-      )
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
-    };
+    // orders/expenses/inventory are not in the realtime publication, so poll.
+    const interval = setInterval(fetchContext, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -332,25 +263,15 @@ export default function AIAssistant() {
         content: m.content,
       }));
 
-      const body: any = {
+      // The function reads the business data from the database itself.
+      const body: {
+        message: string;
+        conversation_history: { role: string; content: string }[];
+        image_base64?: string;
+        image_type?: string;
+      } = {
         message: msg,
         conversation_history: history,
-        business_context: {
-          // Business profile from onboarding
-          business_name: userSettings?.business_name || 'N/A',
-          business_type: userSettings?.business_type || 'N/A',
-          business_description: userSettings?.business_description || 'N/A',
-          currency: userSettings?.currency || 'BDT',
-          // Live business data
-          revenue: contextRef.current?.revenue || 0,
-          profit: contextRef.current?.profit || 0,
-          margin: contextRef.current?.margin || 0,
-          top_product: contextRef.current?.top_product || 'N/A',
-          low_stock: contextRef.current?.low_stock || 0,
-          top_sales_source: contextRef.current?.top_sales_source || 'N/A',
-          total_orders: contextRef.current?.total_orders || 0,
-          total_ad_spend: contextRef.current?.total_ad_spend || 0,
-        },
       };
 
       if (imageFile && imagePreview) {
@@ -387,10 +308,17 @@ export default function AIAssistant() {
   }
 
   async function saveToNotes(msg: ChatMessage) {
+    // loadHistory() shows the title as the user's question, so store the
+    // question this answer replied to.
+    const index = messages.findIndex((m) => m.id === msg.id);
+    const question = messages
+      .slice(0, index)
+      .reverse()
+      .find((m) => m.role === 'user')?.content;
     await supabase.from('notes').insert({
       type: 'ai_output',
       source_module: 'business_ai',
-      title: 'AI Insight',
+      title: question ? question.slice(0, 200) : 'AI Insight',
       transcript: msg.content,
       owner_id: ownerIdForQueries,
     });
@@ -413,12 +341,12 @@ export default function AIAssistant() {
     ? [
         {
           label: 'Revenue',
-          value: `৳${context.revenue.toLocaleString()}`,
+          value: formatCurrency(context.revenue),
           color: '#F0B429',
         },
         {
           label: 'Net Profit',
-          value: `৳${context.profit.toLocaleString()}`,
+          value: formatCurrency(context.profit),
           color: context.profit >= 0 ? '#10B981' : '#EF4444',
         },
         {
@@ -433,7 +361,7 @@ export default function AIAssistant() {
           color: context.low_stock > 0 ? '#F59E0B' : '#10B981',
         },
         { label: 'Best Channel', value: context.top_sales_source },
-        { label: 'Active Orders', value: `${context.total_orders}` },
+        { label: `Orders (${CONTEXT_DAYS} days)`, value: `${context.total_orders}` },
       ]
     : [];
 

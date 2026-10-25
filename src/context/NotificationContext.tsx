@@ -18,6 +18,7 @@ interface NotificationContextType {
   markAllRead: () => Promise<void>;
   refreshCount: () => Promise<void>;
   markOneRead: (id: string) => Promise<void>;
+  dismiss: (ids?: string[]) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -38,18 +39,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  // my_notifications carries this user's own read/dismissed state, so every
+  // team member (viewers included) keeps their own unread count.
   const refreshCount = useCallback(async () => {
+    if (!ownerIdForQueries) return;
     const { count } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .from('my_notifications')
+      .select('id', { count: 'exact', head: true })
       .eq('is_read', false)
       .eq('owner_id', ownerIdForQueries);
     setUnreadCount(count ?? 0);
   }, [ownerIdForQueries]);
 
   const fetchRecent = useCallback(async () => {
+    if (!ownerIdForQueries) return;
     const { data } = await supabase
-      .from('notifications')
+      .from('my_notifications')
       .select('*')
       .eq('owner_id', ownerIdForQueries)
       .order('created_at', { ascending: false })
@@ -58,20 +63,28 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [ownerIdForQueries]);
 
   const markAllRead = useCallback(async () => {
-    await supabase.from('notifications').update({ is_read: true } as never).eq('is_read', false).eq('owner_id', ownerIdForQueries);
+    await supabase.rpc('mark_notifications_read', {});
     setUnreadCount(0);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-  }, [ownerIdForQueries]);
+  }, []);
 
   const markOneRead = useCallback(async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true } as never).eq('id', id).eq('owner_id', ownerIdForQueries);
+    await supabase.rpc('mark_notifications_read', { p_ids: [id] });
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
     setUnreadCount((c) => Math.max(0, c - 1));
-  }, [ownerIdForQueries]);
+  }, []);
+
+  // Hides notifications for this user only; omit ids to hide all of them.
+  const dismiss = useCallback(async (ids?: string[]) => {
+    await supabase.rpc('dismiss_notifications', ids ? { p_ids: ids } : {});
+    setNotifications((prev) => (ids ? prev.filter((n) => !ids.includes(n.id)) : []));
+    await refreshCount();
+  }, [refreshCount]);
 
   useEffect(() => {
+    if (!ownerIdForQueries) return;
     refreshCount();
     fetchRecent();
 
@@ -86,7 +99,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           filter: `owner_id=eq.${ownerIdForQueries}`
         },
         (payload) => {
-          const newNotif = payload.new as Notification;
+          // New rows have no per-user state yet, so they start unread.
+          const newNotif = { ...(payload.new as Notification), is_read: false };
           setNotifications((prev) => [newNotif, ...prev].slice(0, 10));
           setUnreadCount((c) => c + 1);
 
@@ -112,7 +126,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [refreshCount, fetchRecent, ownerIdForQueries]);
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, notifications, markAllRead, refreshCount, markOneRead }}>
+    <NotificationContext.Provider value={{ unreadCount, notifications, markAllRead, refreshCount, markOneRead, dismiss }}>
       {children}
     </NotificationContext.Provider>
   );

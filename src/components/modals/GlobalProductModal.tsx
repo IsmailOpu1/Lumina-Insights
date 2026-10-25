@@ -8,8 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function GlobalProductModal() {
+  const { symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const isOpen = activeModal === 'product';
@@ -62,11 +64,11 @@ export default function GlobalProductModal() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Cost Price ৳ *</Label>
+            <Label>Cost Price {symbol} *</Label>
             <Input type="number" min={0.01} step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label>Selling Price ৳ *</Label>
+            <Label>Selling Price {symbol} *</Label>
             <Input type="number" min={0.01} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="0" />
           </div>
         </div>

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat } from 'date-fns';
 import { createInvite, inviteLink } from '@/lib/invites';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -41,10 +42,11 @@ const PREF_LABELS: Record<keyof NotifPrefs, string> = {
 const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nunito', 'dmsans'];
 
 export default function SettingsPage() {
+  const { symbol } = useCurrency();
   const navigate = useNavigate();
   const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
   const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
-  const { refreshCount } = useNotifications();
+  const { dismiss } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [dashboardFilter, setDashboardFilter] = useState('7days');
@@ -244,7 +246,7 @@ export default function SettingsPage() {
       const wb = XLSX.utils.book_new();
 
       const orders = ordersRes.data || [];
-      const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', 'Selling ৳', 'Shipping ৳', 'Ad Cost ৳', 'Profit ৳', 'Date'];
+      const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', `Selling ${symbol}`, `Shipping ${symbol}`, `Ad Cost ${symbol}`, `Profit ${symbol}`, 'Date'];
       const oRows = orders.map((o: any) => [
         o.order_number, o.customer_name, (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
         o.quantity, o.selling_price, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
@@ -269,7 +271,7 @@ export default function SettingsPage() {
       XLSX.utils.book_append_sheet(wb, oWs, 'Orders');
 
       const inv = invRes.data || [];
-      const iHeaders = ['Product', 'SKU', 'Cost ৳', 'Selling ৳', 'Stock', 'Threshold', 'Value ৳', 'Supplier'];
+      const iHeaders = ['Product', 'SKU', `Cost ${symbol}`, `Selling ${symbol}`, 'Stock', 'Threshold', `Value ${symbol}`, 'Supplier'];
       const iRows = inv.map((p: any) => [
         p.product_name, p.sku || '', p.cost_price, p.selling_price, p.stock_quantity,
         p.low_stock_threshold, p.stock_quantity * p.cost_price, p.supplier || '',
@@ -293,7 +295,7 @@ export default function SettingsPage() {
       XLSX.utils.book_append_sheet(wb, iWs, 'Inventory');
 
       const exps = expRes.data || [];
-      const eHeaders = ['Type', 'Amount ৳', 'Platform', 'Notes', 'Date'];
+      const eHeaders = ['Type', `Amount ${symbol}`, 'Platform', 'Notes', 'Date'];
       const eRows = exps.map((e: any) => [
         e.type, e.amount, e.platform || '', e.notes || '', fnsFormat(new Date(e.date), 'dd/MM/yyyy'),
       ]);
@@ -318,8 +320,8 @@ export default function SettingsPage() {
   }
 
   async function handleClearNotifs() {
-    await supabase.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await refreshCount();
+    // Hides them for this user only; teammates keep theirs.
+    await dismiss();
     toast.success('Cleared ✓');
     setClearOpen(false);
   }

@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
 export default function GlobalExpenseModal() {
+  const { symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const isOpen = activeModal === 'expense';
@@ -61,7 +63,7 @@ export default function GlobalExpenseModal() {
           </select>
         </div>
         <div>
-          <Label>Amount ৳ *</Label>
+          <Label>Amount {symbol} *</Label>
           <Input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
         </div>
         <div>

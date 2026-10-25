@@ -159,7 +159,10 @@ export default function Signup() {
                 <div className="flex items-center gap-2">
                   <Checkbox id="terms" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} />
                   <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
-                    I agree to the Terms of Service
+                    I agree to the{' '}
+                    <Link to="/terms" target="_blank" className="font-bold text-[#4A7C59] hover:underline">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link to="/privacy" target="_blank" className="font-bold text-[#4A7C59] hover:underline">Privacy Policy</Link>
                   </label>
                 </div>
 

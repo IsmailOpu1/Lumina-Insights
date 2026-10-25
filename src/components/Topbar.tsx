@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Bell } from 'lucide-react';
+import { Menu, Bell, ChevronRight } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,17 +14,18 @@ const ROUTE_TITLES: Record<string, string> = {
   '/ai-assistant': 'AI Assistant',
   '/notes': 'Notes',
   '/notifications': 'Notifications',
-  '/settings': 'Settings'
+  '/settings': 'Settings',
+  '/billing': 'Billing',
 };
 
 const TYPE_COLORS: Record<string, string> = {
   new_order: '#10B981',
-  low_stock: '#F59E0B',
-  critical_stock: '#EF4444',
-  cancelled_order: '#EF4444',
-  profit_drop: '#F59E0B',
-  roas_alert: '#3B82F6',
-  weekly_summary: '#6366F1'
+  low_stock: '#F5A524',
+  critical_stock: '#F43F5E',
+  cancelled_order: '#F43F5E',
+  profit_drop: '#F5A524',
+  roas_alert: '#60A5FA',
+  weekly_summary: '#5EEAD4'
 };
 
 interface TopbarProps {
@@ -87,100 +88,58 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     }
   };
 
+  const role = isOwner ? 'Owner' : isManager ? 'Manager' : isViewer ? 'Viewer' : null;
+
   return (
-    <header
-      className="sticky top-0 z-40 flex h-[60px] items-center justify-between border-b px-4 shadow-xl rounded-none"
-      style={{
-        backgroundColor: 'var(--topbar-bg)',
-        borderColor: 'var(--topbar-bg)',
-      }}
-    >
-      {/* Left */}
-      <div className="flex items-center gap-3">
-        {/* FIX 1: Menu icon uses var(--text-primary) */}
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-background/70 px-4 backdrop-blur-xl md:px-6">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           onClick={onMenuClick}
-          className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-white/10 md:hidden active:scale-95"
-          style={{ color: 'var(--text-primary)' }}
+          aria-label="Open menu"
+          className="-ml-2 flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
         >
-          <Menu size={22} />
+          <Menu size={20} />
         </button>
-
-        {/* FIX 2: Page titles use var(--text-primary) */}
-        <h1
-          className="hidden text-xl font-bold md:block"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {pageTitle}
-        </h1>
-        <h1
-          className="text-lg font-bold md:hidden"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {pageTitle}
-        </h1>
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+          <span className="hidden text-muted-foreground sm:inline">{userSettings?.business_name || 'Lumina'}</span>
+          <ChevronRight size={14} className="hidden text-muted-foreground/60 sm:inline" />
+          <span className="truncate font-medium text-foreground">{pageTitle}</span>
+        </nav>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-2" ref={dropdownRef}>
-        {/* User avatar */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/settings')}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white transition-transform hover:scale-105"
-            style={{ backgroundColor: 'var(--accent-color)' }}
-            title="Profile & Settings"
-          >
-            {userSettings?.avatar_url ? (
-              <img src={userSettings.avatar_url} alt="Avatar" className="h-full w-full rounded-full object-cover" />
-            ) : (
-              avatarInitials
-            )}
-          </button>
-          {isOwner && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F0B429]/20 text-[#F0B429]">Owner</span>
-          )}
-          {isManager && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Manager</span>
-          )}
-          {isViewer && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Viewer</span>
-          )}
-        </div>
-
-        {/* Bell — FIX 3: uses var(--text-primary) */}
+      <div className="relative flex items-center gap-1.5" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen((p) => !p)}
-          className="relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-white/10 active:scale-95"
-          style={{ color: 'var(--text-primary)' }}
+          aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
-          <Bell size={22} />
+          <Bell size={18} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-white">
-              {unreadCount > 99 ? '99+' : unreadCount}
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground ring-2 ring-background">
+              {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </button>
 
-        {/* Notification dropdown */}
+        <button
+          onClick={() => navigate('/settings')}
+          title="Profile and settings"
+          className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-secondary"
+        >
+          <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-highlight text-[11px] font-semibold text-primary-foreground">
+            {userSettings?.avatar_url
+              ? <img src={userSettings.avatar_url} alt="" className="h-full w-full object-cover" />
+              : avatarInitials}
+          </span>
+          {role && <span className="hidden text-xs text-muted-foreground sm:inline">{role}</span>}
+        </button>
+
         {dropdownOpen && (
-          <div className="absolute right-0 top-full mt-2 w-[360px] max-md:w-screen rounded-xl border border-border bg-card shadow-xl overflow-hidden z-[100]">
-            <div
-              className="flex items-center justify-between border-b border-border px-4 py-3"
-              style={{ backgroundColor: 'var(--card-bg)' }}
-            >
-              <span
-                className="text-[15px] font-bold"
-                style={{ color: 'var(--accent-color)' }}
-              >
-                Notifications
-              </span>
+          <div className="absolute right-0 top-full z-[100] mt-2 w-[360px] overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/50 max-md:fixed max-md:inset-x-2 max-md:top-14 max-md:w-auto">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <span className="text-sm font-semibold text-foreground">Notifications</span>
               {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-sm font-bold hover:underline"
-                  style={{ color: 'var(--accent-color)' }}
-                >
+                <button onClick={markAllRead} className="text-xs font-medium text-primary hover:underline">
                   Mark all read
                 </button>
               )}
@@ -188,75 +147,36 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
             <div className="max-h-[420px] overflow-y-auto">
               {notifications.length === 0 ? (
-                <div
-                  className="px-4 py-8 text-center text-sm text-muted-foreground"
-                  style={{ backgroundColor: 'var(--chart-card-bg)' }}
-                >
-                  No notifications yet
-                </div>
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">You're all caught up</p>
               ) : (
-                notifications.map((n) => {
-                  const borderColor =
-                    TYPE_COLORS[n.type] || '#6366F1';
-                  return (
-                    <button
-                      key={n.id}
-                      onClick={() => handleNotifClick(n)}
-                      className={`flex w-full items-start gap-3 border-l-[3px] px-4 py-3 text-left transition-colors hover:bg-white/5 ${
-                        n.is_read ? '' : 'bg-primary/5'
-                      }`}
-                      style={{ borderLeftColor: borderColor }}
-                    >
-                      <div
-                        className="mt-1 h-3 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: borderColor }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`text-sm ${
-                            n.is_read ? 'font-medium' : 'font-bold'
-                          } truncate`}
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          {n.title}
-                        </p>
-                        <p
-                          className="line-clamp-2 text-sm font-extrabold"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          {n.message}
-                        </p>
-                      </div>
-                      <span
-                        className="shrink-0 text-xs"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {formatDistanceToNow(
-                          new Date(n.created_at),
-                          { addSuffix: true }
-                        )}
-                      </span>
-                    </button>
-                  );
-                })
+                notifications.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => handleNotifClick(n)}
+                    className={`flex w-full items-start gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors last:border-0 hover:bg-secondary ${n.is_read ? '' : 'bg-primary/[0.04]'}`}
+                  >
+                    <span
+                      className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: n.is_read ? 'transparent' : TYPE_COLORS[n.type] || '#10B981' }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-sm ${n.is_read ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>{n.title}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
+                    </div>
+                    <span className="shrink-0 text-[11px] text-muted-foreground/80">
+                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                    </span>
+                  </button>
+                ))
               )}
             </div>
 
-            <div
-              className="border-t border-border px-4 py-2.5"
-              style={{ backgroundColor: 'var(--card-bg)' }}
+            <button
+              onClick={() => { setDropdownOpen(false); navigate('/notifications'); }}
+              className="w-full border-t border-border px-4 py-2.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  navigate('/notifications');
-                }}
-                className="w-full text-center text-sm font-extrabold hover:underline"
-                style={{ color: 'var(--accent-color)' }}
-              >
-                View all notifications →
-              </button>
-            </div>
+              View all notifications
+            </button>
           </div>
         )}
       </div>

@@ -2,277 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Lumina "Emerald" theme: dark only.
+ * Every color in the app comes from these tokens. Components use the
+ * Tailwind names (bg-card, text-muted-foreground, bg-primary, text-highlight...),
+ * never raw hex values.
+ */
 @layer base {
   :root {
-    --background: 90 38% 74%;
-    --background-secondary: 90 38% 76%;
-    --foreground: 150 30% 14%;
-    --foreground-secondary: 150 20% 25%;
+    color-scheme: dark;
 
-    --card: 0 0% 100%;
-    --card-foreground: 150 30% 14%;
+    /* Surfaces, darkest to lightest */
+    --background: 150 20% 5%;          /* #0A0F0D page */
+    --card: 156 18% 9%;                /* #121A17 cards */
+    --card-foreground: 150 22% 93%;
+    --popover: 156 18% 10%;            /* menus, dialogs */
+    --popover-foreground: 150 22% 93%;
+    --secondary: 154 19% 13%;          /* raised controls */
+    --secondary-foreground: 150 22% 93%;
+    --muted: 155 17% 11%;              /* quiet fills */
+    --muted-foreground: 153 8% 57%;    /* #8A9A93 supporting text */
+    --accent: 154 19% 14%;             /* hover / selected rows in menus */
+    --accent-foreground: 150 22% 93%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 150 30% 14%;
+    --foreground: 150 22% 93%;         /* #EAF2EE */
+    --foreground-secondary: 153 9% 67%;
 
-    --primary: 145 27% 39%;
-    --primary-foreground: 0 0% 100%;
+    /* Brand */
+    --primary: 160 84% 39%;            /* #10B981 mint */
+    --primary-foreground: 156 65% 5%;  /* dark text on mint */
+    --highlight: 171 77% 64%;          /* #5EEAD4 teal */
+    --highlight-foreground: 172 70% 8%;
 
-    --secondary: 100 30% 90%;
-    --secondary-foreground: 150 30% 14%;
-
-    --muted: 100 30% 90%;
-    --muted-foreground: 140 14% 42%;
-
-    --accent: 145 27% 39%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
+    /* Status */
+    --success: 158 64% 52%;            /* #34D399 */
+    --warning: 38 92% 58%;             /* #F5A524 */
+    --destructive: 350 89% 60%;        /* #F43F5E */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 90 30% 67%;
-    --input: 90 30% 67%;
-    --ring: 145 27% 39%;
+    --border: 154 16% 14%;             /* #1F2B26 */
+    --input: 154 16% 17%;
+    --ring: 160 84% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 90 30% 67%;
-    --sidebar-foreground: 150 25% 22%;
-    --sidebar-primary: 145 27% 39%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 100 30% 78%;
-    --sidebar-accent-foreground: 150 30% 14%;
-    --sidebar-border: 90 30% 67%;
-    --sidebar-ring: 145 27% 39%;
+    --sidebar-background: 153 22% 6%;
+    --sidebar-foreground: 150 14% 75%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 156 65% 5%;
+    --sidebar-accent: 154 19% 11%;
+    --sidebar-accent-foreground: 150 22% 93%;
+    --sidebar-border: 154 16% 12%;
+    --sidebar-ring: 160 84% 39%;
 
-    /* Theme surface defaults (avocado) */
-    --sidebar-bg: #7a8e57;
-    --page-bg: #374b2f;
-    --topbar-bg: #7a8e57;
-    --card-bg: #000000;
-    --chart-card-bg: #dcd38e;
-    --input-bg: #dcd38e;
-    --accent-color: #F0B429;
-    --dark-bg: #141E14;
+    /* Older hex variables still read by some pages; kept in step with the tokens above. */
+    --page-bg: #0A0F0D;
+    --sidebar-bg: #0C1310;
+    --topbar-bg: #0A0F0D;
+    --card-bg: #121A17;
+    --chart-card-bg: #121A17;
+    --input-bg: #121A17;
+    --accent-color: #10B981;
+    --dark-bg: #0A0F0D;
+    --text-primary: #EAF2EE;
+    --text-secondary: #A3B3AC;
+    --text-muted: #6E7F78;
+    --text-accent: #5EEAD4;
+    --text-on-cream: #EAF2EE;
 
-    /* Text color defaults (avocado) */
-    --text-primary: #F0EDD4;
-    --text-secondary: #C8D5A0;
-    --text-muted: #8AAA6A;
-    --text-accent: #F0B429;
-    --text-on-cream: #1A3A1A;
+    /* Soft mint glow for highlighted cards and focus */
+    --glow: 0 0 0 1px hsl(160 84% 39% / 0.25), 0 8px 32px -8px hsl(160 84% 39% / 0.35);
   }
-
-  .dark {
-    --background: 145 25% 14%;
-    --background-secondary: 145 25% 15%;
-    --foreground: 100 20% 94%;
-    --foreground-secondary: 120 15% 66%;
-
-    --card: 145 22% 19%;
-    --card-foreground: 100 20% 94%;
-
-    --popover: 145 22% 19%;
-    --popover-foreground: 100 20% 94%;
-
-    --primary: 145 27% 39%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 145 20% 22%;
-    --secondary-foreground: 100 20% 94%;
-
-    --muted: 145 20% 22%;
-    --muted-foreground: 120 15% 66%;
-
-    --accent: 145 27% 39%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 150 25% 22%;
-    --input: 150 25% 22%;
-    --ring: 145 27% 39%;
-
-    --sidebar-background: 150 30% 8%;
-    --sidebar-foreground: 100 20% 94%;
-    --sidebar-primary: 145 27% 39%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 145 20% 22%;
-    --sidebar-accent-foreground: 100 20% 94%;
-    --sidebar-border: 150 25% 22%;
-    --sidebar-ring: 145 27% 39%;
-  }
-}
-
-/* ========== THEME CLASSES (light) ========== */
-.theme-avocado {
-  --sidebar-bg: #7a8e57;
-  --page-bg: #374b2f;
-  --topbar-bg: #7a8e57;
-  --card-bg: #000000;
-  --chart-card-bg: #dcd38e;
-  --input-bg: #dcd38e;
-  --accent-color: #F0B429;
-  --dark-bg: #141E14;
-  --text-primary: #F0EDD4;
-  --text-secondary: #C8D5A0;
-  --text-muted: #8AAA6A;
-  --text-accent: #F0B429;
-  --text-on-cream: #1A3A1A;
-}
-
-.theme-ocean {
-  --sidebar-bg: #1B3A4B;
-  --page-bg: #1E3F5A;
-  --topbar-bg: #1B3A4B;
-  --card-bg: #0D1B2A;
-  --chart-card-bg: #B8D4E8;
-  --input-bg: #B8D4E8;
-  --accent-color: #00B4D8;
-  --dark-bg: #0A1628;
-  --text-primary: #E8F4F8;
-  --text-secondary: #A8D4E8;
-  --text-muted: #6AA8C8;
-  --text-accent: #00B4D8;
-  --text-on-cream: #0A1E2E;
-}
-
-.theme-sunset {
-  --sidebar-bg: #6B2D2D;
-  --page-bg: #7A3535;
-  --topbar-bg: #6B2D2D;
-  --card-bg: #1A0A0A;
-  --chart-card-bg: #F4C9A0;
-  --input-bg: #F4C9A0;
-  --accent-color: #FF6B35;
-  --dark-bg: #1A0A0A;
-  --text-primary: #FFF0E8;
-  --text-secondary: #F4C8A0;
-  --text-muted: #C88860;
-  --text-accent: #FF6B35;
-  --text-on-cream: #2E1008;
-}
-
-.theme-purple {
-  --sidebar-bg: #2D1B4E;
-  --page-bg: #341E5C;
-  --topbar-bg: #2D1B4E;
-  --card-bg: #160D2E;
-  --chart-card-bg: #D4C4F0;
-  --input-bg: #D4C4F0;
-  --accent-color: #9B59B6;
-  --dark-bg: #0D0820;
-  --text-primary: #F0ECF8;
-  --text-secondary: #C8B8E8;
-  --text-muted: #9880C0;
-  --text-accent: #9B59B6;
-  --text-on-cream: #1A0A2E;
-}
-
-.theme-forest {
-  --sidebar-bg: #1A3A2A;
-  --page-bg: #1E4030;
-  --topbar-bg: #1A3A2A;
-  --card-bg: #0A1A10;
-  --chart-card-bg: #C0DCC0;
-  --input-bg: #C0DCC0;
-  --accent-color: #27AE60;
-  --dark-bg: #0A1510;
-  --text-primary: #E8F5E8;
-  --text-secondary: #A8D8A8;
-  --text-muted: #68A868;
-  --text-accent: #27AE60;
-  --text-on-cream: #0A1E0A;
-}
-
-.theme-rosegold {
-  --sidebar-bg: #5C3A3A;
-  --page-bg: #6B4040;
-  --topbar-bg: #5C3A3A;
-  --card-bg: #1A0A0A;
-  --chart-card-bg: #F0D4D4;
-  --input-bg: #F0D4D4;
-  --accent-color: #E8A0A0;
-  --dark-bg: #1A0808;
-  --text-primary: #FFF0F0;
-  --text-secondary: #F0C8C8;
-  --text-muted: #C89090;
-  --text-accent: #E8A0A0;
-  --text-on-cream: #2E0A0A;
-}
-
-/* ========== DARK + THEME overrides ========== */
-.dark.theme-avocado {
-  --page-bg: #141E14;
-  --sidebar-bg: #1A2E1A;
-  --topbar-bg: #1A2E1A;
-  --card-bg: #0F1A0F;
-  --chart-card-bg: #2A3D1A;
-  --text-primary: #E8F5E0;
-  --text-secondary: #8AAA8A;
-  --text-muted: #5A7A5A;
-  --text-on-cream: #E8F5E0;
-}
-
-.dark.theme-ocean {
-  --page-bg: #0A1628;
-  --sidebar-bg: #0D2038;
-  --topbar-bg: #0D2038;
-  --card-bg: #061018;
-  --chart-card-bg: #1A3048;
-  --text-primary: #E0F0F8;
-  --text-secondary: #6090B0;
-  --text-muted: #405870;
-  --text-on-cream: #E0F0F8;
-}
-
-.dark.theme-sunset {
-  --page-bg: #1A0808;
-  --sidebar-bg: #2A1010;
-  --topbar-bg: #2A1010;
-  --card-bg: #100404;
-  --chart-card-bg: #2A1808;
-  --text-primary: #FFF0E8;
-  --text-secondary: #C07050;
-  --text-muted: #805040;
-  --text-on-cream: #FFF0E8;
-}
-
-.dark.theme-purple {
-  --page-bg: #0D0820;
-  --sidebar-bg: #180D30;
-  --topbar-bg: #180D30;
-  --card-bg: #080418;
-  --chart-card-bg: #201040;
-  --text-primary: #F0ECF8;
-  --text-secondary: #806898;
-  --text-muted: #504860;
-  --text-on-cream: #F0ECF8;
-}
-
-.dark.theme-forest {
-  --page-bg: #0A1510;
-  --sidebar-bg: #102018;
-  --topbar-bg: #102018;
-  --card-bg: #060E08;
-  --chart-card-bg: #182808;
-  --text-primary: #E8F5E8;
-  --text-secondary: #508050;
-  --text-muted: #386038;
-  --text-on-cream: #E8F5E8;
-}
-
-.dark.theme-rosegold {
-  --page-bg: #1A0808;
-  --sidebar-bg: #281010;
-  --topbar-bg: #281010;
-  --card-bg: #100404;
-  --chart-card-bg: #281818;
-  --text-primary: #FFF0F0;
-  --text-secondary: #A07070;
-  --text-muted: #785858;
-  --text-on-cream: #FFF0F0;
 }
 
 @layer base {
@@ -281,16 +81,62 @@
   }
 
   body {
-    @apply bg-background antialiased;
-    color: var(--text-primary);
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold;
+    @apply font-semibold tracking-tight;
   }
 }
 
-/* Global scrollbar styles */
+@layer components {
+  /* Standard card: dark surface, hairline border, soft top highlight */
+  .surface {
+    @apply rounded-xl border border-border bg-card;
+    background-image: linear-gradient(180deg, hsl(0 0% 100% / 0.025), transparent 40%);
+  }
+
+  /* Card that reacts to hover with the mint glow */
+  .surface-interactive {
+    @apply surface transition-all duration-200;
+  }
+  .surface-interactive:hover {
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: var(--glow);
+  }
+
+  /* Page title + subtitle used at the top of every page */
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-foreground md:text-[28px];
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-muted-foreground;
+  }
+
+  /* Small uppercase label above numbers */
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Faint grid behind hero sections */
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.6) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.6) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Mint-to-teal text for headline accents */
+  .text-gradient {
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--highlight)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -301,35 +147,21 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 100px;
-  transition: background 200ms ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0,0,0,0.3);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.15);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.35);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0,0,0,0.15) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-.dark * {
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
-}
-
-/* Focus ring using accent */
 *:focus-visible {
-  outline: 2px solid var(--accent-color);
+  outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
 

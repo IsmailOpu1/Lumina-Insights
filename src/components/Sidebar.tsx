@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, Package, Receipt, Sparkles,
-  Bot, StickyNote, Bell, Settings, Sun, Moon, ChevronLeft, ChevronRight
+  Bot, StickyNote, Bell, Settings, CreditCard, Sun, Moon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { label: 'AI Assistant', path: '/ai-assistant', icon: Bot },
   { label: 'Notes', path: '/notes', icon: StickyNote },
   { label: 'Notifications', path: '/notifications', icon: Bell },
+  { label: 'Billing', path: '/billing', icon: CreditCard },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
 
@@ -32,17 +33,17 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark, toggleDark } = useTheme();
-  const { isViewer } = useAuth();
+  const { isViewer, isOwner } = useAuth();
   const { unreadCount } = useNotifications();
   const isMobile = useIsMobile();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
-  const navItems = useMemo(() => {
-    if (isViewer) {
-      return NAV_ITEMS.filter(item => item.label !== 'Settings');
-    }
-    return NAV_ITEMS;
-  }, [isViewer]);
+  // Billing is owner-only; viewers also don't get Settings.
+  const navItems = useMemo(
+    () => NAV_ITEMS.filter(item =>
+      (item.label !== 'Billing' || isOwner) && (item.label !== 'Settings' || !isViewer)),
+    [isViewer, isOwner]
+  );
 
   const handleNav = (path: string) => {
     navigate(path);

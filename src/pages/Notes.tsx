@@ -13,6 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 interface Note {
   id: string;
@@ -201,7 +202,7 @@ export default function Notes() {
       })
       .eq('id', activeNoteId);
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: dbErrorMessage(error.message), variant: 'destructive' });
     } else {
       toast({ title: 'Saved ✓' });
       setHasUnsaved(false);
@@ -219,7 +220,7 @@ export default function Notes() {
       owner_id: ownerIdForQueries,
     });
     if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: dbErrorMessage(error.message), variant: 'destructive' });
     } else {
       toast({ title: 'Note created ✓' });
       setShowNewModal(false);

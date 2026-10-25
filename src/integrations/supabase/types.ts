@@ -331,6 +331,148 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          billing_period: string
+          card_type: string | null
+          created_at: string
+          currency: string
+          gateway_response: Json | null
+          id: string
+          owner_id: string
+          paid_at: string | null
+          plan: string
+          status: string
+          tran_id: string
+          val_id: string | null
+        }
+        Insert: {
+          amount: number
+          billing_period: string
+          card_type?: string | null
+          created_at?: string
+          currency?: string
+          gateway_response?: Json | null
+          id?: string
+          owner_id: string
+          paid_at?: string | null
+          plan: string
+          status?: string
+          tran_id: string
+          val_id?: string | null
+        }
+        Update: {
+          amount?: number
+          billing_period?: string
+          card_type?: string | null
+          created_at?: string
+          currency?: string
+          gateway_response?: Json | null
+          id?: string
+          owner_id?: string
+          paid_at?: string | null
+          plan?: string
+          status?: string
+          tran_id?: string
+          val_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          ai_chat_per_day: number
+          data_export: boolean
+          id: string
+          insights_per_day: number
+          marketing_per_month: number | null
+          max_orders_per_month: number | null
+          max_team_members: number
+          monthly_price: number
+          name: string
+          sort_order: number
+          weekly_summary: boolean
+          yearly_price: number
+        }
+        Insert: {
+          ai_chat_per_day: number
+          data_export: boolean
+          id: string
+          insights_per_day: number
+          marketing_per_month?: number | null
+          max_orders_per_month?: number | null
+          max_team_members: number
+          monthly_price: number
+          name: string
+          sort_order: number
+          weekly_summary: boolean
+          yearly_price: number
+        }
+        Update: {
+          ai_chat_per_day?: number
+          data_export?: boolean
+          id?: string
+          insights_per_day?: number
+          marketing_per_month?: number | null
+          max_orders_per_month?: number | null
+          max_team_members?: number
+          monthly_price?: number
+          name?: string
+          sort_order?: number
+          weekly_summary?: boolean
+          yearly_price?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          billing_period: string | null
+          created_at: string
+          current_period_end: string | null
+          owner_id: string
+          plan: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_period?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          owner_id: string
+          plan?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_period?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          owner_id?: string
+          plan?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string | null
@@ -364,6 +506,27 @@ export type Database = {
           owner_id?: string
           role?: string
           status?: string
+        }
+        Relationships: []
+      }
+      usage_counters: {
+        Row: {
+          metric: string
+          owner_id: string
+          period_start: string
+          used: number
+        }
+        Insert: {
+          metric: string
+          owner_id: string
+          period_start: string
+          used?: number
+        }
+        Update: {
+          metric?: string
+          owner_id?: string
+          period_start?: string
+          used?: number
         }
         Relationships: []
       }
@@ -456,11 +619,24 @@ export type Database = {
     }
     Functions: {
       accept_team_invite: { Args: { p_token: string }; Returns: undefined }
+      activate_payment: {
+        Args: {
+          p_amount: number
+          p_card_type: string
+          p_response: Json
+          p_tran_id: string
+          p_val_id: string
+        }
+        Returns: string
+      }
       business_snapshot: {
         Args: { p_from?: string; p_to?: string }
         Returns: Json
       }
+      consume_ai_quota: { Args: { p_metric: string }; Returns: number }
       currency_symbol: { Args: { p_owner: string }; Returns: string }
+      current_workspace_owner: { Args: never; Returns: string }
+      dhaka_today: { Args: never; Returns: string }
       dismiss_notifications: { Args: { p_ids?: string[] }; Returns: undefined }
       generate_weekly_summaries: { Args: never; Returns: number }
       get_invite_preview: {
@@ -472,6 +648,7 @@ export type Database = {
           status: string
         }[]
       }
+      get_my_subscription: { Args: never; Returns: Json }
       has_workspace_access: {
         Args: { require_write?: boolean; target_owner: string }
         Returns: boolean
@@ -483,6 +660,13 @@ export type Database = {
       notification_enabled: {
         Args: { p_owner: string; p_type: string }
         Returns: boolean
+      }
+      workspace_plan: {
+        Args: { p_owner: string }
+        Returns: {
+          plan_id: string
+          state: string
+        }[]
       }
     }
     Enums: {

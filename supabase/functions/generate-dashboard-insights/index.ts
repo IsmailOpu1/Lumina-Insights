@@ -1,4 +1,4 @@
-import { corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -18,6 +18,10 @@ Deno.serve(async (req) => {
     if ((from && !DATE_RE.test(from)) || (to && !DATE_RE.test(to))) {
       return json({ error: "from/to must be YYYY-MM-DD" }, 400);
     }
+
+    const quotaError = await consumeQuota(caller.client, "insights");
+    if (quotaError) return quotaError;
+
     const snapshot = await fetchSnapshot(caller.client, from, to);
 
     const systemPrompt = `You are a sharp business advisor for a small business owner. Analyze this exact business data and give exactly 5 bold, specific, numbered, actionable insights. Use the currency symbol provided. Reference the actual numbers provided. Be direct — no fluff, no generic advice. Each insight must be 1-2 sentences maximum.`;

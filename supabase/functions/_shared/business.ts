@@ -27,6 +27,19 @@ export async function getCaller(req: Request): Promise<{ client: SupabaseClient;
   return user ? { client, user } : null;
 }
 
+/**
+ * Service-role client for server-only work (payment records, activation).
+ * Bypasses row level security — never use it with user-supplied filters.
+ */
+export function adminClient(): SupabaseClient {
+  return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+}
+
+/** Public app URL for redirects back from the payment gateway. */
+export function appUrl() {
+  return (Deno.env.get("SITE_URL") || "https://lumina-insights-ashen.vercel.app").replace(/\/$/, "");
+}
+
 interface Snapshot {
   period: { from: string | null; to: string };
   business: { name: string | null; type: string | null; description: string | null; currency: string };
@@ -97,6 +110,40 @@ ${list(s.low_stock, (l) => `${l.name}: ${l.stock} left (threshold ${l.threshold}
 
 Daily sales (days with orders):
 ${list(s.daily, (d) => `${d.date}: ${d.orders} orders, ${money(d.revenue)} revenue, ${money(d.profit)} profit`)}`;
+}
+
+export type QuotaMetric = "ai_chat" | "insights" | "marketing";
+
+const QUOTA_MESSAGES: Record<string, { status: number; error: string }> = {
+  subscription_inactive: {
+    status: 402,
+    error: "Your plan has expired, so AI features are paused. Choose a plan on the Billing page to continue.",
+  },
+  plan_limit_ai_chat: {
+    status: 429,
+    error: "You've used today's AI assistant questions on your plan. They reset at midnight, or upgrade to Pro for more.",
+  },
+  plan_limit_insights: {
+    status: 429,
+    error: "You've used today's AI insights on your plan. They reset at midnight, or upgrade to Pro for more.",
+  },
+  plan_limit_marketing: {
+    status: 429,
+    error: "You've used this month's Marketing AI generations. Upgrade to Pro for unlimited content.",
+  },
+};
+
+/**
+ * Counts one use of an AI feature against the workspace's plan. Returns null
+ * when allowed, or a ready-to-send error response when the plan is expired
+ * or the limit is reached.
+ */
+export async function consumeQuota(client: SupabaseClient, metric: QuotaMetric): Promise<Response | null> {
+  const { error } = await client.rpc("consume_ai_quota", { p_metric: metric });
+  if (!error) return null;
+  const known = Object.keys(QUOTA_MESSAGES).find((code) => error.message.includes(code));
+  if (known) return json({ error: QUOTA_MESSAGES[known].error, code: known }, QUOTA_MESSAGES[known].status);
+  throw new Error(`consume_ai_quota failed: ${error.message}`);
 }
 
 /** YYYY-MM-DD for `days` days before today (UTC). */

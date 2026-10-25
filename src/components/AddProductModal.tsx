@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 export interface ProductToEdit {
   id: string;
@@ -97,11 +98,11 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
 
     if (isEdit && editProduct) {
       const { error } = await supabase.from('inventory').update(payload).eq('id', editProduct.id);
-      if (error) { toast.error('Failed to update product', { description: error.message }); setSubmitting(false); return; }
+      if (error) { toast.error('Failed to update product', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
       toast.success('Product updated ✓');
     } else {
       const { error } = await supabase.from('inventory').insert({ ...payload, owner_id: ownerIdForQueries });
-      if (error) { toast.error('Failed to add product', { description: error.message }); setSubmitting(false); return; }
+      if (error) { toast.error('Failed to add product', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
       toast.success('Product saved ✓');
     }
     handleClose();

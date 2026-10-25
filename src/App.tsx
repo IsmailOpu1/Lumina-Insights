@@ -8,6 +8,7 @@ import { ThemeProvider, useTheme, THEMES, type FontStyle, type ThemeName } from 
 import { FilterProvider, useFilter } from '@/context/FilterContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { FABProvider } from '@/context/FABContext';
+import { SubscriptionProvider } from '@/context/SubscriptionContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
@@ -23,6 +24,7 @@ const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
 const Notes = lazy(() => import('@/pages/Notes'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
+const Billing = lazy(() => import('@/pages/Billing'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const Login = lazy(() => import('@/pages/Login'));
 const Signup = lazy(() => import('@/pages/Signup'));
@@ -68,6 +70,7 @@ const App = () => (
       <ThemeProvider>
         <FilterProvider>
           <NotificationProvider>
+            <SubscriptionProvider>
             <FABProvider>
               <TooltipProvider>
                 <Toaster />
@@ -95,6 +98,7 @@ const App = () => (
                         <Route path="/notes" element={<Notes />} />
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/billing" element={<Billing />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
@@ -103,6 +107,7 @@ const App = () => (
                 </BrowserRouter>
               </TooltipProvider>
             </FABProvider>
+            </SubscriptionProvider>
           </NotificationProvider>
         </FilterProvider>
       </ThemeProvider>

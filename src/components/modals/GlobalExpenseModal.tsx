@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
@@ -45,7 +46,7 @@ export default function GlobalExpenseModal() {
       date,
       owner_id: ownerIdForQueries,
     });
-    if (error) { toast.error('Failed to add expense', { description: error.message }); setSubmitting(false); return; }
+    if (error) { toast.error('Failed to add expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
     toast.success('Expense added ✓');
     closeModal();
   }

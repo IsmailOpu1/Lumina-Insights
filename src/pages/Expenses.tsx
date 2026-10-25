@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat, subDays, startOfDay, startOfToday } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
+import { dbErrorMessage } from '@/lib/dbErrors';
+import { useExportGate } from '@/hooks/useExportGate';
 
 interface ExpenseRow {
   id: string;
@@ -55,6 +57,7 @@ const TYPE_BADGE: Record<string, string> = {
 
 export default function Expenses() {
   const { formatCurrency, symbol } = useCurrency();
+  const canExport = useExportGate();
   const { openModal } = useFAB();
   const { ownerIdForQueries, isViewer } = useAuth();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
@@ -187,11 +190,11 @@ export default function Expenses() {
 
     if (editExpense) {
       const { error } = await supabase.from('expenses').update(payload).eq('id', editExpense.id);
-      if (error) { toast.error('Failed to update expense', { description: error.message }); setSubmitting(false); return; }
+      if (error) { toast.error('Failed to update expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
       toast.success('Expense updated ✓');
     } else {
       const { error } = await supabase.from('expenses').insert({ ...payload, owner_id: ownerIdForQueries });
-      if (error) { toast.error('Failed to add expense', { description: error.message }); setSubmitting(false); return; }
+      if (error) { toast.error('Failed to add expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
       toast.success('Expense saved ✓');
     }
     setModalOpen(false);
@@ -207,6 +210,7 @@ export default function Expenses() {
   }
 
   async function handleExport() {
+    if (!canExport()) return;
     setExporting(true);
     try {
       const headers = ['Type', `Amount ${symbol}`, 'Platform', 'Notes', 'Date'];

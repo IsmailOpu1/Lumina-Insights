@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat, subDays } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
+import { dbErrorMessage } from '@/lib/dbErrors';
+import { useExportGate } from '@/hooks/useExportGate';
 
 interface InvRow {
   id: string;
@@ -42,6 +44,7 @@ const PAGE_SIZE = 20;
 
 export default function Inventory() {
   const { formatCurrency, symbol } = useCurrency();
+  const canExport = useExportGate();
   const { openModal } = useFAB();
   const { getDateRange } = useFilter();
   const { isViewer, ownerIdForQueries } = useAuth();
@@ -156,7 +159,7 @@ export default function Inventory() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from('inventory').delete().eq('id', deleteId);
-    if (error) toast.error('Failed to delete product', { description: error.message });else
+    if (error) toast.error('Failed to delete product', { description: dbErrorMessage(error.message) });else
     {toast.success('Product deleted');fetchAll();}
     setDeleteId(null);
   }
@@ -167,6 +170,7 @@ export default function Inventory() {
   }
 
   async function handleExport() {
+    if (!canExport()) return;
     setExporting(true);
     try {
       const headers = ['Product Name', 'SKU', 'Cost Price', 'Selling Price', 'Stock Qty', 'Threshold', 'Inv. Value', 'Supplier'];

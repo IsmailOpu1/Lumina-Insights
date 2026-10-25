@@ -1,4 +1,4 @@
-import { consumeQuota, corsHeaders, currencySymbol, daysAgo, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, currencySymbol, daysAgo, describeSnapshot, fetchSnapshot, getCaller, json, refundQuota } from "../_shared/business.ts";
 
 const MAX_HISTORY_MESSAGES = 20;
 const CONTEXT_DAYS = 30;
@@ -7,6 +7,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Set once a use has been counted, so failures after that can give it back.
+  let chargedUser: string | null = null;
+  const fail = async (body: unknown, status: number) => {
+    if (chargedUser) await refundQuota(chargedUser, "ai_chat");
+    return json(body, status);
+  };
 
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
@@ -20,6 +27,7 @@ Deno.serve(async (req) => {
 
     const quotaError = await consumeQuota(caller.client, "ai_chat");
     if (quotaError) return quotaError;
+    chargedUser = caller.user.id;
 
     // Business numbers come from the database, never from the request.
     const snapshot = await fetchSnapshot(caller.client, daysAgo(CONTEXT_DAYS - 1));
@@ -91,15 +99,16 @@ English only. No Bengali.`;
 
     if (!res.ok) {
       console.error("Gemini API error:", res.status, await res.text());
-      if (res.status === 429) return json({ error: "Rate limit reached. Please wait a minute and try again." }, 429);
-      return json({ error: "Failed to generate response" }, 500);
+      if (res.status === 429) return fail({ error: "Rate limit reached. Please wait a minute and try again." }, 429);
+      return fail({ error: "Failed to generate response" }, 500);
     }
 
     const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "I could not generate a response. Please try again.";
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return fail({ error: "I could not generate a response. Please try again." }, 502);
     return json({ response: text });
   } catch (err) {
     console.error("business-ai-chat error:", err);
-    return json({ error: "Failed to generate response" }, 500);
+    return fail({ error: "Failed to generate response" }, 500);
   }
 });

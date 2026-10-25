@@ -19,6 +19,7 @@ import { format as fnsFormat, subDays } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
+import { useReadOnly } from '@/hooks/useReadOnly';
 
 interface InvRow {
   id: string;
@@ -47,7 +48,8 @@ export default function Inventory() {
   const canExport = useExportGate();
   const { openModal } = useFAB();
   const { getDateRange } = useFilter();
-  const { isViewer, ownerIdForQueries } = useAuth();
+  const { ownerIdForQueries } = useAuth();
+  const readOnly = useReadOnly();
   const [items, setItems] = useState<InvRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -236,7 +238,7 @@ export default function Inventory() {
           <Input className="pl-9" placeholder="Search product or SKU..." value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
         </div>
         <div className="flex-1" />
-        {!isViewer && (
+        {!readOnly && (
           <Button onClick={() => {setEditProduct(null);setEditOpen(true);}} className="h-11 gap-2 rounded-lg px-5 font-bold max-md:w-full max-md:order-first">
             <Plus className="h-4 w-4" />+ Add Product
           </Button>
@@ -302,7 +304,7 @@ export default function Inventory() {
                       <td className="px-3 py-2.5 tabular-nums font-extrabold text-sm bg-[var(--chart-card-bg)]">{formatCurrency(i.stock_quantity * i.cost_price)}</td>
                       <td className="px-3 py-2.5 font-extrabold text-sm text-accent bg-[var(--chart-card-bg)]">{i.supplier || '—'}</td>
                       <td className="px-3 py-2.5 text-sm font-extrabold border-[var(--chart-card-bg)]">
-                        {!isViewer && (
+                        {!readOnly && (
                           <div className="flex items-center gap-1">
                             <button onClick={() => handleEdit(i)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
                               <Pencil size={18} />

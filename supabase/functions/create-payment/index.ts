@@ -19,6 +19,11 @@ Deno.serve(async (req) => {
     if (subError) throw new Error(subError.message);
     if (!sub?.is_owner) return json({ error: "Only the workspace owner can manage billing" }, 403);
 
+    // Switching down would cut short Pro time already paid for.
+    if (plan === "starter" && sub.state === "active" && sub.plan === "pro") {
+      return json({ error: "You're on Pro until your current period ends. You can switch to Starter after that." }, 409);
+    }
+
     const { data: planRow } = await caller.client
       .from("plans")
       .select("name, monthly_price, yearly_price")

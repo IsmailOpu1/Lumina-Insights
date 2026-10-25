@@ -146,6 +146,16 @@ export async function consumeQuota(client: SupabaseClient, metric: QuotaMetric):
   throw new Error(`consume_ai_quota failed: ${error.message}`);
 }
 
+/**
+ * Gives back a use counted by consumeQuota when the AI call then failed, so
+ * customers aren't charged for errors. Never throws: a failed refund is only
+ * logged, since the caller is already returning an error.
+ */
+export async function refundQuota(userId: string, metric: QuotaMetric) {
+  const { error } = await adminClient().rpc("refund_ai_quota", { p_user: userId, p_metric: metric });
+  if (error) console.error("refund_ai_quota failed:", error.message);
+}
+
 /** YYYY-MM-DD for `days` days before today (UTC). */
 export function daysAgo(days: number) {
   const d = new Date();

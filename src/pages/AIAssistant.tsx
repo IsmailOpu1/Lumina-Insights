@@ -399,7 +399,7 @@ export default function AIAssistant() {
         ) : (
           <>
             <span className="shrink-0 whitespace-nowrap border border-border rounded-full px-2 py-1 font-extrabold text-sm text-teal-700 bg-cyan-950">
-              📊 All Time Data
+              📊 Last {CONTEXT_DAYS} days
             </span>
             {contextItems.map((item) => (
               <div
@@ -444,7 +444,7 @@ export default function AIAssistant() {
           onClick={() => setContextOpen(!contextOpen)}
           className="flex items-center justify-between w-full px-4 py-2 text-sm font-bold text-card-foreground"
         >
-          Your Business (All time data)
+          Your Business (last {CONTEXT_DAYS} days)
           {contextOpen ? (
             <ChevronUp size={16} />
           ) : (

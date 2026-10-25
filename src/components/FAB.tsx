@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, ShoppingBag, Receipt, Package, X } from 'lucide-react';
 import { useFAB } from '@/context/FABContext';
-import { useAuth } from '@/context/AuthContext';
+import { useReadOnly } from '@/hooks/useReadOnly';
 import { useLocation } from 'react-router-dom';
 
 const FAB_OPTIONS = [
@@ -15,7 +15,7 @@ const hideFABRoutes = ['/ai-assistant', '/notes', '/settings', '/notifications']
 export default function FAB() {
   const [expanded, setExpanded] = useState(false);
   const { openModal } = useFAB();
-  const { isViewer } = useAuth();
+  const readOnly = useReadOnly();
   const fabRef = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
 
@@ -29,7 +29,7 @@ export default function FAB() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [expanded]);
 
-  if (hideFABRoutes.includes(pathname) || isViewer) return null;
+  if (hideFABRoutes.includes(pathname) || readOnly) return null;
 
   return (
     <div ref={fabRef} className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end gap-3" style={{ bottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}>

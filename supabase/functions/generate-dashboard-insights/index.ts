@@ -1,9 +1,16 @@
-import { consumeQuota, corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json, refundQuota } from "../_shared/business.ts";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Set once a use has been counted, so failures after that can give it back.
+  let chargedUser: string | null = null;
+  const fail = async (body: unknown, status: number) => {
+    if (chargedUser) await refundQuota(chargedUser, "insights");
+    return json(body, status);
+  };
 
   try {
     const caller = await getCaller(req);
@@ -21,6 +28,7 @@ Deno.serve(async (req) => {
 
     const quotaError = await consumeQuota(caller.client, "insights");
     if (quotaError) return quotaError;
+    chargedUser = caller.user.id;
 
     const snapshot = await fetchSnapshot(caller.client, from, to);
 
@@ -44,17 +52,18 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return json({ error: "Rate limit reached. Please wait 1 minute and try again." }, 429);
+        return fail({ error: "Rate limit reached. Please wait 1 minute and try again." }, 429);
       }
       console.error("Gemini API error:", response.status, await response.text());
-      return json({ error: "AI generation failed" }, 500);
+      return fail({ error: "AI generation failed" }, 500);
     }
 
     const data = await response.json();
-    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No insights generated.";
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) return fail({ error: "No insights were generated. Please try again." }, 502);
     return json({ insights: content });
   } catch (e) {
     console.error("generate-dashboard-insights error:", e);
-    return json({ error: "AI generation failed" }, 500);
+    return fail({ error: "AI generation failed" }, 500);
   }
 });

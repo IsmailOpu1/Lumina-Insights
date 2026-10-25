@@ -10,7 +10,7 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { formatCurrency } from '@/hooks/useCurrency';
 import { functionErrorMessage } from '@/lib/dbErrors';
 import {
-  accessEndsAt, daysUntil, isOpenEnded, planLabel,
+  accessEndsAt, daysUntil, isOpenEnded, paymentStatusLabel, planLabel, proIsRunning,
   type BillingPeriod, type Plan, type PlanId,
 } from '@/lib/subscription';
 import { cn } from '@/lib/utils';
@@ -166,6 +166,7 @@ export default function Billing() {
             {plans.map((p) => {
               const price = period === 'yearly' ? p.yearly_price : p.monthly_price;
               const isCurrent = subscription.state === 'active' && subscription.plan === p.id && subscription.billing_period === period;
+              const blocked = p.id === 'starter' && proIsRunning(subscription);
               return (
                 <div key={p.id} className={cn('flex flex-col rounded-xl border p-5', p.id === 'pro' ? 'border-primary' : 'border-border')}>
                   <div className="flex items-center justify-between">
@@ -183,18 +184,23 @@ export default function Billing() {
                       </li>
                     ))}
                   </ul>
-                  <Button onClick={() => pay(p.id as PlanId)} disabled={paying !== null} className="h-11 w-full font-bold">
+                  <Button onClick={() => pay(p.id as PlanId)} disabled={paying !== null || blocked} className="h-11 w-full font-bold">
                     {paying === p.id
                       ? <Loader2 className="animate-spin" size={18} />
                       : isCurrent ? `Renew ${p.name}` : `Pay ${taka(price)}`}
                   </Button>
+                  {blocked && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      You're on Pro until {format(new Date(ends!), 'd MMM yyyy')}. You can switch to Starter after that.
+                    </p>
+                  )}
                 </div>
               );
             })}
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             Pay securely with bKash, Nagad, Rocket or card through SSLCommerz. Plans don't renew automatically —
-            paying again while a plan is active adds the new period on top.
+            paying again while a plan or trial is active adds the new period on top, so no days are lost.
           </p>
         </section>
       )}
@@ -221,7 +227,7 @@ export default function Billing() {
                     <td className="py-2 pr-4 capitalize">{p.plan} · {p.billing_period}</td>
                     <td className="py-2 pr-4 tabular-nums">{taka(p.amount)}</td>
                     <td className="py-2 pr-4">{p.card_type || '—'}</td>
-                    <td className="py-2 capitalize">{p.status}</td>
+                    <td className="py-2">{paymentStatusLabel(p.status, p.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

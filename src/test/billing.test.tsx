@@ -5,7 +5,9 @@ import Billing from '@/pages/Billing';
 import Landing from '@/pages/Landing';
 import SubscriptionBanner from '@/components/SubscriptionBanner';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { daysUntil, isOpenEnded, planLabel, type Subscription } from '@/lib/subscription';
+import FAB from '@/components/FAB';
+import { FABProvider } from '@/context/FABContext';
+import { daysUntil, isOpenEnded, paymentStatusLabel, planLabel, proIsRunning, type Subscription } from '@/lib/subscription';
 import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
 
 const plans = [
@@ -20,7 +22,8 @@ const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
   sub: null as unknown,
-  auth: { session: null as unknown, userSettings: null as unknown, loading: false },
+  canWrite: true,
+  auth: { session: null as unknown, userSettings: null as unknown, loading: false, isViewer: false },
 }));
 
 function query(rows: unknown[]) {
@@ -39,7 +42,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 vi.mock('@/context/SubscriptionContext', () => ({
-  useSubscription: () => ({ subscription: mocks.sub, loading: false, refresh: mocks.refresh, canWrite: true, features: { dataExport: true, weeklySummary: true } }),
+  useSubscription: () => ({ subscription: mocks.sub, loading: false, refresh: mocks.refresh, canWrite: mocks.canWrite, features: { dataExport: true, weeklySummary: true } }),
 }));
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => mocks.auth }));
 vi.mock('sonner', () => ({ toast: mocks.toast }));
@@ -73,7 +76,8 @@ beforeEach(() => {
   mocks.refresh.mockReset();
   mocks.toast.mockReset(); mocks.toast.success.mockReset(); mocks.toast.error.mockReset();
   mocks.sub = sub();
-  mocks.auth = { session: null, userSettings: null, loading: false };
+  mocks.canWrite = true;
+  mocks.auth = { session: null, userSettings: null, loading: false, isViewer: false };
 });
 
 describe('subscription helpers', () => {
@@ -88,6 +92,20 @@ describe('subscription helpers', () => {
     expect(planLabel(sub({ plan: 'pro' }))).toBe('Pro');
     expect(isOpenEnded(sub({ current_period_end: '2100-01-01T00:00:00Z' }))).toBe(true);
     expect(isOpenEnded(sub())).toBe(false);
+  });
+
+  it('shows abandoned checkouts as not completed instead of pending forever', () => {
+    const now = new Date('2026-10-26T12:00:00Z');
+    expect(paymentStatusLabel('pending', '2026-10-26T11:30:00Z', now)).toBe('Pending');
+    expect(paymentStatusLabel('pending', '2026-10-26T09:00:00Z', now)).toBe('Not completed');
+    expect(paymentStatusLabel('paid', '2026-10-01T09:00:00Z', now)).toBe('Paid');
+  });
+
+  it('knows when a paid Pro period is running', () => {
+    expect(proIsRunning(sub({ plan: 'pro' }))).toBe(true);
+    expect(proIsRunning(sub({ plan: 'pro', state: 'trialing' }))).toBe(false);
+    expect(proIsRunning(sub({ plan: 'pro', state: 'expired' }))).toBe(false);
+    expect(proIsRunning(sub())).toBe(false);
   });
 
   it('explains plan limits and reads edge function errors', async () => {
@@ -138,6 +156,14 @@ describe('Billing page', () => {
     expect(mocks.refresh).toHaveBeenCalled();
   });
 
+  it('does not let a Pro customer buy Starter while Pro is still running', async () => {
+    mocks.sub = sub({ plan: 'pro', limits: plans[1] });
+    renderAt('/billing', <Billing />);
+    expect(await screen.findByRole('button', { name: 'Pay ৳499' })).toBeDisabled();
+    expect(screen.getByText(/switch to Starter after that/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Renew Pro' })).toBeEnabled();
+  });
+
   it('marks an expired plan as read-only', () => {
     mocks.sub = sub({ state: 'expired' });
     renderAt('/billing', <Billing />);
@@ -164,6 +190,33 @@ describe('SubscriptionBanner', () => {
     renderAt('/', <SubscriptionBanner />);
     expect(screen.getByRole('alert')).toHaveTextContent(/read-only.*Ask the workspace owner/);
   });
+
+  it('tells members their access is paused while the workspace is not on Pro', () => {
+    mocks.sub = sub({ is_owner: false, member_access_suspended: true });
+    renderAt('/', <SubscriptionBanner />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/Team access is a Pro feature.*upgrade to Pro/);
+  });
+});
+
+describe('Add button (FAB)', () => {
+  const renderFAB = () => renderAt('/orders', <FABProvider><FAB /></FABProvider>);
+
+  it('is shown while the workspace can be edited', () => {
+    renderFAB();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('is hidden when the workspace is read-only', () => {
+    mocks.canWrite = false;
+    renderFAB();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('is hidden for viewers', () => {
+    mocks.auth = { ...mocks.auth, isViewer: true };
+    renderFAB();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });
 
 describe('Landing page', () => {
@@ -189,7 +242,7 @@ describe('Landing page', () => {
   });
 
   it('signed-in users still get the dashboard at "/"', () => {
-    mocks.auth = { session: {}, userSettings: { onboarding_complete: true }, loading: false };
+    mocks.auth = { session: {}, userSettings: { onboarding_complete: true }, loading: false, isViewer: false };
     render(
       <MemoryRouter initialEntries={['/']}>
         <Routes>

@@ -1,4 +1,4 @@
-import { consumeQuota, corsHeaders, describeBusiness, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, describeBusiness, fetchSnapshot, getCaller, json, refundQuota } from "../_shared/business.ts";
 
 const platformPrompts: Record<string, string> = {
   Instagram: "Short punchy caption, under 150 words, 15 hashtags relevant to the product and Bangladesh market.",
@@ -9,6 +9,13 @@ const platformPrompts: Record<string, string> = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Set once a use has been counted, so failures after that can give it back.
+  let chargedUser: string | null = null;
+  const fail = async (body: unknown, status: number) => {
+    if (chargedUser) await refundQuota(chargedUser, "marketing");
+    return json(body, status);
+  };
+
   try {
     const caller = await getCaller(req);
     if (!caller) return json({ error: "Unauthorized" }, 401);
@@ -18,6 +25,7 @@ Deno.serve(async (req) => {
 
     const quotaError = await consumeQuota(caller.client, "marketing");
     if (quotaError) return quotaError;
+    chargedUser = caller.user.id;
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("Gemini API key is not configured");
@@ -58,8 +66,8 @@ Generate compelling marketing content now.`;
 
     if (!response.ok) {
       console.error("Gemini API error:", response.status, await response.text());
-      if (response.status === 429) return json({ error: "Rate limit reached. Please wait a minute and try again." }, 429);
-      return json({ error: "AI generation failed. Try again." }, 500);
+      if (response.status === 429) return fail({ error: "Rate limit reached. Please wait a minute and try again." }, 429);
+      return fail({ error: "AI generation failed. Try again." }, 500);
     }
 
     const data = await response.json();
@@ -76,12 +84,12 @@ Generate compelling marketing content now.`;
       parsed = JSON.parse(text.slice(start, end + 1));
     } catch {
       console.error("Failed to parse Gemini response:", text.slice(0, 500));
-      return json({ error: "Failed to parse AI response. Try again." }, 500);
+      return fail({ error: "Failed to parse AI response. Try again." }, 500);
     }
 
     return json(parsed);
   } catch (e) {
     console.error("generate-marketing-content error:", e);
-    return json({ error: "AI generation failed. Try again." }, 500);
+    return fail({ error: "AI generation failed. Try again." }, 500);
   }
 });

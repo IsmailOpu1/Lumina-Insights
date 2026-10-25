@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
-import { useAuth } from '@/context/AuthContext';
+import { useReadOnly } from '@/hooks/useReadOnly';
 import { ORDER_STATUSES } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
 import AddOrderModal, { OrderToEdit } from '@/components/AddOrderModal';
@@ -47,7 +47,7 @@ export default function Orders() {
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const { openModal } = useFAB();
-  const { isViewer } = useAuth();
+  const readOnly = useReadOnly();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -230,7 +230,7 @@ export default function Orders() {
           {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {exporting ? 'Exporting...' : 'Export XLSX'}
         </Button>
-        {!isViewer && (
+        {!readOnly && (
           <Button className="h-11 gap-2 px-5 font-bold max-md:w-full" onClick={() => setAddOpen(true)}>
             <Plus size={18} />
             Add Order
@@ -279,7 +279,7 @@ export default function Orders() {
                       </td>
                       <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(new Date(o.date), 'dd/MM/yyyy')}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">
-                        {!isViewer && (
+                        {!readOnly && (
                           <div className="flex items-center gap-1">
                             <button onClick={() => handleEdit(o)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
                               <Pencil size={18} />

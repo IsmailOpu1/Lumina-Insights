@@ -12,6 +12,8 @@ export interface Subscription {
   trial_ends_at: string | null;
   current_period_end: string | null;
   is_owner: boolean;
+  /** A team member whose workspace isn't on Pro: they have no access until it is. */
+  member_access_suspended?: boolean;
   /** Limits in force now (trials get Pro limits). */
   limits: Omit<Plan, 'monthly_price' | 'yearly_price' | 'sort_order'>;
   usage: {
@@ -38,6 +40,25 @@ export function accessEndsAt(sub: Subscription): string | null {
 export function isOpenEnded(sub: Subscription) {
   const end = accessEndsAt(sub);
   return !!end && new Date(end).getFullYear() >= 2099;
+}
+
+/**
+ * A paid Pro period is running, so buying Starter now would cut it short.
+ * Starter can be bought again once Pro ends.
+ */
+export function proIsRunning(sub: Subscription) {
+  return sub.state === 'active' && sub.plan === 'pro';
+}
+
+/** Checkouts left unfinished this long are shown as not completed. */
+const ABANDONED_AFTER_MS = 60 * 60 * 1000;
+
+/** Payment status for people: abandoned checkouts aren't "pending" forever. */
+export function paymentStatusLabel(status: string, createdAt: string, now = new Date()) {
+  if (status === 'pending' && now.getTime() - new Date(createdAt).getTime() > ABANDONED_AFTER_MS) {
+    return 'Not completed';
+  }
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export function planLabel(sub: Subscription) {

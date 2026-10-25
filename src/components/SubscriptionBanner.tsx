@@ -14,6 +14,18 @@ export default function SubscriptionBanner() {
     ? <Link to="/billing" className="font-extrabold underline underline-offset-2">Choose a plan</Link>
     : <span className="font-bold">Ask the workspace owner to choose a plan.</span>;
 
+  if (subscription.member_access_suspended) {
+    return (
+      <div role="alert" className="flex flex-wrap items-center gap-2 bg-destructive px-4 py-2 text-sm text-destructive-foreground">
+        <AlertTriangle size={16} className="shrink-0" />
+        <span>
+          Team access is a Pro feature, and this workspace isn't on Pro right now. Ask the workspace owner
+          to upgrade to Pro to restore your access.
+        </span>
+      </div>
+    );
+  }
+
   if (subscription.state === 'expired') {
     return (
       <div role="alert" className="flex flex-wrap items-center gap-2 bg-destructive px-4 py-2 text-sm text-destructive-foreground">

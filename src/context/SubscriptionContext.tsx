@@ -6,7 +6,10 @@ import type { Subscription } from '@/lib/subscription';
 interface SubscriptionContextType {
   subscription: Subscription | null;
   loading: boolean;
-  /** False once the trial or paid period has lapsed (the workspace is read-only). */
+  /**
+   * False once the trial or paid period has lapsed (the workspace is
+   * read-only), or for a team member while the workspace isn't on Pro.
+   */
   canWrite: boolean;
   /** Plan-gated features; trials get everything Pro has. */
   features: { dataExport: boolean; weeklySummary: boolean };
@@ -39,7 +42,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   // While loading or before a subscription exists (mid-onboarding), don't
   // lock the UI; the database still enforces the real rules.
-  const canWrite = !subscription || subscription.state !== 'expired';
+  const canWrite = !subscription || (subscription.state !== 'expired' && !subscription.member_access_suspended);
   const features = {
     dataExport: !subscription || (canWrite && subscription.limits.data_export),
     weeklySummary: !!subscription && canWrite && subscription.limits.weekly_summary,

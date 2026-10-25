@@ -19,6 +19,7 @@ import { format as fnsFormat } from 'date-fns';
 import { createInvite, inviteLink } from '@/lib/invites';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
+import { useSubscription } from '@/context/SubscriptionContext';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -47,6 +48,9 @@ export default function SettingsPage() {
   const { symbol } = useCurrency();
   const canExport = useExportGate();
   const navigate = useNavigate();
+  const { subscription, features } = useSubscription();
+  // Starter has no team seats; trials and Pro do.
+  const teamAllowed = !subscription || subscription.limits.max_team_members > 0;
   const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
   const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
   const { dismiss } = useNotifications();
@@ -549,12 +553,24 @@ export default function SettingsPage() {
               Notification Preferences
             </h2>
             <div className="flex flex-col gap-3">
-              {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label className="text-sm font-extrabold">{PREF_LABELS[key]}</Label>
-                  <Switch checked={notifPrefs[key]} onCheckedChange={() => handlePrefToggle(key)} />
-                </div>
-              ))}
+              {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => {
+                // The weekly summary is only sent on Pro, so don't offer it elsewhere.
+                const proOnly = key === 'weekly_summary' && !features.weeklySummary;
+                return (
+                  <div key={key} className="flex items-center justify-between">
+                    <Label className="text-sm font-extrabold">
+                      {PREF_LABELS[key]}
+                      {proOnly && <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">Pro</span>}
+                    </Label>
+                    <Switch
+                      checked={proOnly ? false : notifPrefs[key]}
+                      disabled={proOnly}
+                      onCheckedChange={() => handlePrefToggle(key)}
+                      aria-label={PREF_LABELS[key]}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -587,14 +603,24 @@ export default function SettingsPage() {
                 <Users size={18} style={{ color: 'var(--accent-color)' }} />
                 Team Management
               </h2>
-              <Button
-                variant="outline"
-                className="w-full border-primary/30 text-primary hover:bg-primary/5 font-bold mb-4"
-                onClick={() => setInviteModalOpen(true)}
-              >
-                <MailPlus className="mr-2 h-4 w-4" />
-                Invite Team Member
-              </Button>
+              {teamAllowed ? (
+                <Button
+                  variant="outline"
+                  className="w-full border-primary/30 text-primary hover:bg-primary/5 font-bold mb-4"
+                  onClick={() => setInviteModalOpen(true)}
+                >
+                  <MailPlus className="mr-2 h-4 w-4" />
+                  Invite Team Member
+                </Button>
+              ) : (
+                <div className="mb-4 rounded-lg bg-muted/50 p-3">
+                  <p className="text-sm font-bold text-foreground">Team members are a Pro feature.</p>
+                  <p className="mb-2 text-sm text-muted-foreground">
+                    Upgrade to Pro to invite people. Anyone you invited before keeps their place and gets access back when you upgrade.
+                  </p>
+                  <Button size="sm" className="font-bold" onClick={() => navigate('/billing')}>See plans</Button>
+                </div>
+              )}
 
               {/* Pending Invites */}
               {pendingInvites.length > 0 && (

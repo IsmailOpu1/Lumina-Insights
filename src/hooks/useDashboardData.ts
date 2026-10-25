@@ -157,7 +157,10 @@ export function getTopProducts(orders: Order[], inventory: InventoryItem[]) {
   return Object.values(productData).sort((a, b) => b.qty - a.qty).slice(0, 8);
 }
 
-export function getRevenueOverTime(orders: Order[], granularity: 'daily' | 'weekly' | 'monthly') {
+export function getRevenueOverTime(
+  orders: Pick<Order, 'date' | 'selling_price' | 'quantity' | 'status'>[],
+  granularity: 'daily' | 'weekly' | 'monthly'
+) {
   const map: Record<string, number> = {};
   activeOrders(orders).forEach(o => {
     let key: string;

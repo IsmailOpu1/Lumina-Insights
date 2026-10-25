@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 
 interface ExportConfig {
@@ -8,7 +7,9 @@ interface ExportConfig {
   filename: string;
 }
 
-export function exportXLSX({ headers, rows, totalsRow, filename }: ExportConfig) {
+// xlsx is large (~400 kB), so it is only downloaded when someone exports.
+export async function exportXLSX({ headers, rows, totalsRow, filename }: ExportConfig) {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
   const allRows = [headers, ...rows];
   if (totalsRow) allRows.push(totalsRow.map((v) => v ?? ''));

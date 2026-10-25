@@ -188,7 +188,7 @@ export default function Orders() {
       filtered.reduce((s, o) => s + (o.profit_per_order ?? 0), 0),
       ''];
 
-      exportXLSX({ headers, rows, totalsRow: totals, filename: `Orders_Export_${todaySuffix()}.xlsx` });
+      await exportXLSX({ headers, rows, totalsRow: totals, filename: `Orders_Export_${todaySuffix()}.xlsx` });
       toast.success('Export complete ✓');
     } catch {toast.error('Export failed');}
     setExporting(false);

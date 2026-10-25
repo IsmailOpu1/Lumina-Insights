@@ -9,7 +9,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 type Granularity = 'daily' | 'weekly' | 'monthly';
 
 interface Props {
-  orders: {date: string;selling_price: number;quantity: number;}[];
+  orders: {date: string;selling_price: number;quantity: number;status: string;}[];
   loading: boolean;
 }
 
@@ -18,7 +18,7 @@ export default function RevenueGrowthChart({ orders, loading }: Props) {
   const [granularity, setGranularity] = useState<Granularity>('daily');
   const { isDark } = useTheme();
   const theme = getChartTheme(isDark);
-  const data = getRevenueOverTime(orders as any, granularity);
+  const data = getRevenueOverTime(orders, granularity);
 
   if (loading) return <SkeletonLoader variant="chart" />;
 

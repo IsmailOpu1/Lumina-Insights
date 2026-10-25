@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { fetchRecentSnapshot } from '@/lib/businessSnapshot';
+import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
 
 interface ChatMessage {
   id: string;
@@ -54,7 +55,7 @@ export default function AIAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const isListeningRef = useRef(false);
   const finalTranscriptRef = useRef('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -134,7 +135,7 @@ export default function AIAssistant() {
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch {}
+        try { recognitionRef.current.stop(); } catch { /* already stopped */ }
       }
     };
   }, []);
@@ -171,9 +172,7 @@ export default function AIAssistant() {
   }
 
   function startListening() {
-    const SR =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+    const SR = getSpeechRecognition();
     if (!SR) {
       toast({
         title: 'Speech to text needs Chrome or Edge browser',
@@ -188,7 +187,7 @@ export default function AIAssistant() {
     rec.lang = 'en-US';
     finalTranscriptRef.current = '';
 
-    rec.onresult = (e: any) => {
+    rec.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
@@ -202,7 +201,7 @@ export default function AIAssistant() {
       setInterimTranscript(interim);
     };
 
-    rec.onerror = (e: any) => {
+    rec.onerror = (e) => {
       if (e.error === 'not-allowed') {
         toast({
           title: 'Microphone access denied',
@@ -233,7 +232,7 @@ export default function AIAssistant() {
     setIsListening(false);
     setInterimTranscript('');
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
+      try { recognitionRef.current.stop(); } catch { /* already stopped */ }
       recognitionRef.current = null;
     }
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
@@ -142,7 +142,7 @@ export default function Signup() {
                 </div>
                 {password && (
                   <div className="flex items-center gap-2">
-                    <Progress value={strength.score} className="h-2 flex-1" style={{ '--progress-color': strength.color } as any} />
+                    <Progress value={strength.score} className="h-2 flex-1" style={{ '--progress-color': strength.color } as CSSProperties} />
                     <span className="text-xs font-bold" style={{ color: strength.color }}>{strength.label}</span>
                   </div>
                 )}

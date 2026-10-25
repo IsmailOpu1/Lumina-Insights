@@ -68,9 +68,9 @@ export default function MarketingAI() {
       }
 
       setOutput({ ...data, hashtags });
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      setError(e.message || 'Generation failed. Check API key or try again.');
+      setError((e instanceof Error && e.message) || 'Generation failed. Check API key or try again.');
     } finally {
       setLoading(false);
     }
@@ -106,8 +106,8 @@ export default function MarketingAI() {
       });
 
       toast({ title: 'Saved to Notes ✓' });
-    } catch (e: any) {
-      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Save failed', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

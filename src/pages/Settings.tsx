@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme, FONT_FAMILIES, FONT_LABELS, type FontStyle } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
@@ -76,8 +77,8 @@ export default function SettingsPage() {
   const [profileBusinessName, setProfileBusinessName] = useState('');
 
   // Team management state
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<Tables<'team_members'>[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<Tables<'invites'>[]>([]);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'manager' | 'viewer'>('viewer');
@@ -95,20 +96,16 @@ export default function SettingsPage() {
       setRoasThreshold(String(data.roas_threshold ?? 2.0));
       setDeadDays(String(data.dead_product_days ?? 30));
       setBusinessName(data.business_name || 'My Business');
-      setFullName((data as any).full_name || '');
-      if ((data as any).avatar_url) {
-        setAvatarUrl((data as any).avatar_url);
+      setFullName(data.full_name || '');
+      if (data.avatar_url) {
+        setAvatarUrl(data.avatar_url);
       }
       if (data.notification_preferences) setNotifPrefs({ ...DEFAULT_PREFS, ...(data.notification_preferences as Record<string, boolean>) });
-      if (data.font_style && data.font_style !== fontStyle) {
-        setFontStyle(data.font_style as FontStyle);
-      }
+      // Font and dark mode are applied app-wide by SettingsBootstrap/ThemeProvider.
     } else {
       const { data: newRow } = await supabase.from('user_settings').insert({
         user_id: user.id,
         owner_id: user.id,
-        dark_mode: isDark,
-        font_style: fontStyle,
         dashboard_filter: '7days',
         roas_threshold: 2.0,
         dead_product_days: 30,
@@ -247,68 +244,68 @@ export default function SettingsPage() {
 
       const orders = ordersRes.data || [];
       const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', `Selling ${symbol}`, `Shipping ${symbol}`, `Ad Cost ${symbol}`, `Profit ${symbol}`, 'Date'];
-      const oRows = orders.map((o: any) => [
+      const oRows = orders.map((o) => [
         o.order_number, o.customer_name, (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
         o.quantity, o.selling_price, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
         fnsFormat(new Date(o.date), 'dd/MM/yyyy'),
       ]);
       const oTotals = [
         'TOTALS', '', '', '', '',
-        orders.reduce((s: number, o: any) => s + o.quantity, 0),
-        orders.reduce((s: number, o: any) => s + o.selling_price, 0),
-        orders.reduce((s: number, o: any) => s + o.shipping_cost, 0),
-        orders.reduce((s: number, o: any) => s + o.ad_cost, 0),
-        orders.reduce((s: number, o: any) => s + (o.profit_per_order ?? 0), 0),
+        orders.reduce((s, o) => s + o.quantity, 0),
+        orders.reduce((s, o) => s + o.selling_price, 0),
+        orders.reduce((s, o) => s + o.shipping_cost, 0),
+        orders.reduce((s, o) => s + o.ad_cost, 0),
+        orders.reduce((s, o) => s + (o.profit_per_order ?? 0), 0),
         '',
       ];
       const oAll = [oHeaders, ...oRows, oTotals];
       const oWs = XLSX.utils.aoa_to_sheet(oAll);
       oWs['!cols'] = oHeaders.map((h, i) => {
         let max = h.length;
-        oRows.forEach((r: any[]) => { const cl = String(r[i] ?? '').length; if (cl > max) max = cl; });
+        oRows.forEach((r) => { const cl = String(r[i] ?? '').length; if (cl > max) max = cl; });
         return { wch: Math.min(max + 4, 40) };
       });
       XLSX.utils.book_append_sheet(wb, oWs, 'Orders');
 
       const inv = invRes.data || [];
       const iHeaders = ['Product', 'SKU', `Cost ${symbol}`, `Selling ${symbol}`, 'Stock', 'Threshold', `Value ${symbol}`, 'Supplier'];
-      const iRows = inv.map((p: any) => [
+      const iRows = inv.map((p) => [
         p.product_name, p.sku || '', p.cost_price, p.selling_price, p.stock_quantity,
         p.low_stock_threshold, p.stock_quantity * p.cost_price, p.supplier || '',
       ]);
       const iTotals = [
         'TOTALS', '',
-        inv.reduce((s: number, p: any) => s + p.cost_price, 0),
-        inv.reduce((s: number, p: any) => s + p.selling_price, 0),
-        inv.reduce((s: number, p: any) => s + p.stock_quantity, 0),
+        inv.reduce((s, p) => s + p.cost_price, 0),
+        inv.reduce((s, p) => s + p.selling_price, 0),
+        inv.reduce((s, p) => s + p.stock_quantity, 0),
         '',
-        inv.reduce((s: number, p: any) => s + p.stock_quantity * p.cost_price, 0),
+        inv.reduce((s, p) => s + p.stock_quantity * p.cost_price, 0),
         '',
       ];
       const iAll = [iHeaders, ...iRows, iTotals];
       const iWs = XLSX.utils.aoa_to_sheet(iAll);
       iWs['!cols'] = iHeaders.map((h, i) => {
         let max = h.length;
-        iRows.forEach((r: any[]) => { const cl = String(r[i] ?? '').length; if (cl > max) max = cl; });
+        iRows.forEach((r) => { const cl = String(r[i] ?? '').length; if (cl > max) max = cl; });
         return { wch: Math.min(max + 4, 40) };
       });
       XLSX.utils.book_append_sheet(wb, iWs, 'Inventory');
 
       const exps = expRes.data || [];
       const eHeaders = ['Type', `Amount ${symbol}`, 'Platform', 'Notes', 'Date'];
-      const eRows = exps.map((e: any) => [
+      const eRows = exps.map((e) => [
         e.type, e.amount, e.platform || '', e.notes || '', fnsFormat(new Date(e.date), 'dd/MM/yyyy'),
       ]);
       const eTotals = [
         'TOTALS',
-        exps.reduce((s: number, e: any) => s + e.amount, 0),
+        exps.reduce((s, e) => s + e.amount, 0),
         '', '', '',
       ];
       const eAll = [eHeaders, ...eRows, eTotals];
       const eWs = XLSX.utils.aoa_to_sheet(eAll);
       eWs['!cols'] = eHeaders.map((h, i) => {
         let max = h.length;
-        eRows.forEach((r: any[]) => { const cl = String(r[i] ?? '').length; if (cl > max) max = cl; });
+        eRows.forEach((r) => { const cl = String(r[i] ?? '').length; if (cl > max) max = cl; });
         return { wch: Math.min(max + 4, 40) };
       });
       XLSX.utils.book_append_sheet(wb, eWs, 'Expenses');

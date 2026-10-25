@@ -58,7 +58,7 @@ export default function TopSellingProductsBar({ data, loading }: Props) {
           />
           <Tooltip
             contentStyle={{ backgroundColor: theme.tooltipBg, color: theme.tooltipText, border: 'none', borderRadius: 8, fontWeight: 700 }}
-            formatter={(value: number, _: string, props: any) => [`${value} units sold • ${formatCurrency(props.payload.revenue)}`, props.payload.fullName]} />
+            formatter={(value: number, _: string, props: { payload: { revenue: number; fullName: string } }) => [`${value} units sold • ${formatCurrency(props.payload.revenue)}`, props.payload.fullName]} />
           
           <Bar dataKey="qty" fill="#6366F1" radius={[0, 4, 4, 0]} barSize={24} />
         </BarChart>

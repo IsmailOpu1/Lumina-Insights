@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
@@ -93,11 +93,11 @@ export default function Expenses() {
 
   // Listen for FAB-triggered expense adds
   const { activeModal } = useFAB();
-  const prevModal = useState<string | null>(null);
+  const prevModal = useRef<string | null>(null);
   useEffect(() => {
     // When GlobalExpenseModal closes (activeModal goes from 'expense' to null), refresh
-    if (prevModal[0] === 'expense' && activeModal !== 'expense') fetchExpenses();
-    prevModal[0] = activeModal;
+    if (prevModal.current === 'expense' && activeModal !== 'expense') fetchExpenses();
+    prevModal.current = activeModal;
   }, [activeModal, fetchExpenses]);
 
   const dateRange = useMemo(() => {

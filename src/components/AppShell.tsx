@@ -1,12 +1,22 @@
 import { useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar, { getInitialCollapsed } from '@/components/Sidebar';
+import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import FAB from '@/components/FAB';
 import GlobalOrderModal from '@/components/modals/GlobalOrderModal';
 import GlobalExpenseModal from '@/components/modals/GlobalExpenseModal';
 import GlobalProductModal from '@/components/modals/GlobalProductModal';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+const SIDEBAR_COLLAPSED_KEY = 'lumina_sidebar_collapsed';
+
+function getInitialCollapsed() {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -16,7 +26,7 @@ export default function AppShell() {
   const handleToggleCollapse = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem('lumina_sidebar_collapsed', String(next));
+      try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next)); } catch { /* storage unavailable */ }
       return next;
     });
   }, []);

@@ -12,6 +12,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
 
 interface Note {
   id: string;
@@ -72,13 +73,13 @@ export default function Notes() {
 
   // Voice recording in modal
   const [isModalRecording, setIsModalRecording] = useState(false);
-  const modalRecRef = useRef<any>(null);
-  const modalSilenceRef = useRef<any>(null);
+  const modalRecRef = useRef<SpeechRecognitionInstance | null>(null);
+  const modalSilenceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Standalone voice recording overlay
   const [isRecording, setIsRecording] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [recognition, setRecognition] = useState<any>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognitionInstance | null>(null);
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'note' | 'marketing'; id: string } | null>(null);
@@ -250,7 +251,7 @@ export default function Notes() {
 
   // --- Standalone voice recording (opens modal after) ---
   function startVoiceNote() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = getSpeechRecognition();
     if (!SR) {
       toast({ title: 'Voice notes need Chrome or Edge', variant: 'destructive' });
       return;
@@ -260,7 +261,7 @@ export default function Notes() {
     rec.interimResults = true;
     rec.lang = 'en-US';
     let finalText = '';
-    rec.onresult = (e: any) => {
+    rec.onresult = (e) => {
       let interim = '';
       for (let i = 0; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
@@ -301,7 +302,7 @@ export default function Notes() {
   }
 
   function startModalRecording() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = getSpeechRecognition();
     if (!SR) {
       toast({ title: 'Voice notes need Chrome or Edge', variant: 'destructive' });
       return;
@@ -311,7 +312,7 @@ export default function Notes() {
     rec.interimResults = false;
     rec.lang = 'en-US';
 
-    rec.onresult = (e: any) => {
+    rec.onresult = (e) => {
       let transcript = '';
       for (let i = 0; i < e.results.length; i++) {
         transcript += e.results[i][0].transcript + ' ';
@@ -338,7 +339,7 @@ export default function Notes() {
 
   function stopModalRecording() {
     if (modalRecRef.current) {
-      try { modalRecRef.current.stop(); } catch {}
+      try { modalRecRef.current.stop(); } catch { /* already stopped */ }
       modalRecRef.current = null;
     }
     if (modalSilenceRef.current) {

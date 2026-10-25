@@ -21,11 +21,6 @@ const NAV_ITEMS = [
   { label: 'Settings', path: '/settings', icon: Settings },
 ];
 
-function getInitialCollapsed() {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem('lumina_sidebar_collapsed') === 'true';
-}
-
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
@@ -217,4 +212,3 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   );
 }
 
-export { getInitialCollapsed };

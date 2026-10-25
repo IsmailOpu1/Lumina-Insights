@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster as Sonner } from '@/components/ui/sonner';
@@ -9,25 +9,27 @@ import { FilterProvider, useFilter } from '@/context/FilterContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { FABProvider } from '@/context/FABContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
-import Dashboard from '@/pages/Dashboard';
-import Orders from '@/pages/Orders';
-import Inventory from '@/pages/Inventory';
-import Expenses from '@/pages/Expenses';
-import MarketingAI from '@/pages/MarketingAI';
-import AIAssistant from '@/pages/AIAssistant';
-import Notes from '@/pages/Notes';
-import Notifications from '@/pages/Notifications';
-import SettingsPage from '@/pages/Settings';
-import NotFound from '@/pages/NotFound';
-import Login from '@/pages/Login';
-import Signup from '@/pages/Signup';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import InvitePage from '@/pages/InvitePage';
-import Onboarding from '@/pages/Onboarding';
+import PageLoader from '@/components/PageLoader';
+
+// Each page is its own chunk, downloaded the first time it is opened.
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Orders = lazy(() => import('@/pages/Orders'));
+const Inventory = lazy(() => import('@/pages/Inventory'));
+const Expenses = lazy(() => import('@/pages/Expenses'));
+const MarketingAI = lazy(() => import('@/pages/MarketingAI'));
+const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
+const Notes = lazy(() => import('@/pages/Notes'));
+const Notifications = lazy(() => import('@/pages/Notifications'));
+const SettingsPage = lazy(() => import('@/pages/Settings'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const Login = lazy(() => import('@/pages/Login'));
+const Signup = lazy(() => import('@/pages/Signup'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const InvitePage = lazy(() => import('@/pages/InvitePage'));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
 
 const queryClient = new QueryClient();
 
@@ -72,6 +74,7 @@ const App = () => (
                 <Sonner position="bottom-right" />
                 <BrowserRouter>
                   <SettingsBootstrap>
+                    <Suspense fallback={<PageLoader fullScreen />}>
                     <Routes>
                       {/* Public routes */}
                       <Route path="/login" element={<Login />} />
@@ -95,6 +98,7 @@ const App = () => (
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
+                    </Suspense>
                   </SettingsBootstrap>
                 </BrowserRouter>
               </TooltipProvider>

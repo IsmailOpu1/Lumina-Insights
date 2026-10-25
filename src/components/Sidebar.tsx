@@ -67,7 +67,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
       <aside
         className={`
   flex h-full flex-col border-r border-sidebar-border
-  transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+  transition-all duration-300 ease-in-out
   ${isMobile
     ? `fixed top-0 left-0 z-50 w-60 ${open ? 'translate-x-0' : '-translate-x-full'}`
     : 'relative z-auto translate-x-0 shrink-0'

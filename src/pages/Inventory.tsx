@@ -177,7 +177,7 @@ export default function Inventory() {
       );
       const totalValue = filtered.reduce((s, i) => s + i.stock_quantity * i.cost_price, 0);
       const totals = ['TOTALS', '', '', '', '', '', totalValue, ''];
-      exportXLSX({ headers, rows, totalsRow: totals, filename: `Inventory_Export_${todaySuffix()}.xlsx` });
+      await exportXLSX({ headers, rows, totalsRow: totals, filename: `Inventory_Export_${todaySuffix()}.xlsx` });
       toast.success('Export complete ✓');
     } catch {toast.error('Export failed');}
     setExporting(false);

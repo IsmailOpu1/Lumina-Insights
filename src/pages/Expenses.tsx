@@ -215,7 +215,7 @@ export default function Expenses() {
         fnsFormat(new Date(e.date), 'dd/MM/yyyy'),
       ]);
       const totals = ['TOTAL', filtered.reduce((s, e) => s + e.amount, 0), '', '', ''];
-      exportXLSX({ headers, rows, totalsRow: totals, filename: `Expenses_Export_${todaySuffix()}.xlsx` });
+      await exportXLSX({ headers, rows, totalsRow: totals, filename: `Expenses_Export_${todaySuffix()}.xlsx` });
       toast.success('Export complete ✓');
     } catch { toast.error('Export failed'); }
     setExporting(false);

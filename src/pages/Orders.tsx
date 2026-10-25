@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useFAB } from '@/context/FABContext';
+import { useFAB, useRefreshOnSave } from '@/context/FABContext';
+import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useReadOnly } from '@/hooks/useReadOnly';
 import { ORDER_STATUSES } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
@@ -15,7 +16,7 @@ import { Search, Download, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, 
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
-import { format as fnsFormat, subDays, startOfDay, startOfToday } from 'date-fns';
+import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
 
@@ -39,7 +40,7 @@ interface OrderRow {
 
 type SortKey = 'order_number' | 'customer_name' | 'product' | 'source' | 'status' | 'quantity' | 'selling_price' | 'shipping_cost' | 'profit_per_order' | 'date';
 type SortDir = 'asc' | 'desc';
-type DateFilter = 'today' | '7days' | '30days' | 'custom';
+type DateFilter = DayFilter;
 
 const PAGE_SIZE = 20;
 
@@ -75,22 +76,10 @@ export default function Orders() {
   }, []);
 
   useEffect(() => {fetchOrders();}, [fetchOrders]);
-
-  const dateRange = useMemo(() => {
-    const now = new Date();
-    switch (dateFilter) {
-      case 'today':return { from: startOfToday(), to: now };
-      case '7days':return { from: startOfDay(subDays(now, 7)), to: now };
-      case '30days':return { from: startOfDay(subDays(now, 30)), to: now };
-      default:return { from: startOfDay(subDays(now, 365)), to: now };
-    }
-  }, [dateFilter]);
+  useRefreshOnSave('order', fetchOrders);
 
   const filtered = useMemo(() => {
-    let list = orders.filter((o) => {
-      const d = new Date(o.date);
-      return d >= dateRange.from && d <= dateRange.to;
-    });
+    let list = orders.filter((o) => inDayFilter(o.date, dateFilter));
     if (statusFilter !== 'all') list = list.filter((o) => o.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -100,7 +89,7 @@ export default function Orders() {
       );
     }
     return list;
-  }, [orders, dateRange, statusFilter, search]);
+  }, [orders, dateFilter, statusFilter, search]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -182,7 +171,7 @@ export default function Orders() {
       o.shipping_cost,
       o.ad_cost ?? 0,
       o.profit_per_order ?? 0,
-      fnsFormat(new Date(o.date), 'dd/MM/yyyy')]
+      fnsFormat(parseDay(o.date), 'dd/MM/yyyy')]
       );
       const totals = ['TOTALS', '', '', '', '', '',
       filtered.reduce((s, o) => s + o.selling_price, 0),
@@ -277,7 +266,7 @@ export default function Orders() {
                       <td className={cn("px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold", profit > 0 ? 'text-[#1bad0b]' : 'text-destructive')}>
                         {formatCurrency(profit)}
                       </td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(new Date(o.date), 'dd/MM/yyyy')}</td>
+                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(parseDay(o.date), 'dd/MM/yyyy')}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">
                         {!readOnly && (
                           <div className="flex items-center gap-1">

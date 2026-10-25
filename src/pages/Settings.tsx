@@ -20,6 +20,7 @@ import { createInvite, inviteLink } from '@/lib/invites';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
 import { useSubscription } from '@/context/SubscriptionContext';
+import { parseDay } from '@/lib/dates';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -254,7 +255,7 @@ export default function SettingsPage() {
       const oRows = orders.map((o) => [
         o.order_number, o.customer_name, (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
         o.quantity, o.selling_price, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
-        fnsFormat(new Date(o.date), 'dd/MM/yyyy'),
+        fnsFormat(parseDay(o.date), 'dd/MM/yyyy'),
       ]);
       const oTotals = [
         'TOTALS', '', '', '', '',
@@ -301,7 +302,7 @@ export default function SettingsPage() {
       const exps = expRes.data || [];
       const eHeaders = ['Type', `Amount ${symbol}`, 'Platform', 'Notes', 'Date'];
       const eRows = exps.map((e) => [
-        e.type, e.amount, e.platform || '', e.notes || '', fnsFormat(new Date(e.date), 'dd/MM/yyyy'),
+        e.type, e.amount, e.platform || '', e.notes || '', fnsFormat(parseDay(e.date), 'dd/MM/yyyy'),
       ]);
       const eTotals = [
         'TOTALS',

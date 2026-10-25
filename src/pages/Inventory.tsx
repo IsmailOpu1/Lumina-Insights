@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useFAB } from '@/context/FABContext';
+import { useFAB, useRefreshOnSave } from '@/context/FABContext';
 import { useFilter } from '@/context/FilterContext';
 import { useAuth } from '@/context/AuthContext';
 import AddProductModal, { ProductToEdit } from '@/components/AddProductModal';
@@ -111,6 +111,7 @@ export default function Inventory() {
   }, [getDateRange, ownerIdForQueries]);
 
   useEffect(() => {fetchAll();}, [fetchAll]);
+  useRefreshOnSave('product', fetchAll);
 
   // Filtered
   const filtered = useMemo(() => {
@@ -393,8 +394,6 @@ export default function Inventory() {
         onSaved={() => {setEditOpen(false);setEditProduct(null);fetchAll();}} />
       
 
-      {/* FAB Product Modal */}
-      <AddProductModal onSaved={fetchAll} />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => {if (!open) setDeleteId(null);}}>

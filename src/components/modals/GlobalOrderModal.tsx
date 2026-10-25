@@ -28,7 +28,7 @@ const nativeSelectClass =
 
 export default function GlobalOrderModal() {
   const { formatCurrency, symbol } = useCurrency();
-  const { activeModal, closeModal } = useFAB();
+  const { activeModal, closeModal, notifySaved } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const isOpen = activeModal === 'order';
 
@@ -113,6 +113,7 @@ export default function GlobalOrderModal() {
     });
     if (error) { toast.error('Failed to create order', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
     toast.success('Order added ✓');
+    notifySaved('order');
     closeModal();
   }
 

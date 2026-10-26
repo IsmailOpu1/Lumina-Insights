@@ -4,6 +4,7 @@ import { Menu, Bell, ChevronRight } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import AccountMenu from './AccountMenu';
 
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -36,16 +37,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount, notifications, markAllRead, markOneRead } = useNotifications();
-  const { isOwner, isManager, isViewer, userSettings } = useAuth();
+  const { userSettings } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const avatarInitials = (userSettings?.full_name || userSettings?.business_name || 'U')
-    .split(' ')
-    .map((w: string) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 
   const pageTitle =
     ROUTE_TITLES[location.pathname] || 'Lumina Insights';
@@ -88,8 +82,6 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     }
   };
 
-  const role = isOwner ? 'Owner' : isManager ? 'Manager' : isViewer ? 'Viewer' : null;
-
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-background/70 px-4 backdrop-blur-xl md:px-6">
       <div className="flex min-w-0 items-center gap-2">
@@ -121,18 +113,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           )}
         </button>
 
-        <button
-          onClick={() => navigate('/settings')}
-          title="Profile and settings"
-          className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-secondary"
-        >
-          <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-highlight text-[11px] font-semibold text-primary-foreground">
-            {userSettings?.avatar_url
-              ? <img src={userSettings.avatar_url} alt="" className="h-full w-full object-cover" />
-              : avatarInitials}
-          </span>
-          {role && <span className="hidden text-xs text-muted-foreground sm:inline">{role}</span>}
-        </button>
+        <AccountMenu />
 
         {dropdownOpen && (
           <div className="absolute right-0 top-full z-[100] mt-2 w-[360px] overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/50 max-md:fixed max-md:inset-x-2 max-md:top-14 max-md:w-auto">

@@ -6,6 +6,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { format } from 'date-fns';
 import { parseDay } from '@/lib/dates';
 import { useCurrency } from '@/hooks/useCurrency';
+import ChartCard from './ChartCard';
 
 interface Order {
   id: string;
@@ -34,7 +35,7 @@ interface Props {
   loading: boolean;
 }
 
-type SortKey = 'order_number' | 'customer_name' | 'source' | 'status' | 'quantity' | 'selling_price' | 'shipping_cost' | 'profit_per_order' | 'date';
+type SortKey = 'order_number' | 'customer_name' | 'product' | 'source' | 'status' | 'quantity' | 'selling_price' | 'shipping_cost' | 'profit_per_order' | 'date';
 
 export default function RecentOrdersTable({ orders, inventory, loading }: Props) {
   const { formatCurrency, symbol } = useCurrency();
@@ -45,13 +46,14 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
 
   const recent = useMemo(() => {
     const sorted = [...orders].sort((a, b) => {
-      const va = a[sortKey] ?? '';
-      const vb = b[sortKey] ?? '';
+      const productName = (o: Order) => (o.product_id && invMap.get(o.product_id)) || o.product_name || '';
+      const va = sortKey === 'product' ? productName(a) : a[sortKey] ?? '';
+      const vb = sortKey === 'product' ? productName(b) : b[sortKey] ?? '';
       if (typeof va === 'number' && typeof vb === 'number') return sortAsc ? va - vb : vb - va;
       return sortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
     });
     return sorted.slice(0, 10);
-  }, [orders, sortKey, sortAsc]);
+  }, [orders, sortKey, sortAsc, invMap]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc(!sortAsc);else
@@ -68,7 +70,7 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
   const headers: {label: string;key: SortKey;}[] = [
   { label: 'Order #', key: 'order_number' },
   { label: 'Customer', key: 'customer_name' },
-  { label: 'Product', key: 'order_number' },
+  { label: 'Product', key: 'product' },
   { label: 'Source', key: 'source' },
   { label: 'Status', key: 'status' },
   { label: 'Qty', key: 'quantity' },
@@ -79,23 +81,25 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
 
 
   return (
-    <div className="card-hover mb-6 rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)]">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-bold text-foreground">Recent Orders</h3>
-        <button onClick={() => navigate('/orders')} className="text-sm font-bold text-primary hover:underline">
-          View All →
+    <ChartCard
+      title="Recent orders"
+      subtitle="Latest 10, any date"
+      className="mb-6"
+      action={
+        <button onClick={() => navigate('/orders')} className="text-xs font-medium text-primary hover:underline">
+          View all
         </button>
-      </div>
-      <div className="-mx-5 overflow-x-auto px-5" style={{ WebkitOverflowScrolling: 'touch' }}>
+      }
+    >
+      <div className="-mx-5 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="w-full min-w-[800px] text-sm">
           <thead>
-            <tr className="border-b border-border">
+            <tr className="border-y border-border bg-muted/40">
               {headers.map((h) =>
               <th
                 key={h.label}
                 onClick={() => toggleSort(h.key)}
-                className="cursor-pointer whitespace-nowrap px-3 py-2.5 text-left font-extrabold text-sm text-accent">
-                
+                className="cursor-pointer whitespace-nowrap px-5 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground">
                   {h.label} <SortIcon k={h.key} />
                 </th>
               )}
@@ -103,27 +107,26 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
           </thead>
           <tbody>
             {recent.map((o) =>
-            <tr key={o.id} className="table-row-hover border-b border-border/50">
-                <td className="px-3 py-2.5 font-bold text-foreground">{o.order_number}</td>
-                <td className="px-3 py-2.5 text-foreground font-extrabold text-sm">{o.customer_name}</td>
-                <td className="px-3 py-2.5 font-extrabold text-indigo-900">{(o.product_id && invMap.get(o.product_id)) || o.product_name || '—'}</td>
-                <td className="px-3 py-2.5 font-extrabold text-indigo-900">{o.source}</td>
-                <td className="px-3 py-2.5"><StatusBadge status={o.status} /></td>
-                <td className="px-3 py-2.5 font-bold text-foreground">{o.quantity}</td>
-                <td className="px-3 py-2.5 font-bold text-foreground">{formatCurrency(o.selling_price)}</td>
-                <td className="px-3 py-2.5 font-extrabold text-sm text-accent">{formatCurrency(o.shipping_cost)}</td>
-                <td className="px-3 py-2.5 text-[#07ab4c] font-extrabold" style={{ color: o.profit_per_order >= 0 ? '#10B981' : '#EF4444' }}>
+            <tr key={o.id} className="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40">
+                <td className="px-5 py-3 font-medium text-foreground">{o.order_number}</td>
+                <td className="px-5 py-3 text-foreground">{o.customer_name}</td>
+                <td className="px-5 py-3 text-muted-foreground">{(o.product_id && invMap.get(o.product_id)) || o.product_name || '—'}</td>
+                <td className="px-5 py-3 text-muted-foreground">{o.source}</td>
+                <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
+                <td className="px-5 py-3 tabular-nums text-foreground">{o.quantity}</td>
+                <td className="px-5 py-3 tabular-nums text-foreground">{formatCurrency(o.selling_price)}</td>
+                <td className="px-5 py-3 tabular-nums text-muted-foreground">{formatCurrency(o.shipping_cost)}</td>
+                <td className={`px-5 py-3 font-medium tabular-nums ${o.profit_per_order >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(o.profit_per_order)}
                 </td>
-                <td className="px-3 py-2.5 text-muted-foreground text-sm font-extrabold">{format(parseDay(o.date), 'dd MMM')}</td>
+                <td className="px-5 py-3 text-muted-foreground">{format(parseDay(o.date), 'dd MMM')}</td>
               </tr>
             )}
             {recent.length === 0 &&
-            <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">No orders in this period</td></tr>
+            <tr><td colSpan={10} className="px-5 py-10 text-center text-sm text-muted-foreground">No orders yet</td></tr>
             }
           </tbody>
         </table>
       </div>
-    </div>);
-
+    </ChartCard>);
 }

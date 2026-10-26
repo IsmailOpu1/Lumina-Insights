@@ -1,9 +1,9 @@
 export const STATUS_COLORS: Record<string, string> = {
-  Pending: '#F59E0B',
-  Processing: '#3B82F6',
-  Shipped: '#60A5FA',
-  Delivered: '#10B981',
-  Cancelled: '#EF4444',
+  Pending: '#F5A524',
+  Processing: '#60A5FA',
+  Shipped: '#5EEAD4',
+  Delivered: '#34D399',
+  Cancelled: '#F43F5E',
 };
 
 export const SOURCES = ['Instagram', 'Facebook', 'WhatsApp', 'Website', 'TikTok'] as const;

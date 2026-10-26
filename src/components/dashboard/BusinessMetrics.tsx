@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { format, subDays, startOfDay, isToday, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
+import { useMemo, type ReactNode } from 'react';
+import { CalendarDays, RefreshCw, Snowflake, Sun, Target, Wallet, type LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format, subDays, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { activeOrders } from '@/hooks/useDashboardData';
@@ -97,81 +99,97 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
     };
   }, [periodOrders, recentOrders, inventory, expenses, deadProductDays, loading]);
 
-  const riskColor = (pct: number) => pct > 60 ? '#EF4444' : pct > 40 ? '#F59E0B' : '#10B981';
+  const riskTone = (pct: number) => pct > 60 ? 'text-destructive' : pct > 40 ? 'text-warning' : 'text-success';
+  const signed = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
 
-  if (!metrics) return <SkeletonLoader variant="card" count={6} />;
+  if (!metrics) return <SkeletonLoader variant="card" count={3} />;
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
-      {/* Today */}
-      <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
-        <h4 className="mb-3 text-sm font-extrabold text-accent">Today's Performance</h4>
-        <p className="text-xl font-bold" style={{ color: '#6366F1' }}>{formatCurrency(metrics.dailyRevenue)}</p>
-        <p className="text-sm font-extrabold text-accent">Daily Revenue</p>
-        <p className="mt-2 font-extrabold text-xl" style={{ color: '#6366F1' }}>{metrics.dailyCount}</p>
-        <p className="text-sm font-extrabold text-accent">Daily Orders</p>
-      </div>
+    <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <Tile icon={Sun} title="Today">
+        <Stat label="Revenue" value={formatCurrency(metrics.dailyRevenue)} />
+        <Stat label="Orders" value={metrics.dailyCount.toLocaleString()} />
+      </Tile>
 
-      {/* This Week */}
-      <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
-        <h4 className="mb-3 text-sm font-extrabold text-accent">This Week</h4>
-        <p className="text-xl font-bold" style={{ color: '#6366F1' }}>{formatCurrency(metrics.weeklyRevenue)}</p>
-        <p className="text-sm font-extrabold text-accent">Weekly Revenue</p>
-        <p className="mt-2 text-xl font-bold" style={{ color: metrics.weeklyProfit >= 0 ? '#10B981' : '#EF4444' }}>
-          {formatCurrency(metrics.weeklyProfit)}
+      <Tile
+        icon={CalendarDays}
+        title="This week"
+        badge={
+          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium',
+            metrics.weekGrowth >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive')}>
+            {signed(metrics.weekGrowth)} vs last week
+          </span>
+        }
+      >
+        <Stat label="Revenue" value={formatCurrency(metrics.weeklyRevenue)} />
+        <Stat
+          label="Profit"
+          value={formatCurrency(metrics.weeklyProfit)}
+          className={metrics.weeklyProfit >= 0 ? 'text-success' : 'text-destructive'}
+        />
+      </Tile>
+
+      <Tile icon={Wallet} title="Expenses">
+        <Stat label="Ads" value={formatCurrency(metrics.adSpend)} />
+        <Stat label="Shipping" value={formatCurrency(metrics.shippingExp)} />
+        <Stat label="Other" value={formatCurrency(metrics.miscExp)} />
+      </Tile>
+
+      <Tile icon={RefreshCw} title="Inventory turnover">
+        <p className="text-2xl font-semibold tabular-nums text-foreground">{metrics.turnover.toFixed(1)}x</p>
+        <p className="mt-1 text-xs text-muted-foreground">Units sold per unit in stock this period</p>
+      </Tile>
+
+      <Tile icon={Target} title="Product dependency">
+        <p className="text-sm text-muted-foreground">
+          <span className={cn('font-semibold', riskTone(metrics.top1Pct))}>{metrics.top1Pct.toFixed(0)}%</span> of revenue from{' '}
+          <span className="text-foreground">{metrics.top1Name}</span>
         </p>
-        <p className="text-sm font-extrabold text-accent">Weekly Profit</p>
-        <p className="mt-1 text-sm font-bold" style={{ color: metrics.weekGrowth >= 0 ? '#10B981' : '#EF4444' }}>
-          {metrics.weekGrowth >= 0 ? '+' : ''}{metrics.weekGrowth.toFixed(1)}% vs last week
+        <p className="mt-2 text-sm text-muted-foreground">
+          <span className={cn('font-semibold', riskTone(metrics.top3Pct))}>{metrics.top3Pct.toFixed(0)}%</span> from your top 3
         </p>
-      </div>
+      </Tile>
 
-      {/* Inventory Turnover */}
-      <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
-        <h4 className="mb-3 text-sm text-accent font-extrabold">Inventory Turnover</h4>
-        <p className="text-2xl font-bold" style={{ color: '#6366F1' }}>{metrics.turnover.toFixed(1)}</p>
-        <p className="text-sm font-extrabold text-accent">units sold per unit held</p>
-      </div>
-
-      {/* Dead Products */}
-      <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
-        <h4 className="mb-3 text-sm font-bold text-muted-foreground">Dead Products</h4>
-        {metrics.deadProducts.length === 0 ?
-        <p className="text-sm font-bold text-[#07ab4c]">No dead stock 🎉</p> :
-
-        <div className="flex flex-wrap gap-1.5">
-            {metrics.deadProducts.slice(0, 5).map((p) =>
-          <span key={p.id} className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-orange-700 font-extrabold text-sm">
+      <Tile icon={Snowflake} title={`No sales in ${deadProductDays} days`}>
+        {metrics.deadProducts.length === 0 ? (
+          <p className="text-sm text-success">Every product is selling</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {metrics.deadProducts.slice(0, 5).map((p) => (
+              <span key={p.id} className="rounded-full border border-warning/30 bg-warning/10 px-2.5 py-0.5 text-xs text-warning">
                 {p.product_name}
               </span>
-          )}
-            {metrics.deadProducts.length > 5 &&
-          <span className="text-xs font-bold text-muted-foreground">+{metrics.deadProducts.length - 5} more</span>
-          }
+            ))}
+            {metrics.deadProducts.length > 5 && (
+              <span className="text-xs text-muted-foreground">+{metrics.deadProducts.length - 5} more</span>
+            )}
           </div>
-        }
-      </div>
+        )}
+      </Tile>
+    </div>
+  );
+}
 
-      {/* Dependency Risk */}
-      <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
-        <h4 className="mb-3 text-sm font-bold text-muted-foreground">Dependency Risk</h4>
-        <p className="text-sm font-bold text-amber-700" style={{ color: riskColor(metrics.top1Pct) }}>
-          Top product '{metrics.top1Name}' = {metrics.top1Pct.toFixed(0)}% of revenue
-        </p>
-        <p className="mt-1.5 text-sm font-bold" style={{ color: riskColor(metrics.top3Pct) }}>
-          Top 3 products = {metrics.top3Pct.toFixed(0)}% of revenue
-        </p>
+function Tile({ icon: Icon, title, badge, children }: { icon: LucideIcon; title: string; badge?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="surface-interactive p-5">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Icon size={15} />
+          {title}
+        </h3>
+        {badge}
       </div>
+      <div className="space-y-2">{children}</div>
+    </section>
+  );
+}
 
-      {/* Expense Summary */}
-      <div className="stat-hover rounded-xl border border-border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-[var(--chart-card-bg)] cursor-pointer">
-        <h4 className="mb-3 text-sm font-bold text-muted-foreground">Expense Summary</h4>
-        <div className="space-y-1.5">
-          <p className="text-sm font-bold" style={{ color: '#8B5CF6' }}>Ad Spend: {formatCurrency(metrics.adSpend)}</p>
-          <p className="text-sm font-bold" style={{ color: '#3B82F6' }}>Shipping: {formatCurrency(metrics.shippingExp)}</p>
-          <p className="text-sm font-bold text-muted-foreground">Misc: {formatCurrency(metrics.miscExp)}</p>
-        </div>
-      </div>
-    </div>);
-
+function Stat({ label, value, className }: { label: string; value: string; className?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={cn('text-base font-semibold tabular-nums text-foreground', className)}>{value}</span>
+    </div>
+  );
 }

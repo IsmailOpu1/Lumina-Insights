@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, BarChart3, Bell, Bot, Check, Megaphone, Package, ShoppingBag, Sparkles, Users,
+  ArrowRight, BarChart3, Bell, Bot, Check, ChevronDown, Megaphone, Package, ShoppingBag, Sparkles, TrendingUp, Users,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/hooks/useCurrency';
@@ -46,6 +46,77 @@ function planPoints(p: Plan) {
   ];
 }
 
+const primaryCta = 'inline-flex items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-primary-foreground shadow-glow transition hover:brightness-110';
+
+function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
+  return (
+    <div className="mx-auto max-w-2xl text-center">
+      <p className="eyebrow text-primary">{eyebrow}</p>
+      <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
+      {sub && <p className="mt-3 text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
+/** A static picture of the dashboard for the hero. Numbers are illustrative. */
+function ProductPreview() {
+  const bars = [38, 52, 44, 61, 57, 72, 66, 80, 74, 90, 84, 96];
+  const points = bars.map((b, i) => `${(i / (bars.length - 1)) * 100},${100 - b}`).join(' ');
+  return (
+    <div className="relative mx-auto mt-16 max-w-5xl" aria-hidden="true">
+      <div className="absolute -inset-x-10 -top-10 bottom-0 rounded-[40px] bg-primary/20 blur-3xl" />
+      <div className="relative rounded-2xl border border-border bg-card/80 p-2 shadow-2xl shadow-black/60 backdrop-blur">
+        <div className="flex items-center gap-1.5 px-3 py-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
+          <span className="ml-3 text-xs text-muted-foreground">Dashboard</span>
+        </div>
+        <div className="grid gap-3 rounded-xl bg-background p-4 text-left sm:grid-cols-4">
+          {[
+            { l: 'Revenue', v: '৳2,48,350', d: '+18%' },
+            { l: 'Net profit', v: '৳61,920', d: '+12%' },
+            { l: 'Orders', v: '412', d: '+9%' },
+            { l: 'Inventory value', v: '৳1,12,800', d: '' },
+          ].map((k, i) => (
+            <div key={k.l} className={cn('surface p-4', i === 0 && 'border-primary/40 shadow-glow')}>
+              <p className="text-xs text-muted-foreground">{k.l}</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">{k.v}</p>
+              {k.d && <p className="mt-1 inline-flex items-center gap-1 text-xs text-success"><TrendingUp size={12} />{k.d}</p>}
+            </div>
+          ))}
+          <div className="surface p-4 sm:col-span-3">
+            <p className="text-sm font-medium">Revenue</p>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="mt-3 h-36 w-full">
+              <defs>
+                <linearGradient id="lp-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon points={`0,100 ${points} 100,100`} fill="url(#lp-fill)" />
+              <polyline points={points} fill="none" stroke="#10B981" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+          <div className="surface flex flex-col p-4">
+            <p className="text-sm font-medium">Top channels</p>
+            <div className="mt-3 flex flex-1 flex-col justify-center gap-3">
+              {[['Facebook', 64], ['Instagram', 22], ['WhatsApp', 14]].map(([n, w]) => (
+                <div key={n}>
+                  <div className="flex justify-between text-xs"><span className="text-muted-foreground">{n}</span><span>{w}%</span></div>
+                  <div className="mt-1 h-1.5 rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-gradient-to-r from-primary to-highlight" style={{ width: `${w}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
@@ -55,157 +126,187 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(160deg, #1A3A2A 0%, #2D5A3C 45%, #1B3A4B 100%)' }}>
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Nav */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
-        <div className="flex items-center gap-2">
-          <Sparkles size={24} className="shrink-0 text-[#F0B429]" />
-          <span className="whitespace-nowrap text-lg font-bold sm:text-xl">{LEGAL.businessName}</span>
-        </div>
-        <nav className="flex items-center gap-2 sm:gap-4">
-          <a href="#pricing" className="hidden text-sm font-semibold text-white/80 hover:text-white sm:inline">Pricing</a>
-          <Link to="/login" className="whitespace-nowrap text-sm font-semibold text-white/80 hover:text-white">Sign in</Link>
-          <Link to="/signup" className="whitespace-nowrap rounded-lg bg-[#F0B429] px-3 py-2 text-sm font-bold text-[#1A3A2A] hover:bg-[#F0B429]/90">
-            <span className="sm:hidden">Free trial</span>
-            <span className="hidden sm:inline">Start free trial</span>
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src="/icon.png" alt="" className="h-8 w-8 rounded-lg" />
+            <span className="whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">{LEGAL.businessName}</span>
           </Link>
-        </nav>
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <a href="#features" className="hidden rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground md:inline">Features</a>
+            <a href="#pricing" className="hidden rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground sm:inline">Pricing</a>
+            <Link to="/login" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground">Sign in</Link>
+            <Link to="/signup" className={cn(primaryCta, 'h-9 whitespace-nowrap px-4 text-sm')}>
+              <span className="sm:hidden">Free trial</span>
+              <span className="hidden sm:inline">Start free trial</span>
+            </Link>
+          </nav>
+        </div>
       </header>
 
       <main>
         {/* Hero */}
-        <section className="mx-auto max-w-4xl px-4 pb-16 pt-10 text-center sm:pt-16">
-          <p className="mb-4 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#F0B429]">
-            Built for Bangladeshi online sellers
-          </p>
-          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-            Know exactly how your online shop is doing — and what to do next
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-white/75">
-            Orders, stock, expenses and real profit in one place, with an AI business advisor
-            and marketing writer that work from your own numbers.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link to="/signup" className="inline-flex h-12 items-center gap-2 rounded-lg bg-[#F0B429] px-6 font-bold text-[#1A3A2A] hover:bg-[#F0B429]/90">
-              Start your 14-day free trial <ArrowRight size={18} />
-            </Link>
-            <a href="#features" className="inline-flex h-12 items-center rounded-lg border border-white/25 px-6 font-semibold text-white hover:bg-white/10">
-              See what's inside
-            </a>
+        <section className="relative">
+          <div className="bg-grid pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)]" />
+          <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[900px] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+          <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 text-center sm:pt-24">
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Sparkles size={13} /> Built for Bangladeshi online sellers
+            </p>
+            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl">
+              Know exactly how your shop is doing, <span className="text-gradient">and what to do next</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+              Orders, stock, expenses and real profit in one place, with an AI business advisor
+              and marketing writer that work from your own numbers.
+            </p>
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link to="/signup" className={cn(primaryCta, 'h-12 px-6')}>
+                Start your 14-day free trial <ArrowRight size={18} />
+              </Link>
+              <a href="#features" className="inline-flex h-12 items-center rounded-lg border border-border bg-card/60 px-6 font-medium transition-colors hover:bg-secondary">
+                See what's inside
+              </a>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">No card or bKash needed to start.</p>
+            <ProductPreview />
           </div>
-          <p className="mt-3 text-sm text-white/60">No card or bKash needed to start.</p>
         </section>
 
         {/* Features */}
-        <section id="features" className="mx-auto max-w-6xl px-4 py-14">
-          <h2 className="text-center text-3xl font-extrabold">Everything a growing shop needs</h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20">
+          <SectionHeading eyebrow="Features" title="Everything a growing shop needs" sub="One app instead of a notebook, three spreadsheets and guesswork." />
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-xl bg-white/10 p-5 backdrop-blur-sm">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#F0B429]/20">
-                  <Icon size={20} className="text-[#F0B429]" />
+              <div key={title} className="surface-interactive p-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                  <Icon size={20} />
                 </div>
-                <h3 className="font-bold">{title}</h3>
-                <p className="mt-1 text-sm text-white/70">{desc}</p>
+                <h3 className="mt-4 font-semibold">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{desc}</p>
               </div>
             ))}
           </div>
-          <p className="mt-6 flex items-center justify-center gap-2 text-sm text-white/60">
-            <Bell size={14} /> Plus live alerts for new orders, low stock and weak ad returns.
+          <p className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Bell size={14} className="text-primary" /> Plus live alerts for new orders, low stock and weak ad returns.
           </p>
         </section>
 
         {/* How it works */}
-        <section className="mx-auto max-w-5xl px-4 py-14">
-          <h2 className="text-center text-3xl font-extrabold">Up and running in minutes</h2>
-          <ol className="mt-10 grid gap-4 md:grid-cols-3">
+        <section className="mx-auto max-w-5xl px-4 py-20">
+          <SectionHeading eyebrow="How it works" title="Up and running in minutes" />
+          <ol className="relative mt-12 grid gap-6 md:grid-cols-3">
+            <div className="absolute left-0 right-0 top-5 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
             {STEPS.map((s, i) => (
-              <li key={s.title} className="rounded-xl border border-white/15 p-5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F0B429] font-extrabold text-[#1A3A2A]">{i + 1}</span>
-                <h3 className="mt-3 font-bold">{s.title}</h3>
-                <p className="mt-1 text-sm text-white/70">{s.desc}</p>
+              <li key={s.title} className="relative text-center">
+                <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-primary/40 bg-background text-sm font-semibold text-primary shadow-glow">
+                  {i + 1}
+                </span>
+                <h3 className="mt-4 font-semibold">{s.title}</h3>
+                <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted-foreground">{s.desc}</p>
               </li>
             ))}
           </ol>
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="mx-auto max-w-5xl px-4 py-14">
-          <h2 className="text-center text-3xl font-extrabold">Simple pricing in taka</h2>
-          <p className="mt-2 text-center text-white/70">Start with a 14-day free trial of Pro. Pay with bKash, Nagad, Rocket or card.</p>
-          <div className="mt-6 flex justify-center">
-            <div className="inline-flex rounded-lg bg-white/10 p-1" role="group" aria-label="Billing period">
+        <section id="pricing" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-20">
+          <SectionHeading eyebrow="Pricing" title="Simple pricing in taka" sub="Start with a 14-day free trial of Pro. Pay with bKash, Nagad, Rocket or card." />
+          <div className="mt-8 flex justify-center">
+            <div className="inline-flex rounded-lg border border-border bg-muted p-1" role="group" aria-label="Billing period">
               {(['monthly', 'yearly'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
                   aria-pressed={period === p}
-                  className={cn('rounded-md px-4 py-1.5 text-sm font-bold capitalize', period === p ? 'bg-[#F0B429] text-[#1A3A2A]' : 'text-white/80')}
+                  className={cn('rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
+                    period === p ? 'bg-secondary text-foreground ring-1 ring-border' : 'text-muted-foreground hover:text-foreground')}
                 >
-                  {p}{p === 'yearly' && ' · 2 months free'}
+                  {p === 'yearly' ? 'Yearly' : 'Monthly'}{p === 'yearly' && <span className="text-primary"> · 2 months free</span>}
                 </button>
               ))}
             </div>
           </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {plans.map((p) => (
-              <div key={p.id} className={cn('flex flex-col rounded-2xl p-6', p.id === 'pro' ? 'bg-white text-[#1A3A2A]' : 'bg-white/10')}>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-extrabold">{p.name}</h3>
-                  {p.id === 'pro' && <span className="rounded-full bg-[#F0B429] px-2 py-0.5 text-xs font-bold text-[#1A3A2A]">Most popular</span>}
-                </div>
-                <p className="mt-3 text-4xl font-extrabold">
-                  {priceLabel(p, period)}
-                  <span className={cn('text-base font-semibold', p.id === 'pro' ? 'text-[#1A3A2A]/60' : 'text-white/60')}> / {period === 'yearly' ? 'year' : 'month'}</span>
-                </p>
-                <ul className="my-5 flex flex-1 flex-col gap-2">
-                  {planPoints(p).map((point) => (
-                    <li key={point} className="flex items-start gap-2 text-sm">
-                      <Check size={16} className="mt-0.5 shrink-0 text-[#4A7C59]" /> {point}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/signup"
-                  className={cn('inline-flex h-11 items-center justify-center rounded-lg font-bold',
-                    p.id === 'pro' ? 'bg-[#4A7C59] text-white hover:bg-[#3d6a4b]' : 'border border-white/30 hover:bg-white/10')}
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            {plans.map((p) => {
+              const pro = p.id === 'pro';
+              return (
+                <div
+                  key={p.id}
+                  className={cn('relative flex flex-col rounded-2xl border p-7',
+                    pro ? 'border-primary/50 bg-gradient-to-b from-primary/10 to-card shadow-glow' : 'border-border bg-card')}
                 >
-                  Start free trial
-                </Link>
-              </div>
-            ))}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">{p.name}</h3>
+                    {pro && <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">Most popular</span>}
+                  </div>
+                  <p className="mt-4 flex items-baseline gap-1.5">
+                    <span className="text-4xl font-semibold tracking-tight tabular-nums">{priceLabel(p, period)}</span>
+                    <span className="text-sm text-muted-foreground">/ {period === 'yearly' ? 'year' : 'month'}</span>
+                  </p>
+                  <ul className="my-6 flex flex-1 flex-col gap-2.5 border-t border-border pt-6">
+                    {planPoints(p).map((point) => (
+                      <li key={point} className="flex items-start gap-2.5 text-sm">
+                        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                          <Check size={11} strokeWidth={3} />
+                        </span>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to="/signup"
+                    className={cn('h-11',
+                      pro ? cn(primaryCta) : 'inline-flex items-center justify-center rounded-lg border border-border font-medium transition-colors hover:bg-secondary')}
+                  >
+                    Start free trial
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* FAQ */}
-        <section className="mx-auto max-w-3xl px-4 py-14">
-          <h2 className="text-center text-3xl font-extrabold">Questions</h2>
-          <div className="mt-8 flex flex-col gap-3">
+        <section className="mx-auto max-w-3xl px-4 py-20">
+          <SectionHeading eyebrow="FAQ" title="Questions" />
+          <div className="mt-10 flex flex-col gap-3">
             {FAQ.map((f) => (
-              <details key={f.q} className="group rounded-xl bg-white/10 p-4">
-                <summary className="cursor-pointer list-none font-bold marker:hidden">{f.q}</summary>
-                <p className="mt-2 text-sm text-white/75">{f.a}</p>
+              <details key={f.q} className="surface group p-5 open:border-primary/30">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium marker:hidden [&::-webkit-details-marker]:hidden">
+                  {f.q}
+                  <ChevronDown size={18} className="shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
               </details>
             ))}
           </div>
         </section>
 
         {/* Closing CTA */}
-        <section className="mx-auto max-w-3xl px-4 pb-20 pt-6 text-center">
-          <h2 className="text-3xl font-extrabold">Ready to see your real profit?</h2>
-          <Link to="/signup" className="mt-6 inline-flex h-12 items-center gap-2 rounded-lg bg-[#F0B429] px-6 font-bold text-[#1A3A2A] hover:bg-[#F0B429]/90">
-            Start your free trial <ArrowRight size={18} />
-          </Link>
+        <section className="mx-auto max-w-5xl px-4 pb-24 pt-4">
+          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card px-6 py-14 text-center">
+            <div className="bg-grid pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
+            <div className="relative">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Ready to see your real profit?</h2>
+              <p className="mx-auto mt-3 max-w-md text-muted-foreground">Set up in a few minutes. Your first 14 days are on us.</p>
+              <Link to="/signup" className={cn(primaryCta, 'mt-8 h-12 px-6')}>
+                Start your free trial <ArrowRight size={18} />
+              </Link>
+            </div>
+          </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-white/60 sm:flex-row">
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
           <p>© {new Date().getFullYear()} {LEGAL.businessName}</p>
-          <nav className="flex gap-4">
-            <Link to="/terms" className="hover:text-white">Terms of Service</Link>
-            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
-            <Link to="/login" className="hover:text-white">Sign in</Link>
+          <nav className="flex gap-5">
+            <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+            <Link to="/login" className="hover:text-foreground">Sign in</Link>
           </nav>
         </div>
       </footer>

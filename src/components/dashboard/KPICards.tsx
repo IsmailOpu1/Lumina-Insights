@@ -1,85 +1,133 @@
 import { useEffect, useRef, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
+import { cn } from '@/lib/utils';
 
-interface KPI {
+export type KPITone = 'positive' | 'negative' | 'warning';
+
+export interface KPI {
   label: string;
   value: number;
   format: 'taka' | 'number' | 'percent' | 'name' | 'roas';
-  color?: string;
+  icon: LucideIcon;
+  tone?: KPITone;
   subValue?: string;
   nameValue?: string;
   tooltip?: string;
 }
 
 interface KPICardsProps {
-  kpis: KPI[];
+  /** Headline numbers, shown large. The first one is highlighted. */
+  primary: KPI[];
+  /** Supporting numbers, shown as compact tiles. */
+  secondary: KPI[];
   loading: boolean;
 }
 
-function AnimatedNumber({ value, format, color }: {value: number;format: KPI['format'];color?: string;}) {
+const TONE_TEXT: Record<KPITone, string> = {
+  positive: 'text-success',
+  negative: 'text-destructive',
+  warning: 'text-warning',
+};
+
+function AnimatedNumber({ value, format }: { value: number; format: KPI['format'] }) {
   const { formatCurrency } = useCurrency();
   const [displayed, setDisplayed] = useState(0);
   const rafRef = useRef<number>();
-  const startRef = useRef<number>();
 
   useEffect(() => {
-    startRef.current = performance.now();
-    const target = value;
-    const duration = 800;
-
+    const start = performance.now();
+    const duration = 700;
     const animate = (now: number) => {
-      const elapsed = now - (startRef.current || now);
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayed(target * eased);
+      const progress = Math.min((now - start) / duration, 1);
+      setDisplayed(value * (1 - Math.pow(1 - progress, 3)));
       if (progress < 1) rafRef.current = requestAnimationFrame(animate);
     };
-
     rafRef.current = requestAnimationFrame(animate);
-    return () => {if (rafRef.current) cancelAnimationFrame(rafRef.current);};
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [value]);
 
-  const formatted = format === 'taka' ? formatCurrency(displayed) :
-  format === 'percent' ? `${displayed.toFixed(1)}%` :
-  format === 'roas' ? `${displayed.toFixed(1)}x` :
-  Math.round(displayed).toLocaleString();
-
+  if (format === 'roas' && value === Infinity) return <>∞</>;
   return (
-    <span className="kpi-number text-[32px] font-bold leading-tight" style={{ color: color || 'hsl(145, 27%, 39%)' }}>
-      {formatted}
-    </span>);
-
+    <>
+      {format === 'taka' ? formatCurrency(displayed)
+        : format === 'percent' ? `${displayed.toFixed(1)}%`
+        : format === 'roas' ? `${displayed.toFixed(1)}x`
+        : Math.round(displayed).toLocaleString()}
+    </>
+  );
 }
 
-export default function KPICards({ kpis, loading }: KPICardsProps) {
-  if (loading) return <SkeletonLoader variant="card" count={10} />;
+function KPIValue({ kpi }: { kpi: KPI }) {
+  if (kpi.format === 'name') {
+    return <span className="block truncate" title={kpi.nameValue}>{kpi.nameValue || '—'}</span>;
+  }
+  return <AnimatedNumber value={kpi.value} format={kpi.format} />;
+}
+
+export default function KPICards({ primary, secondary, loading }: KPICardsProps) {
+  if (loading) return <div className="mb-6"><SkeletonLoader variant="card" count={4} /></div>;
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {kpis.map((kpi, i) =>
-      <div
-        key={i}
-        className="group kpi-hover rounded-xl border p-5 shadow-[0_2px_8px_rgba(74,124,89,0.12)] cursor-pointer border-[var(--card-bg)] bg-[var(--card-bg)]"
-        title={kpi.tooltip}>
-        
-          {kpi.format === 'name' ?
-        <>
-              <p className="truncate text-base font-bold text-primary" title={kpi.nameValue}>
-                {kpi.nameValue ? kpi.nameValue.length > 16 ? kpi.nameValue.slice(0, 16) + '…' : kpi.nameValue : '—'}
+    <div className="mb-6 space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {primary.map((kpi, i) => {
+          const Icon = kpi.icon;
+          const featured = i === 0;
+          return (
+            <div
+              key={kpi.label}
+              title={kpi.tooltip}
+              className={cn(
+                'surface-interactive relative overflow-hidden p-5',
+                featured && 'border-primary/30 shadow-glow'
+              )}
+            >
+              {featured && (
+                <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
+              )}
+              <div className="mb-4 flex items-center justify-between">
+                <span className="eyebrow">{kpi.label}</span>
+                <span className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-lg',
+                  featured ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
+                )}>
+                  <Icon size={16} />
+                </span>
+              </div>
+              <p className={cn(
+                'kpi-number text-[28px] font-semibold leading-none tracking-tight tabular-nums',
+                kpi.tone ? TONE_TEXT[kpi.tone] : 'text-foreground'
+              )}>
+                <KPIValue kpi={kpi} />
               </p>
-              {kpi.subValue &&
-          <p className="mt-1 text-sm text-accent font-extrabold">{kpi.subValue}</p>
-          }
-            </> :
-        kpi.format === 'roas' && kpi.value === Infinity ?
-        <span className="kpi-number text-[32px] font-bold leading-tight" style={{ color: kpi.color || 'hsl(145, 27%, 39%)' }}>∞</span> :
+              {kpi.subValue && <p className="mt-2 text-xs text-muted-foreground">{kpi.subValue}</p>}
+            </div>
+          );
+        })}
+      </div>
 
-        <AnimatedNumber value={kpi.value} format={kpi.format} color={kpi.color} />
-        }
-          <p className="mt-1 font-extrabold text-sm text-accent">{kpi.label}</p>
-        </div>
-      )}
-    </div>);
-
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {secondary.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={kpi.label} title={kpi.tooltip} className="surface-interactive px-4 py-3.5">
+              <div className="mb-1.5 flex items-center gap-1.5 text-muted-foreground">
+                <Icon size={13} />
+                <span className="truncate text-xs">{kpi.label}</span>
+              </div>
+              <p className={cn(
+                'truncate text-lg font-semibold tabular-nums',
+                kpi.tone ? TONE_TEXT[kpi.tone] : 'text-foreground'
+              )}>
+                <KPIValue kpi={kpi} />
+              </p>
+              {kpi.subValue && <p className="truncate text-xs text-muted-foreground">{kpi.subValue}</p>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }

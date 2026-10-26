@@ -53,7 +53,7 @@ export default function SettingsPage() {
   // Starter has no team seats; trials and Pro do.
   const teamAllowed = !subscription || subscription.limits.max_team_members > 0;
   const { user, userSettings, isOwner, signOut, refreshSettings } = useAuth();
-  const { isDark, toggleDark, fontStyle, setFontStyle } = useTheme();
+  const { fontStyle, setFontStyle } = useTheme();
   const { dismiss } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [settingsId, setSettingsId] = useState<string | null>(null);
@@ -149,11 +149,6 @@ export default function SettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }, 500);
-  }
-
-  function handleDarkToggle() {
-    toggleDark();
-    saveDebounced({ dark_mode: !isDark });
   }
 
   function handleFontChange(f: FontStyle) {
@@ -496,10 +491,6 @@ export default function SettingsPage() {
               <Palette size={18} style={{ color: 'var(--accent-color)' }} />
               Appearance
             </h2>
-            <div className="flex items-center justify-between mb-4">
-              <Label className="text-sm font-extrabold">Dark Mode</Label>
-              <Switch checked={isDark} onCheckedChange={handleDarkToggle} />
-            </div>
             <div>
               <Label className="text-sm font-extrabold mb-2 block">Font Style</Label>
               <div className="grid grid-cols-3 gap-2">

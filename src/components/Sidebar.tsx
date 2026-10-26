@@ -1,25 +1,40 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, Package, Receipt, Sparkles,
-  Bot, StickyNote, Bell, Settings, CreditCard, Sun, Moon, ChevronLeft, ChevronRight
+  Bot, StickyNote, Bell, Settings, CreditCard, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { label: 'Orders', path: '/orders', icon: ShoppingBag },
-  { label: 'Inventory', path: '/inventory', icon: Package },
-  { label: 'Expenses', path: '/expenses', icon: Receipt },
-  { label: 'Marketing AI', path: '/marketing-ai', icon: Sparkles },
-  { label: 'AI Assistant', path: '/ai-assistant', icon: Bot },
-  { label: 'Notes', path: '/notes', icon: StickyNote },
-  { label: 'Notifications', path: '/notifications', icon: Bell },
-  { label: 'Billing', path: '/billing', icon: CreditCard },
-  { label: 'Settings', path: '/settings', icon: Settings },
+const NAV_GROUPS = [
+  {
+    label: 'Business',
+    items: [
+      { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+      { label: 'Orders', path: '/orders', icon: ShoppingBag },
+      { label: 'Inventory', path: '/inventory', icon: Package },
+      { label: 'Expenses', path: '/expenses', icon: Receipt },
+    ],
+  },
+  {
+    label: 'AI tools',
+    items: [
+      { label: 'Marketing AI', path: '/marketing-ai', icon: Sparkles },
+      { label: 'AI Assistant', path: '/ai-assistant', icon: Bot },
+    ],
+  },
+  {
+    label: 'Workspace',
+    items: [
+      { label: 'Notes', path: '/notes', icon: StickyNote },
+      { label: 'Notifications', path: '/notifications', icon: Bell },
+      { label: 'Billing', path: '/billing', icon: CreditCard },
+      { label: 'Settings', path: '/settings', icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -32,16 +47,17 @@ interface SidebarProps {
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isDark, toggleDark } = useTheme();
-  const { isViewer, isOwner } = useAuth();
+  const { isViewer, isOwner, userSettings } = useAuth();
   const { unreadCount } = useNotifications();
   const isMobile = useIsMobile();
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   // Billing is owner-only; viewers also don't get Settings.
-  const navItems = useMemo(
-    () => NAV_ITEMS.filter(item =>
-      (item.label !== 'Billing' || isOwner) && (item.label !== 'Settings' || !isViewer)),
+  const groups = useMemo(
+    () => NAV_GROUPS.map(g => ({
+      ...g,
+      items: g.items.filter(item =>
+        (item.label !== 'Billing' || isOwner) && (item.label !== 'Settings' || !isViewer)),
+    })),
     [isViewer, isOwner]
   );
 
@@ -51,165 +67,105 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   };
 
   const isCollapsed = !isMobile && collapsed;
-  const sidebarWidth = isCollapsed ? 64 : 240;
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isMobile && open && (
-        <div
-          className="fixed inset-0 z-40 transition-opacity duration-300"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`
-  flex h-full flex-col border-r border-sidebar-border
-  transition-all duration-300 ease-in-out
-  ${isMobile
-    ? `fixed top-0 left-0 z-50 w-60 ${open ? 'translate-x-0' : '-translate-x-full'}`
-    : 'relative z-auto translate-x-0 shrink-0'
-  }
-`}
-        style={{
-          willChange: 'transform, width',
-          backgroundColor: 'var(--sidebar-bg)',
-          width: isMobile ? 240 : sidebarWidth,
-        }}
+        className={cn(
+          'flex h-full flex-col border-r border-border bg-sidebar transition-[width,transform] duration-300 ease-in-out',
+          isMobile
+            ? cn('fixed left-0 top-0 z-50 w-60', open ? 'translate-x-0' : '-translate-x-full')
+            : cn('relative shrink-0', isCollapsed ? 'w-16' : 'w-60'),
+        )}
       >
-        {/* Collapse toggle - desktop only */}
         {!isMobile && (
           <button
             onClick={onToggleCollapse}
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-[60] flex h-6 w-6 items-center justify-center rounded-full transition-transform duration-150 hover:scale-110"
-            style={{
-              backgroundColor: 'var(--sidebar-bg)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            }}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="absolute -right-3 top-[68px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-md transition-colors hover:text-foreground"
           >
-            {isCollapsed
-              ? <ChevronRight size={14} className="text-white/80" />
-              : <ChevronLeft size={14} className="text-white/80" />
-            }
+            {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
         )}
 
         {/* Logo */}
-        <div
-          className="flex items-center px-4 rounded-none shadow py-[18px] gap-[5px] overflow-hidden"
-          style={{ backgroundColor: 'var(--sidebar-bg)', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
-        >
-          <img
-            src="/icon.png"
-            alt="Lumina Insights"
-            style={{ width: isCollapsed ? 28 : 36, height: isCollapsed ? 28 : 36, transition: 'all 300ms' }}
-          />
-          <span
-            className="font-extrabold font-serif text-lg whitespace-nowrap text-fuchsia-300"
-            style={{
-              opacity: isCollapsed ? 0 : 1,
-              width: isCollapsed ? 0 : 'auto',
-              overflow: 'hidden',
-              transition: 'opacity 150ms ease 150ms, width 200ms ease',
-            }}
-          >
-            Lumina Insights
-          </span>
+        <div className={cn('flex h-14 shrink-0 items-center gap-2.5 border-b border-border px-4', isCollapsed && 'justify-center px-0')}>
+          <img src="/icon.png" alt="Lumina Insights" className="h-8 w-8 shrink-0 rounded-lg" />
+          {!isCollapsed && (
+            <span className="whitespace-nowrap text-[15px] font-semibold tracking-tight text-foreground">
+              Lumina <span className="text-gradient">Insights</span>
+            </span>
+          )}
         </div>
 
-        {/* Nav */}
-        <nav
-          className="flex-1 space-y-0.5 overflow-y-auto px-[10px] rounded-none border-0 border-none shadow-none py-2"
-          style={{ backgroundColor: 'var(--sidebar-bg)' }}
-        >
-          {navItems.map((item) => {
-            const active = location.pathname === item.path;
-            const Icon = item.icon;
-            const isBell = item.label === 'Notifications';
-
-            return (
-              <div key={item.path} className="relative">
-                <button
-                  onClick={() => handleNav(item.path)}
-                  onMouseEnter={() => setHoveredItem(item.path)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className={`
-                    group relative flex w-full items-center rounded-lg transition-all duration-150
-                    active:scale-[0.97]
-                    ${isCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5'}
-                    ${active
-                      ? 'bg-white/10 font-bold text-sm border-l-[3px]'
-                      : 'text-sidebar-foreground hover:bg-white/[0.08] font-extrabold text-base border-l-[3px] border-transparent'
-                    }
-                  `}
-                  style={active ? { borderLeftColor: 'var(--accent-color)' } : undefined}
-                >
-                  <Icon
-                    size={isCollapsed ? 20 : 18}
-                    className="transition-transform duration-150 group-hover:scale-110 text-[#73e600]/[0.81]"
-                    style={active ? { transform: 'scale(1.05)' } : undefined}
-                  />
-                  {!isCollapsed && (
-                    <span className="border-0 text-sm font-sans rounded-3xl font-extrabold whitespace-nowrap text-[#fbd0e8]/[0.73]">
-                      {item.label}
-                    </span>
-                  )}
-                  {!isCollapsed && isBell && unreadCount > 0 && (
-                    <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-bold text-white">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                  {isCollapsed && isBell && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-0.5 text-[10px] font-bold text-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Tooltip - collapsed desktop only */}
-                {isCollapsed && hoveredItem === item.path && (
-                  <div
-                    className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-[100] whitespace-nowrap animate-in fade-in duration-150"
-                    style={{
-                      backgroundColor: 'rgba(0,0,0,0.8)',
-                      color: 'white',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      borderRadius: 6,
-                      padding: '4px 8px',
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-2.5 py-4">
+          {groups.map((group) => (
+            <div key={group.label} className="mb-5 last:mb-0">
+              {!isCollapsed && (
+                <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                  {group.label}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = location.pathname === item.path;
+                  const Icon = item.icon;
+                  const showCount = item.label === 'Notifications' && unreadCount > 0;
+                  return (
+                    <li key={item.path}>
+                      <button
+                        onClick={() => handleNav(item.path)}
+                        title={isCollapsed ? item.label : undefined}
+                        aria-current={active ? 'page' : undefined}
+                        className={cn(
+                          'group relative flex w-full items-center rounded-lg text-sm transition-colors',
+                          isCollapsed ? 'justify-center py-2.5' : 'gap-3 px-3 py-2',
+                          active
+                            ? 'bg-primary/10 font-medium text-foreground'
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary shadow-glow" />
+                        )}
+                        <Icon size={18} className={cn('shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                        {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                        {showCount && !isCollapsed && (
+                          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-semibold text-primary">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                        {showCount && isCollapsed && (
+                          <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-sidebar" />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
-        {/* Bottom toggle */}
-        <div
-          className="border-t px-4 py-3 shadow rounded-none"
-          style={{
-            backgroundColor: 'var(--sidebar-bg)',
-            borderColor: 'var(--sidebar-bg)',
-            padding: isCollapsed ? '12px 8px' : undefined,
-          }}
-        >
-          <button
-            onClick={toggleDark}
-            className={`flex w-full items-center justify-center rounded-full bg-sidebar-accent text-sm font-bold text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent/80 active:scale-[0.97] ${isCollapsed ? 'py-2.5 px-0' : 'gap-2 py-2.5'}`}
-          >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            {!isCollapsed && <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>}
-          </button>
-        </div>
+        {/* Business card */}
+        {!isCollapsed && userSettings?.business_name && (
+          <div className="border-t border-border p-3">
+            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/30 to-highlight/20 text-xs font-semibold text-foreground">
+                {userSettings.business_name.slice(0, 1).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{userSettings.business_name}</p>
+                <p className="truncate text-xs text-muted-foreground">{isOwner ? 'Owner' : isViewer ? 'Viewer' : 'Manager'}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );
 }
-

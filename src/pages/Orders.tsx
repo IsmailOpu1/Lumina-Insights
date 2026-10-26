@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useFAB, useRefreshOnSave } from '@/context/FABContext';
+import { useRefreshOnSave } from '@/context/FABContext';
 import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useReadOnly } from '@/hooks/useReadOnly';
 import { ORDER_STATUSES } from '@/lib/constants';
@@ -12,7 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Download, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag, Loader2, Plus } from 'lucide-react';
+import { Search, Download, Pencil, Trash2, ChevronUp, ChevronDown, ShoppingBag, Loader2, Plus, Wallet, TrendingUp, Receipt } from 'lucide-react';
+import PageHeader, { StatStrip } from '@/components/PageHeader';
+import Pager from '@/components/Pager';
+import Segmented from '@/components/dashboard/Segmented';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
@@ -44,10 +47,16 @@ type DateFilter = DayFilter;
 
 const PAGE_SIZE = 20;
 
+const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
+  { label: 'Today', value: 'today' },
+  { label: '7 days', value: '7days' },
+  { label: '30 days', value: '30days' },
+  { label: 'All time', value: 'custom' },
+];
+
 export default function Orders() {
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
-  const { openModal } = useFAB();
   const readOnly = useReadOnly();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,132 +195,135 @@ export default function Orders() {
     setExporting(false);
   }
 
-  const thClass = 'cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors';
+  const totals = useMemo(() => {
+    const live = filtered.filter((o) => o.status !== 'Cancelled');
+    const revenue = live.reduce((s, o) => s + o.selling_price, 0);
+    const profit = live.reduce((s, o) => s + (o.profit_per_order ?? 0), 0);
+    return { revenue, profit, avg: live.length ? revenue / live.length : 0, pending: filtered.filter((o) => o.status === 'Pending').length };
+  }, [filtered]);
+
+  const th = (key: SortKey, label: string) => (
+    <th className="sortable" onClick={() => toggleSort(key)} aria-sort={sortKey === key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      {label} <SortIcon col={key} />
+    </th>
+  );
 
   return (
-    <div>
-      <h1 className="mb-5 text-[28px] font-bold text-pink-200">Orders</h1>
-
-      {/* Controls */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative w-[280px] max-md:w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search customer or order #..." value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
-        </div>
-        <Select value={dateFilter} onValueChange={(v) => {setDateFilter(v as DateFilter);setPage(1);}}>
-          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="7days">7 Days</SelectItem>
-            <SelectItem value="30days">30 Days</SelectItem>
-            <SelectItem value="custom">All Time</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={(v) => {setStatusFilter(v);setPage(1);}}>
-          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex-1" />
-        <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 font-extrabold" onClick={handleExport} disabled={exporting || filtered.length === 0}>
-          {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-          {exporting ? 'Exporting...' : 'Export XLSX'}
-        </Button>
-        {!readOnly && (
-          <Button className="h-11 gap-2 px-5 font-bold max-md:w-full" onClick={() => setAddOpen(true)}>
-            <Plus size={18} />
-            Add Order
-          </Button>
-        )}
-      </div>
-
-      {loading ?
-      <SkeletonLoader variant="row" count={8} /> :
-      filtered.length === 0 ?
-      <EmptyState icon={ShoppingBag} title="No orders yet" message="Tap + to add your first order." actionLabel="Add Order" onAction={() => setAddOpen(true)} /> :
-
-      <>
-          <div className="overflow-x-auto rounded-lg border border-border bg-card" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <table className="w-full min-w-[900px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className={thClass} onClick={() => toggleSort('order_number')}>Order # <SortIcon col="order_number" /></th>
-                  <th className={thClass} onClick={() => toggleSort('customer_name')}>Customer <SortIcon col="customer_name" /></th>
-                  <th className={thClass} onClick={() => toggleSort('product')}>Product <SortIcon col="product" /></th>
-                  <th className={thClass} onClick={() => toggleSort('source')}>Source <SortIcon col="source" /></th>
-                  <th className={thClass} onClick={() => toggleSort('status')}>Status <SortIcon col="status" /></th>
-                  <th className={thClass} onClick={() => toggleSort('quantity')}>Qty <SortIcon col="quantity" /></th>
-                  <th className={thClass} onClick={() => toggleSort('selling_price')}>Selling {symbol} <SortIcon col="selling_price" /></th>
-                  <th className={thClass} onClick={() => toggleSort('shipping_cost')}>Shipping {symbol} <SortIcon col="shipping_cost" /></th>
-                  <th className={thClass} onClick={() => toggleSort('profit_per_order')}>Profit {symbol} <SortIcon col="profit_per_order" /></th>
-                  <th className={thClass} onClick={() => toggleSort('date')}>Date <SortIcon col="date" /></th>
-                  <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.map((o) => {
-                const profit = o.profit_per_order ?? 0;
-                return (
-                  <tr key={o.id} className="table-row-hover border-b border-border last:border-0">
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{o.order_number}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{o.customer_name}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold font-sans">{(o.inventory?.product_name ?? o.product_name) || '—'}</td>
-                      <td className="px-3 py-2.5 border-[var(--chart-card-bg)] bg-[var(--chart-card-bg)] font-extrabold text-sm"><span className="font-extrabold text-sm text-orange-300">{o.source || '—'}</span></td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold"><StatusBadge status={o.status} /></td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{o.quantity}</td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatCurrency(o.selling_price)}</td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatCurrency(o.shipping_cost)}</td>
-                      <td className={cn("px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold", profit > 0 ? 'text-[#1bad0b]' : 'text-destructive')}>
-                        {formatCurrency(profit)}
-                      </td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(parseDay(o.date), 'dd/MM/yyyy')}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">
-                        {!readOnly && (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => handleEdit(o)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
-                              <Pencil size={18} />
-                            </button>
-                            <button onClick={() => setDeleteId(o.id)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 active:scale-95">
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>);
-
-              })}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 &&
-        <div className="mt-4 flex items-center justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft className="h-4 w-4" />
+    <div className="mx-auto max-w-[1400px]">
+      <PageHeader
+        title="Orders"
+        subtitle="Every sale from every channel, with profit worked out per order."
+        actions={
+          <>
+            <Button variant="outline" onClick={handleExport} disabled={exporting || filtered.length === 0} className="max-sm:flex-1">
+              {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {exporting ? 'Exporting...' : 'Export'}
+            </Button>
+            {!readOnly && (
+              <Button className="gap-1.5 shadow-glow max-sm:flex-1" onClick={() => setAddOpen(true)}>
+                <Plus size={16} />
+                Add order
               </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).
-          filter((p) => Math.abs(p - page) <= 2 || p === 1 || p === totalPages).
-          map((p, i, arr) => {
-            const prev = arr[i - 1];
-            const gap = prev && p - prev > 1;
-            return (
-              <span key={p}>
-                      {gap && <span className="px-1 text-muted-foreground">…</span>}
-                      <Button variant={page === p ? 'default' : 'outline'} size="sm" className={cn('min-w-[36px]', page === p && 'font-bold')} onClick={() => setPage(p)}>
-                        {p}
-                      </Button>
-                    </span>);
-
-          })}
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            )}
+          </>
         }
-        </>
-      }
+      />
+
+      <StatStrip
+        stats={[
+          { label: 'Orders', value: filtered.length, icon: ShoppingBag, hint: totals.pending ? `${totals.pending} pending` : 'None pending' },
+          { label: 'Revenue', value: formatCurrency(totals.revenue), icon: Wallet, hint: 'Cancelled orders excluded' },
+          { label: 'Profit', value: formatCurrency(totals.profit), icon: TrendingUp, tone: totals.profit >= 0 ? 'positive' : 'negative' },
+          { label: 'Average order', value: formatCurrency(totals.avg), icon: Receipt },
+        ]}
+      />
+
+      <div className="surface overflow-hidden">
+        {/* Controls */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
+          <div className="relative w-[280px] max-md:w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="h-9 pl-9" placeholder="Search customer or order #..." value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
+          </div>
+          <Select value={statusFilter} onValueChange={(v) => {setStatusFilter(v);setPage(1);}}>
+            <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="flex-1" />
+          <Segmented<DateFilter> label="Date range" value={dateFilter} onChange={(v) => {setDateFilter(v);setPage(1);}} options={DATE_OPTIONS} />
+        </div>
+
+        {loading ?
+        <div className="p-4"><SkeletonLoader variant="row" count={8} /></div> :
+        filtered.length === 0 ?
+        orders.length === 0 ?
+        <EmptyState icon={ShoppingBag} title="No orders yet" message="Add your first order and Lumina works out the profit for you." actionLabel={readOnly ? undefined : 'Add order'} onAction={() => setAddOpen(true)} /> :
+        <EmptyState icon={Search} title="No matching orders" message="Try a different search, status or date range." /> :
+
+        <>
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="data-table min-w-[960px]">
+                <thead>
+                  <tr>
+                    {th('order_number', 'Order #')}
+                    {th('customer_name', 'Customer')}
+                    {th('product', 'Product')}
+                    {th('source', 'Source')}
+                    {th('status', 'Status')}
+                    {th('quantity', 'Qty')}
+                    {th('selling_price', `Price ${symbol}`)}
+                    {th('shipping_cost', `Shipping ${symbol}`)}
+                    {th('profit_per_order', `Profit ${symbol}`)}
+                    {th('date', 'Date')}
+                    {!readOnly && <th className="text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.map((o) => {
+                  const profit = o.profit_per_order ?? 0;
+                  return (
+                    <tr key={o.id}>
+                        <td className="font-medium">{o.order_number}</td>
+                        <td>{o.customer_name}</td>
+                        <td className="text-muted-foreground">{(o.inventory?.product_name ?? o.product_name) || '—'}</td>
+                        <td>
+                          {o.source ?
+                        <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">{o.source}</span> :
+                        <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td><StatusBadge status={o.status} /></td>
+                        <td className="tabular-nums">{o.quantity}</td>
+                        <td className="tabular-nums">{formatCurrency(o.selling_price)}</td>
+                        <td className="tabular-nums text-muted-foreground">{formatCurrency(o.shipping_cost)}</td>
+                        <td className={cn('font-medium tabular-nums', profit >= 0 ? 'text-success' : 'text-destructive')}>
+                          {formatCurrency(profit)}
+                        </td>
+                        <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(o.date), 'dd MMM yyyy')}</td>
+                        {!readOnly && (
+                          <td>
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => handleEdit(o)} className="icon-btn" aria-label={`Edit order ${o.order_number}`}>
+                                <Pencil size={16} />
+                              </button>
+                              <button onClick={() => setDeleteId(o.id)} className="icon-btn-danger" aria-label={`Delete order ${o.order_number}`}>
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>);
+
+                })}
+                </tbody>
+              </table>
+            </div>
+            <Pager page={page} totalPages={totalPages} total={sorted.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          </>
+        }
+      </div>
 
       {/* Add Order Modal (button-triggered) */}
       <AddOrderModal

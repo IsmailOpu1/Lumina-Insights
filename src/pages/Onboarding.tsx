@@ -97,7 +97,7 @@ export default function Onboarding() {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)' }}
+        style={{ background: 'radial-gradient(ellipse at top, hsl(160 84% 39% / 0.18), transparent 60%), hsl(var(--background))' }}
       >
         <Loader2 className="animate-spin text-white" size={32} />
       </div>
@@ -111,7 +111,7 @@ export default function Onboarding() {
     <div
       className="flex min-h-screen items-center justify-center p-4"
       style={{
-        background: 'linear-gradient(135deg, #1A3A2A, #2D5A3C, #1B3A4B)',
+        background: 'radial-gradient(ellipse at top, hsl(160 84% 39% / 0.18), transparent 60%), hsl(var(--background))',
         backgroundSize: '200% 200%',
         animation: 'authGradient 10s ease infinite',
       }}
@@ -127,7 +127,7 @@ export default function Onboarding() {
         {/* Step indicators */}
         <div className="flex items-center justify-center gap-2 mb-4">
           {Array.from({ length: totalSteps }).map((_, i) => (
-            <div key={i} className={`h-3 w-3 rounded-full transition-all ${i + 1 <= step ? 'bg-[#F0B429]' : 'bg-white/20'}`} />
+            <div key={i} className={`h-3 w-3 rounded-full transition-all ${i + 1 <= step ? 'bg-primary' : 'bg-white/20'}`} />
           ))}
         </div>
         <Progress value={progress} className="h-1.5 mb-6" />
@@ -137,11 +137,11 @@ export default function Onboarding() {
           {step === 1 && (
             <div className="text-center flex flex-col items-center gap-4">
               <div style={{ animation: 'scaleIn 600ms ease' }}>
-                <Sparkles size={56} className="text-[#F0B429]" />
+                <Sparkles size={56} className="text-primary" />
               </div>
               <h1 className="text-[28px] font-bold text-foreground">Welcome to Lumina Insights!</h1>
               <p className="text-muted-foreground">Let's set up your business in just a few steps</p>
-              <Button onClick={nextStep} className="mt-4 h-12 w-full bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+              <Button onClick={nextStep} className="mt-4 h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
                 Let's Get Started <ArrowRight size={18} className="ml-2" />
               </Button>
             </div>
@@ -182,7 +182,7 @@ export default function Onboarding() {
                 <Button
                   onClick={nextStep}
                   disabled={!businessName.trim() || !businessType || !businessDesc.trim() || !fullName.trim()}
-                  className="flex-1 h-12 bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]"
+                  className="flex-1 h-12 bg-primary font-bold text-white hover:bg-primary/90"
                 >
                   Continue <ArrowRight size={18} className="ml-2" />
                 </Button>
@@ -200,11 +200,11 @@ export default function Onboarding() {
                     key={c.code}
                     onClick={() => setCurrency(c.code)}
                     className={`relative rounded-xl border-2 p-4 text-center transition-all ${
-                      currency === c.code ? 'border-[#F0B429] bg-[#F0B429]/10' : 'border-border bg-card hover:border-muted-foreground/30'
+                      currency === c.code ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-muted-foreground/30'
                     }`}
                   >
                     {currency === c.code && (
-                      <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#F0B429]">
+                      <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
                         <Check size={12} className="text-white" />
                       </div>
                     )}
@@ -218,7 +218,7 @@ export default function Onboarding() {
                 <Button variant="outline" onClick={prevStep} className="flex-1 h-12">Back</Button>
                 <Button
                   onClick={async () => { if (await saveProfile(false)) nextStep(); }}
-                  className="flex-1 h-12 bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]"
+                  className="flex-1 h-12 bg-primary font-bold text-white hover:bg-primary/90"
                 >
                   Continue <ArrowRight size={18} className="ml-2" />
                 </Button>
@@ -243,7 +243,7 @@ export default function Onboarding() {
                     <SelectItem value="viewer">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button onClick={sendInvite} disabled={sendingInvite || !inviteEmail.trim()} className="h-11 bg-[#4A7C59] text-white hover:bg-[#3d6a4b]">
+                <Button onClick={sendInvite} disabled={sendingInvite || !inviteEmail.trim()} className="h-11 bg-primary text-white hover:bg-primary/90">
                   {sendingInvite ? <Loader2 className="animate-spin" size={16} /> : 'Send'}
                 </Button>
               </div>
@@ -252,7 +252,7 @@ export default function Onboarding() {
                 <div className="flex flex-col gap-2 mt-2">
                   {sentInvites.map((inv, i) => (
                     <div key={i} className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm">
-                      <Check size={14} className="text-[#4A7C59] shrink-0" />
+                      <Check size={14} className="text-primary shrink-0" />
                       <span className="font-medium text-foreground truncate flex-1">{inv.email}</span>
                       <span className="text-xs text-muted-foreground capitalize">{inv.role}</span>
                       <button onClick={() => { navigator.clipboard.writeText(inv.link); toast.success('Link copied!'); }} className="text-muted-foreground hover:text-foreground">
@@ -265,7 +265,7 @@ export default function Onboarding() {
 
               <div className="flex gap-3 mt-2">
                 <Button variant="outline" onClick={prevStep} className="flex-1 h-12">Back</Button>
-                <Button onClick={nextStep} className="flex-1 h-12 bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+                <Button onClick={nextStep} className="flex-1 h-12 bg-primary font-bold text-white hover:bg-primary/90">
                   Continue <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>
@@ -282,7 +282,7 @@ export default function Onboarding() {
                     className="absolute bottom-0 h-3 w-3 rounded-full"
                     style={{
                       left: `${8 + i * 8}%`,
-                      backgroundColor: ['#F0B429', '#4A7C59', '#3B82F6', '#EF4444'][i % 4],
+                      backgroundColor: ['#10B981', '#5EEAD4', '#F5A524', '#34D399'][i % 4],
                       animation: `confetti 1.5s ease ${i * 80}ms infinite`,
                     }}
                   />
@@ -290,8 +290,8 @@ export default function Onboarding() {
               </div>
 
               <div style={{ animation: 'scaleIn 600ms ease' }}>
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#4A7C59]/20 mx-auto">
-                  <Check size={40} className="text-[#4A7C59]" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 mx-auto">
+                  <Check size={40} className="text-primary" />
                 </div>
               </div>
               <h1 className="text-[28px] font-bold text-foreground">You're all set! 🎉</h1>
@@ -307,15 +307,15 @@ export default function Onboarding() {
                   <button
                     key={tip.path}
                     onClick={() => { finish().then(() => navigate(tip.path)); }}
-                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/30 p-4 text-center transition-all hover:border-[#F0B429]/50 hover:bg-[#F0B429]/5"
+                    className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/30 p-4 text-center transition-all hover:border-primary/50 hover:bg-primary/90"
                   >
-                    <tip.icon size={24} className="text-[#F0B429]" />
+                    <tip.icon size={24} className="text-primary" />
                     <span className="text-sm font-medium text-foreground">{tip.label}</span>
                   </button>
                 ))}
               </div>
 
-              <Button onClick={finish} disabled={saving} className="mt-4 h-12 w-full bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+              <Button onClick={finish} disabled={saving} className="mt-4 h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
                 {saving ? <Loader2 className="animate-spin" size={20} /> : <>Go to Dashboard <ArrowRight size={18} className="ml-2" /></>}
               </Button>
             </div>

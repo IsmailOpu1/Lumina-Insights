@@ -119,6 +119,35 @@
     @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
   }
 
+  /* Tables on list pages: sticky-feeling header, quiet rows */
+  .data-table {
+    @apply w-full text-sm;
+  }
+  .data-table thead tr {
+    @apply border-b border-border bg-muted/40;
+  }
+  .data-table th {
+    @apply whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+  .data-table th[aria-sort],
+  .data-table th.sortable {
+    @apply cursor-pointer select-none transition-colors hover:text-foreground;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-foreground;
+  }
+  .data-table tbody tr {
+    @apply border-b border-border/60 transition-colors last:border-0 hover:bg-muted/40;
+  }
+
+  /* Small square icon button used for row actions */
+  .icon-btn {
+    @apply flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground;
+  }
+  .icon-btn-danger {
+    @apply icon-btn hover:bg-destructive/10 hover:text-destructive;
+  }
+
   /* Faint grid behind hero sections */
   .bg-grid {
     background-image:

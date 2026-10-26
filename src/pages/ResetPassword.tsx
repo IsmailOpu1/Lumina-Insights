@@ -30,10 +30,10 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: 'var(--page-bg, #1a1a2e)' }}>
+    <div className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
       <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <Sparkles size={28} className="text-[#F0B429]" />
+          <Sparkles size={28} className="text-primary" />
           <span className="text-xl font-bold text-foreground">Lumina Insights</span>
         </div>
         <h1 className="text-[28px] font-bold text-foreground text-center">Set new password</h1>
@@ -54,7 +54,7 @@ export default function ResetPassword() {
             </button>
           </div>
           <Input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-12 text-base" required />
-          <Button type="submit" disabled={loading} className="h-12 w-full bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+          <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
             {loading ? <Loader2 className="animate-spin" size={20} /> : 'Update Password'}
           </Button>
         </form>

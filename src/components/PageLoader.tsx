@@ -5,7 +5,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 export default function PageLoader({ fullScreen = false }: { fullScreen?: boolean }) {
   if (fullScreen) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center" style={{ backgroundColor: 'var(--page-bg)' }}>
+      <div className="flex h-screen w-screen items-center justify-center" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <SkeletonLoader variant="card" count={4} />
       </div>
     );

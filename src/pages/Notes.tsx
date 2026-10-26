@@ -354,8 +354,8 @@ export default function Notes() {
   const activeMarketing = activeMarketingId ? marketingOutputs.find((m) => m.id === activeMarketingId) : null;
 
   const typeBadge = (type: string, platform?: string) => {
-    if (type === 'voice') return <Badge className="bg-[#6366F1] text-white text-[11px]">Voice</Badge>;
-    if (type === 'ai_output') return <Badge className="bg-[#F0B429] text-black text-[11px]">{platform ? platform : 'AI Output'}</Badge>;
+    if (type === 'voice') return <Badge className="bg-highlight/15 text-highlight text-[11px]">Voice</Badge>;
+    if (type === 'ai_output') return <Badge className="bg-primary text-black text-[11px]">{platform ? platform : 'AI Output'}</Badge>;
     return <Badge variant="secondary" className="text-[11px]">Manual</Badge>;
   };
 
@@ -370,7 +370,7 @@ export default function Notes() {
   // --- Render active note panel content ---
   function renderActivePanel() {
     if (!activeNote && !activeMarketing) {
-      return <p className="text-center py-16 text-accent font-extrabold">Select a note to view it</p>;
+      return <p className="text-center py-16 text-muted-foreground">Select a note to view it</p>;
     }
 
     if (activeNote) {
@@ -393,7 +393,7 @@ export default function Notes() {
                 onChange={(e) => { setEditTitle(e.target.value); setHasUnsaved(true); }}
                 className="text-xl font-bold bg-transparent border-none outline-none w-full text-card-foreground"
               />
-              {hasUnsaved && <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0 mt-2" />}
+              {hasUnsaved && <span className="w-2.5 h-2.5 rounded-full bg-warning shrink-0 mt-2" />}
             </div>
             <div className="flex items-center gap-2 mt-1">
               {typeBadge(activeNote.type || 'manual')}
@@ -441,7 +441,7 @@ export default function Notes() {
               <div className="text-[15px] font-medium leading-[1.7] text-card-foreground">
                 <ReactMarkdown
                   components={{
-                    strong: ({ children }) => <strong className="font-extrabold text-accent">{children}</strong>,
+                    strong: ({ children }) => <strong className="font-semibold text-highlight">{children}</strong>,
                     p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
                     ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
                     ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
@@ -486,7 +486,7 @@ export default function Notes() {
           )}
           <div className="shrink-0 mb-3">
             <div className="flex items-center gap-2">
-              <Badge className="bg-[#F0B429] text-black font-bold">{activeMarketing.platform}</Badge>
+              <Badge className="bg-primary text-black font-bold">{activeMarketing.platform}</Badge>
               <h2 className="text-xl font-bold text-card-foreground">{activeMarketing.product_name}</h2>
             </div>
             <span className="text-[13px] text-muted-foreground">
@@ -568,7 +568,7 @@ export default function Notes() {
           key={delay}
           className="w-[3px] rounded-full"
           style={{
-            backgroundColor: '#F0B429',
+            backgroundColor: '#10B981',
             animation: 'waveform 0.8s ease-in-out infinite',
             animationDelay: `${delay}ms`,
           }}
@@ -587,14 +587,14 @@ export default function Notes() {
       `}</style>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-[28px] font-bold text-pink-200">Notes</h1>
+        <h1 className="text-[28px] font-bold text-foreground">Notes</h1>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => {
               startVoiceNote();
             }}
             variant="outline"
-            className="font-bold gap-1.5 border-[#6366F1] text-[#6366F1] hover:bg-[#6366F1]/10"
+            className="font-bold gap-1.5 border-highlight/50 text-highlight hover:bg-highlight/10"
           >
             <Mic size={16} /> Voice Note
           </Button>
@@ -638,7 +638,7 @@ export default function Notes() {
           <button
             onClick={() => setMobileTab('list')}
             className={`flex-1 py-2 text-sm font-bold text-center transition-colors ${
-              mobileTab === 'list' ? 'border-b-2 border-[#F0B429] text-card-foreground' : 'text-muted-foreground'
+              mobileTab === 'list' ? 'border-b-2 border-primary text-card-foreground' : 'text-muted-foreground'
             }`}
           >
             Notes
@@ -646,7 +646,7 @@ export default function Notes() {
           <button
             onClick={() => setMobileTab('view')}
             className={`flex-1 py-2 text-sm font-bold text-center transition-colors ${
-              mobileTab === 'view' ? 'border-b-2 border-[#F0B429] text-card-foreground' : 'text-muted-foreground'
+              mobileTab === 'view' ? 'border-b-2 border-primary text-card-foreground' : 'text-muted-foreground'
             }`}
           >
             View Note
@@ -662,7 +662,7 @@ export default function Notes() {
           {mobileTab === 'list' ? (
             <div className="overflow-y-auto h-full space-y-2 pr-1">
               {filteredItems.length === 0 ? (
-                <p className="text-center py-8 font-extrabold text-accent">No notes yet.</p>
+                <p className="text-center py-8 text-muted-foreground">No notes yet.</p>
               ) : (
                 filteredItems.map((item) => {
                   const isActive =
@@ -672,12 +672,12 @@ export default function Notes() {
                     <div
                       key={`${item.kind}-${item.id}`}
                       onClick={() => (item.kind === 'note' ? selectNote(item.id) : selectMarketing(item.id))}
-                      className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[var(--chart-card-bg)] ${
-                        isActive ? 'border-l-[3px] border-l-[#F0B429]' : ''
+                      className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[hsl(var(--card))] ${
+                        isActive ? 'border-l-[3px] border-l-primary' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-[15px] text-card-foreground line-clamp-1 font-extrabold">{item.title}</p>
+                        <p className="text-[15px] text-card-foreground line-clamp-1 font-medium">{item.title}</p>
                         <div className="flex items-center gap-1.5 shrink-0">
                           {typeBadge(item.type, item.platform)}
                           <span className="text-[11px] text-muted-foreground whitespace-nowrap">
@@ -685,14 +685,14 @@ export default function Notes() {
                           </span>
                         </div>
                       </div>
-                      {item.preview && <p className="text-[13px] mt-1 line-clamp-2 font-extrabold text-accent">{item.preview}</p>}
+                      {item.preview && <p className="text-[13px] mt-1 line-clamp-2 text-muted-foreground">{item.preview}</p>}
                     </div>
                   );
                 })
               )}
             </div>
           ) : (
-            <div className="h-full overflow-y-auto rounded-xl border border-border p-4 bg-[var(--chart-card-bg)]">
+            <div className="h-full overflow-y-auto rounded-xl border border-border p-4 bg-[hsl(var(--card))]">
               {renderActivePanel()}
             </div>
           )}
@@ -703,7 +703,7 @@ export default function Notes() {
           {/* List */}
           <div className="w-[35%] shrink-0 overflow-y-auto space-y-2 pr-1 h-full">
             {filteredItems.length === 0 ? (
-              <p className="text-center py-8 font-extrabold text-accent">No notes yet.</p>
+              <p className="text-center py-8 text-muted-foreground">No notes yet.</p>
             ) : (
               filteredItems.map((item) => {
                 const isActive =
@@ -713,12 +713,12 @@ export default function Notes() {
                   <div
                     key={`${item.kind}-${item.id}`}
                     onClick={() => (item.kind === 'note' ? selectNote(item.id) : selectMarketing(item.id))}
-                    className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[var(--chart-card-bg)] ${
-                      isActive ? 'border-l-[3px] border-l-[#F0B429]' : ''
+                    className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[hsl(var(--card))] ${
+                      isActive ? 'border-l-[3px] border-l-primary' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[15px] text-card-foreground line-clamp-1 font-extrabold">{item.title}</p>
+                      <p className="text-[15px] text-card-foreground line-clamp-1 font-medium">{item.title}</p>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {typeBadge(item.type, item.platform)}
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap">
@@ -726,7 +726,7 @@ export default function Notes() {
                         </span>
                       </div>
                     </div>
-                    {item.preview && <p className="text-[13px] mt-1 line-clamp-2 font-extrabold text-accent">{item.preview}</p>}
+                    {item.preview && <p className="text-[13px] mt-1 line-clamp-2 text-muted-foreground">{item.preview}</p>}
                   </div>
                 );
               })
@@ -734,7 +734,7 @@ export default function Notes() {
           </div>
 
           {/* Active Panel */}
-          <div className="flex-1 rounded-xl border border-border p-5 flex flex-col overflow-hidden bg-[var(--chart-card-bg)]">
+          <div className="flex-1 rounded-xl border border-border p-5 flex flex-col overflow-hidden bg-[hsl(var(--card))]">
             {renderActivePanel()}
           </div>
         </div>
@@ -744,7 +744,7 @@ export default function Notes() {
       {isRecording && (
         <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/70 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <span className="w-4 h-4 rounded-full bg-red-500 animate-pulse" />
+            <span className="w-4 h-4 rounded-full bg-destructive animate-pulse" />
             <span className="text-white font-bold text-lg">Recording... speak now</span>
           </div>
           <p className="text-white/80 text-center max-w-md mb-6 min-h-[60px]">{liveTranscript || 'Listening...'}</p>

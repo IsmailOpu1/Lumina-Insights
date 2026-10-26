@@ -53,12 +53,12 @@ export default function Login() {
           <div 
             className="flex flex-col min-h-screen px-6 py-10"
             style={{ 
-              background: 'linear-gradient(135deg, #1A3A2A 0%, #2D5A3C 50%, #1B3A4B 100%)',
+              background: 'radial-gradient(ellipse at top left, hsl(160 84% 39% / 0.22), transparent 60%), radial-gradient(ellipse at bottom right, hsl(171 77% 64% / 0.12), transparent 55%), hsl(var(--card))',
               minHeight: '100dvh'
             }}
           >
             <div className="flex items-center gap-2 mb-10">
-              <Sparkles size={28} className="text-[#F0B429]" />
+              <Sparkles size={28} className="text-primary" />
               <span className="text-xl font-bold text-white">
                 Lumina Insights
               </span>
@@ -92,17 +92,17 @@ export default function Login() {
             <button
               onClick={() => setShowLogin(true)}
               className="mt-8 h-14 w-full rounded-xl font-bold text-white text-base"
-              style={{ backgroundColor: '#4A7C59' }}
+              style={{ backgroundColor: 'hsl(var(--primary))' }}
             >
               Get Started →
             </button>
           </div>
         ) : (
           // Login form for mobile
-          <div className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: 'var(--page-bg, #1a1a2e)' }}>
+          <div className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
             <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl">
               <div className="flex items-center gap-2 mb-6">
-                <Sparkles size={28} className="text-[#F0B429]" />
+                <Sparkles size={28} className="text-primary" />
                 <span className="text-xl font-bold text-foreground">Lumina Insights</span>
               </div>
 
@@ -136,11 +136,11 @@ export default function Login() {
                   </button>
                 </div>
 
-                <Link to="/forgot-password" className="self-end text-sm font-medium text-[#4A7C59] hover:underline">
+                <Link to="/forgot-password" className="self-end text-sm font-medium text-primary hover:underline">
                   Forgot password?
                 </Link>
 
-                <Button type="submit" disabled={loading} className="h-12 w-full bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+                <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
                   {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
                 </Button>
               </form>
@@ -153,7 +153,7 @@ export default function Login() {
 
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{' '}
-                <Link to={token ? `/signup?token=${token}` : '/signup'} className="font-bold text-[#4A7C59] hover:underline">
+                <Link to={token ? `/signup?token=${token}` : '/signup'} className="font-bold text-primary hover:underline">
                   Create account
                 </Link>
               </p>
@@ -167,7 +167,7 @@ export default function Login() {
         <div className="hidden lg:block lg:w-1/2 h-screen sticky top-0">
           <AuthLeftPanel />
         </div>
-        <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'var(--page-bg, #1a1a2e)' }}>
+        <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
           <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl">
             <h1 className="text-[28px] font-bold text-foreground">Welcome back</h1>
             <p className="mt-1 mb-8 text-sm text-muted-foreground">Sign in to your account</p>
@@ -199,11 +199,11 @@ export default function Login() {
                 </button>
               </div>
 
-              <Link to="/forgot-password" className="self-end text-sm font-medium text-[#4A7C59] hover:underline">
+              <Link to="/forgot-password" className="self-end text-sm font-medium text-primary hover:underline">
                 Forgot password?
               </Link>
 
-              <Button type="submit" disabled={loading} className="h-12 w-full bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+              <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
               </Button>
             </form>
@@ -216,7 +216,7 @@ export default function Login() {
 
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to={token ? `/signup?token=${token}` : '/signup'} className="font-bold text-[#4A7C59] hover:underline">
+              <Link to={token ? `/signup?token=${token}` : '/signup'} className="font-bold text-primary hover:underline">
                 Create account
               </Link>
             </p>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useFAB, useRefreshOnSave } from '@/context/FABContext';
+import { useRefreshOnSave } from '@/context/FABContext';
 import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useAuth } from '@/context/AuthContext';
 import { EXPENSE_TYPES } from '@/lib/constants';
@@ -13,7 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Receipt, Loader2, Plus } from 'lucide-react';
+import { Download, Pencil, Trash2, ChevronUp, ChevronDown, Receipt, Loader2, Plus, Megaphone, Truck, Shapes, Wallet } from 'lucide-react';
+import PageHeader, { StatStrip } from '@/components/PageHeader';
+import Pager from '@/components/Pager';
+import Segmented from '@/components/dashboard/Segmented';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
@@ -49,18 +52,24 @@ type DateFilter = DayFilter;
 const PAGE_SIZE = 20;
 
 const nativeSelectClass =
-  'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
+  'w-full h-10 px-3 rounded-md border border-input bg-background text-foreground text-sm cursor-pointer appearance-auto max-md:h-12 max-md:text-[16px]';
 
-const TYPE_BADGE: Record<string, string> = {
-  'Ad Spend': 'bg-orange-300 text-destructive',
-  'Shipping': 'bg-emerald-200 text-emerald-700',
-  'Miscellaneous': 'bg-indigo-400 text-cyan-900',
+const TYPE_STYLE: Record<string, { badge: string; bar: string }> = {
+  'Ad Spend': { badge: 'border-warning/30 bg-warning/10 text-warning', bar: 'bg-warning' },
+  'Shipping': { badge: 'border-highlight/30 bg-highlight/10 text-highlight', bar: 'bg-highlight' },
+  'Miscellaneous': { badge: 'border-border bg-muted text-muted-foreground', bar: 'bg-muted-foreground/60' },
 };
+
+const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
+  { label: 'Today', value: 'today' },
+  { label: '7 days', value: '7days' },
+  { label: '30 days', value: '30days' },
+  { label: 'All time', value: 'custom' },
+];
 
 export default function Expenses() {
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
-  const { openModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const readOnly = useReadOnly();
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
@@ -207,161 +216,154 @@ export default function Expenses() {
     setExporting(false);
   }
 
-  const thClass = 'cursor-pointer select-none whitespace-nowrap px-3 py-3 text-left uppercase tracking-wider transition-colors font-extrabold text-sm text-accent';
-  const thStatic = 'whitespace-nowrap px-3 py-3 text-left uppercase tracking-wider font-extrabold text-sm text-accent';
-
-  const metricCards = [
-    { label: 'Ad Spend', value: metrics.adSpend },
-    { label: 'Shipping', value: metrics.shipping },
-    { label: 'Miscellaneous', value: metrics.misc },
-    { label: 'Grand Total', value: metrics.total },
+  const share = (v: number) => (metrics.total > 0 ? `${Math.round((v / metrics.total) * 100)}% of total` : 'No spend yet');
+  const breakdown = [
+    { type: 'Ad Spend', value: metrics.adSpend },
+    { type: 'Shipping', value: metrics.shipping },
+    { type: 'Miscellaneous', value: metrics.misc },
   ];
 
-  return (
-    <div>
-      <h1 className="mb-5 text-[28px] font-bold text-pink-200">Expenses</h1>
+  const th = (key: SortKey, label: string) => (
+    <th className="sortable" onClick={() => toggleSort(key)} aria-sort={sortKey === key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+      {label} <SortIcon col={key} />
+    </th>
+  );
 
-      {/* Controls */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Select value={dateFilter} onValueChange={(v) => { setDateFilter(v as DateFilter); setPage(1); }}>
-          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="7days">7 Days</SelectItem>
-            <SelectItem value="30days">30 Days</SelectItem>
-            <SelectItem value="custom">All Time</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {EXPENSE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex-1" />
-        <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 font-extrabold" onClick={handleExport} disabled={exporting || filtered.length === 0}>
-          {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-          {exporting ? 'Exporting...' : 'Export XLSX'}
-        </Button>
-        {!readOnly && (
-          <Button className="h-11 gap-2 px-5 font-bold max-md:w-full" onClick={openAdd}>
-            <Plus size={18} />
-            Add Expense
-          </Button>
+  return (
+    <div className="mx-auto max-w-[1400px]">
+      <PageHeader
+        title="Expenses"
+        subtitle="Money going out that is not tied to one order: ads, courier bills, packaging, rent. It comes off your net profit."
+        actions={
+          <>
+            <Button variant="outline" onClick={handleExport} disabled={exporting || filtered.length === 0} className="max-sm:flex-1">
+              {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {exporting ? 'Exporting...' : 'Export'}
+            </Button>
+            {!readOnly && (
+              <Button className="gap-1.5 shadow-glow max-sm:flex-1" onClick={openAdd}>
+                <Plus size={16} />
+                Add expense
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <StatStrip
+        className="mb-3"
+        stats={[
+          { label: 'Total spent', value: formatCurrency(metrics.total), icon: Wallet, hint: `${filtered.length} expense${filtered.length === 1 ? '' : 's'}` },
+          { label: 'Ad spend', value: formatCurrency(metrics.adSpend), icon: Megaphone, hint: share(metrics.adSpend) },
+          { label: 'Shipping', value: formatCurrency(metrics.shipping), icon: Truck, hint: share(metrics.shipping) },
+          { label: 'Miscellaneous', value: formatCurrency(metrics.misc), icon: Shapes, hint: share(metrics.misc) },
+        ]}
+      />
+
+      {metrics.total > 0 && (
+        <div className="surface mb-6 p-4">
+          <div className="flex h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label="Spend by type">
+            {breakdown.map((b) => b.value > 0 && (
+              <div key={b.type} className={TYPE_STYLE[b.type].bar} style={{ width: `${(b.value / metrics.total) * 100}%` }} />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
+            {breakdown.map((b) => (
+              <span key={b.type} className="flex items-center gap-1.5">
+                <span className={cn('h-2 w-2 rounded-full', TYPE_STYLE[b.type].bar)} />
+                {b.type}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="surface overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
+          <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
+            <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {EXPENSE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="flex-1" />
+          <Segmented<DateFilter> label="Date range" value={dateFilter} onChange={(v) => { setDateFilter(v); setPage(1); }} options={DATE_OPTIONS} />
+        </div>
+
+        {loading ? (
+          <div className="p-4"><SkeletonLoader variant="row" count={8} /></div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={Receipt}
+            title={expenses.length === 0 ? 'No expenses recorded' : 'No expenses in this range'}
+            message={expenses.length === 0 ? 'Add ad spend, courier bills and other costs to see your true profit.' : 'Try a different type or date range.'}
+            actionLabel={readOnly || expenses.length > 0 ? undefined : 'Add expense'}
+            onAction={openAdd}
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="data-table min-w-[720px]">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    {th('amount', `Amount ${symbol}`)}
+                    <th>Platform</th>
+                    <th>Notes</th>
+                    {th('date', 'Date')}
+                    {!readOnly && <th className="text-right">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  <TooltipProvider>
+                    {paged.map(e => (
+                      <tr key={e.id}>
+                        <td>
+                          <span className={cn('inline-flex rounded-md border px-2 py-0.5 text-xs font-medium', (TYPE_STYLE[e.type] || TYPE_STYLE['Miscellaneous']).badge)}>
+                            {e.type}
+                          </span>
+                        </td>
+                        <td className="font-medium tabular-nums">{formatCurrency(e.amount)}</td>
+                        <td className="text-muted-foreground">{e.platform || '—'}</td>
+                        <td className="max-w-[260px] text-muted-foreground">
+                          {e.notes ? (
+                            e.notes.length > 40 ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="block cursor-default truncate">{e.notes.slice(0, 40)}…</span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[300px]">{e.notes}</TooltipContent>
+                              </Tooltip>
+                            ) : e.notes
+                          ) : '—'}
+                        </td>
+                        <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(e.date), 'dd MMM yyyy')}</td>
+                        {!readOnly && (
+                          <td>
+                            <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => openEdit(e)} className="icon-btn" aria-label="Edit expense">
+                                <Pencil size={16} />
+                              </button>
+                              <button onClick={() => setDeleteId(e.id)} className="icon-btn-danger" aria-label="Delete expense">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </TooltipProvider>
+                </tbody>
+              </table>
+            </div>
+            <Pager page={page} totalPages={totalPages} total={sorted.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          </>
         )}
       </div>
 
-      {/* Metrics Bar */}
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {metricCards.map(m => (
-          <div key={m.label} className="stat-hover rounded-lg border border-border p-4 bg-[var(--chart-card-bg)] text-accent font-extrabold text-sm cursor-pointer">
-            <p className="uppercase tracking-wider text-muted-foreground font-extrabold text-sm">{m.label}</p>
-            <p className="mt-1 text-xl font-extrabold text-cyan-500">{formatCurrency(m.value)}</p>
-          </div>
-        ))}
-      </div>
-
-      {loading ? (
-        <SkeletonLoader variant="row" count={8} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Receipt}
-          title="No expenses recorded"
-          message="Start tracking your costs."
-          actionLabel="Add Expense"
-          onAction={openAdd}
-        />
-      ) : (
-        <>
-          <div className="overflow-x-auto rounded-lg border border-border bg-card" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <table className="w-full min-w-[700px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className={cn(thStatic, "bg-secondary")}>Type</th>
-                  <th className={thClass} onClick={() => toggleSort('amount')}>Amount {symbol} <SortIcon col="amount" /></th>
-                  <th className={thStatic}>Platform</th>
-                  <th className={thStatic}>Notes</th>
-                  <th className={thClass} onClick={() => toggleSort('date')}>Date <SortIcon col="date" /></th>
-                  <th className={thStatic}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <TooltipProvider>
-                  {paged.map(e => (
-                    <tr key={e.id} className="table-row-hover border-b border-border last:border-0">
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold">
-                        <span className={cn('inline-block rounded-full px-3 py-0.5 font-extrabold text-xs', TYPE_BADGE[e.type] || TYPE_BADGE['Miscellaneous'])}>
-                          {e.type}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{formatCurrency(e.amount)}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold text-sm text-orange-300">{e.platform || '—'}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)] font-extrabold text-xs max-w-[200px]">
-                        {e.notes ? (
-                          e.notes.length > 40 ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-default truncate block">{e.notes.slice(0, 40)}…</span>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-[300px]">{e.notes}</TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="font-extrabold text-sm">{e.notes}</span>
-                          )
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(parseDay(e.date), 'dd/MM/yyyy')}</td>
-                      <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">
-                        {!readOnly && (
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => openEdit(e)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95">
-                              <Pencil size={18} />
-                            </button>
-                            <button onClick={() => setDeleteId(e.id)} className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 active:scale-95">
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </TooltipProvider>
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(p => Math.abs(p - page) <= 2 || p === 1 || p === totalPages)
-                .map((p, i, arr) => {
-                  const prev = arr[i - 1];
-                  const gap = prev && p - prev > 1;
-                  return (
-                    <span key={p}>
-                      {gap && <span className="px-1 text-muted-foreground">…</span>}
-                      <Button variant={page === p ? 'default' : 'outline'} size="sm" className={cn('min-w-[36px]', page === p && 'font-bold')} onClick={() => setPage(p)}>
-                        {p}
-                      </Button>
-                    </span>
-                  );
-                })}
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </>
-      )}
-
       {/* Add/Edit Expense Modal */}
-      <ModalShell isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editExpense ? 'Edit Expense' : 'Add Expense'}>
+      <ModalShell isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editExpense ? 'Edit expense' : 'Add expense'}>
         <div className="flex flex-col gap-4">
           <div>
             <Label>Type *</Label>
@@ -385,7 +387,7 @@ export default function Expenses() {
               onChange={e => { if (e.target.value.length <= 300) setFormNotes(e.target.value); }}
               placeholder="Optional notes..."
               maxLength={300}
-              className="w-full min-h-[80px] px-3 py-2 rounded-lg border border-border bg-background text-foreground text-[15px] resize-y font-extrabold"
+              className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <p className="mt-1 text-xs text-muted-foreground text-right">{formNotes.length}/300</p>
           </div>
@@ -393,8 +395,8 @@ export default function Expenses() {
             <Label>Date *</Label>
             <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
           </div>
-          <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full font-bold text-base">
-            {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : editExpense ? 'Update Expense' : 'Save Expense'}
+          <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-11 w-full font-semibold">
+            {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : editExpense ? 'Update expense' : 'Save expense'}
           </Button>
         </div>
       </ModalShell>

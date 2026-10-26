@@ -28,12 +28,12 @@ interface NotifRow {
 
 const TYPE_COLORS: Record<string, string> = {
   new_order: '#10B981',
-  cancelled_order: '#EF4444',
-  low_stock: '#F59E0B',
-  critical_stock: '#EF4444',
-  profit_drop: '#F59E0B',
-  roas_alert: '#F59E0B',
-  weekly_summary: '#6366F1',
+  cancelled_order: '#F43F5E',
+  low_stock: '#F5A524',
+  critical_stock: '#F43F5E',
+  profit_drop: '#F5A524',
+  roas_alert: '#F5A524',
+  weekly_summary: '#5EEAD4',
 };
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -147,10 +147,10 @@ export default function Notifications() {
 
   return (
     <div>
-      {/* FIX 1: Title uses var(--text-primary) */}
+      {/* FIX 1: Title uses hsl(var(--foreground)) */}
       <h1
         className="mb-5 text-[28px] font-bold"
-        style={{ color: 'var(--text-primary)' }}
+        style={{ color: 'hsl(var(--foreground))' }}
       >
         Notifications
       </h1>
@@ -172,8 +172,8 @@ export default function Notifications() {
               )}
               style={
                 tab === t.value
-                  ? { backgroundColor: 'var(--accent-color)', color: '#000' }
-                  : { color: 'var(--text-secondary)' }
+                  ? { backgroundColor: 'hsl(var(--primary))', color: '#000' }
+                  : { color: 'hsl(var(--muted-foreground))' }
               }
             >
               {t.label}
@@ -189,7 +189,7 @@ export default function Notifications() {
             className="font-bold gap-1"
             style={{
               borderColor: 'rgba(239,68,68,0.3)',
-              color: '#EF4444'
+              color: '#F43F5E'
             }}
             onClick={() => setClearOpen(true)}
           >
@@ -199,8 +199,8 @@ export default function Notifications() {
             variant="outline"
             className="font-bold"
             style={{
-              borderColor: 'rgba(var(--accent-color),0.3)',
-              color: 'var(--accent-color)'
+              borderColor: 'rgba(hsl(var(--primary)),0.3)',
+              color: 'hsl(var(--primary))'
             }}
             onClick={handleMarkAllRead}
           >
@@ -216,13 +216,13 @@ export default function Notifications() {
           <Bell className="mb-4 h-16 w-16 text-muted-foreground/30" />
           <h2
             className="text-xl font-bold"
-            style={{ color: 'var(--text-primary)' }}
+            style={{ color: 'hsl(var(--foreground))' }}
           >
             You're all caught up 🎉
           </h2>
           <p
             className="mt-1 text-sm"
-            style={{ color: 'var(--text-muted)' }}
+            style={{ color: 'hsl(var(--muted-foreground))' }}
           >
             No notifications to show.
           </p>
@@ -231,7 +231,7 @@ export default function Notifications() {
         <>
           <div className="flex flex-col gap-2">
             {paged.map(n => {
-              const borderColor = TYPE_COLORS[n.type] || '#6366F1';
+              const borderColor = TYPE_COLORS[n.type] || '#5EEAD4';
               const Icon = TYPE_ICONS[n.type] || Bell;
               return (
                 <div
@@ -245,7 +245,7 @@ export default function Notifications() {
                     borderLeftWidth: 4,
                     borderLeftColor: borderColor,
                     backgroundColor: n.is_read
-                      ? 'var(--chart-card-bg)'
+                      ? 'hsl(var(--card))'
                       : undefined,
                   }}
                 >
@@ -269,13 +269,13 @@ export default function Notifications() {
                           'text-sm',
                           n.is_read ? 'font-bold' : 'font-extrabold'
                         )}
-                        style={{ color: 'var(--text-primary)' }}
+                        style={{ color: 'hsl(var(--foreground))' }}
                       >
                         {n.title}
                         {!n.is_read && (
                           <span
                             className="ml-2 inline-block h-2 w-2 rounded-full"
-                            style={{ backgroundColor: '#F0B429' }}
+                            style={{ backgroundColor: '#10B981' }}
                           />
                         )}
                       </p>
@@ -283,7 +283,7 @@ export default function Notifications() {
                       <div className="flex items-center gap-1 shrink-0">
                         <span
                           className="text-xs whitespace-nowrap"
-                          style={{ color: 'var(--text-muted)' }}
+                          style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
                           {formatDistanceToNow(
                             new Date(n.created_at),
@@ -295,8 +295,8 @@ export default function Notifications() {
                             e.stopPropagation();
                             handleDelete(n.id);
                           }}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-red-500/20 active:scale-95"
-                          style={{ color: 'var(--text-muted)' }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-destructive/15 active:scale-95"
+                          style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
                           <X size={14} />
                         </button>
@@ -305,7 +305,7 @@ export default function Notifications() {
                     {/* Message below title */}
                     <p
                       className="mt-0.5 text-sm font-bold break-words"
-                      style={{ color: 'var(--text-secondary)' }}
+                      style={{ color: 'hsl(var(--muted-foreground))' }}
                     >
                       {n.message}
                     </p>
@@ -327,7 +327,7 @@ export default function Notifications() {
               </Button>
               <span
                 className="text-sm"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: 'hsl(var(--muted-foreground))' }}
               >
                 {page} / {totalPages}
               </span>

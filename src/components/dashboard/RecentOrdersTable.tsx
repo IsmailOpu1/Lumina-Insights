@@ -4,6 +4,7 @@ import { ChevronUp, ChevronDown } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { format } from 'date-fns';
+import { parseDay } from '@/lib/dates';
 import { useCurrency } from '@/hooks/useCurrency';
 
 interface Order {
@@ -114,7 +115,7 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
                 <td className="px-3 py-2.5 text-[#07ab4c] font-extrabold" style={{ color: o.profit_per_order >= 0 ? '#10B981' : '#EF4444' }}>
                   {formatCurrency(o.profit_per_order)}
                 </td>
-                <td className="px-3 py-2.5 text-muted-foreground text-sm font-extrabold">{format(new Date(o.date), 'dd MMM')}</td>
+                <td className="px-3 py-2.5 text-muted-foreground text-sm font-extrabold">{format(parseDay(o.date), 'dd MMM')}</td>
               </tr>
             )}
             {recent.length === 0 &&

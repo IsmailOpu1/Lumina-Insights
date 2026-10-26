@@ -13,7 +13,7 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 
 export default function GlobalProductModal() {
   const { symbol } = useCurrency();
-  const { activeModal, closeModal } = useFAB();
+  const { activeModal, closeModal, notifySaved } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const isOpen = activeModal === 'product';
 
@@ -47,6 +47,7 @@ export default function GlobalProductModal() {
     });
     if (error) { toast.error('Failed to add product', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
     toast.success('Product added ✓');
+    notifySaved('product');
     closeModal();
   }
 

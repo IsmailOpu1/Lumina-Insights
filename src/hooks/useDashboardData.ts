@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFilter } from '@/context/FilterContext';
 import { format } from 'date-fns';
+import { parseDay } from '@/lib/dates';
+import { useRefreshOnSave } from '@/context/FABContext';
 
 interface Order {
   id: string;
@@ -79,6 +81,9 @@ export function useDashboardData(): DashboardData {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  useRefreshOnSave('order', fetchData);
+  useRefreshOnSave('expense', fetchData);
+  useRefreshOnSave('product', fetchData);
 
   return { orders, inventory, expenses, loading, refetch: fetchData };
 }
@@ -164,7 +169,7 @@ export function getRevenueOverTime(
   const map: Record<string, number> = {};
   activeOrders(orders).forEach(o => {
     let key: string;
-    const d = new Date(o.date);
+    const d = parseDay(o.date);
     if (granularity === 'daily') {
       key = format(d, 'MMM dd');
     } else if (granularity === 'weekly') {

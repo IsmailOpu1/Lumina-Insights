@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useFAB } from '@/context/FABContext';
+import { useFAB, useRefreshOnSave } from '@/context/FABContext';
+import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useAuth } from '@/context/AuthContext';
 import { EXPENSE_TYPES } from '@/lib/constants';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -16,7 +17,7 @@ import { Download, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronR
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
-import { format as fnsFormat, subDays, startOfDay, startOfToday } from 'date-fns';
+import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
@@ -43,7 +44,7 @@ interface ExpenseToEdit {
 
 type SortKey = 'date' | 'amount';
 type SortDir = 'asc' | 'desc';
-type DateFilter = 'today' | '7days' | '30days' | 'custom';
+type DateFilter = DayFilter;
 
 const PAGE_SIZE = 20;
 
@@ -95,34 +96,13 @@ export default function Expenses() {
   }, []);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
-
-  // Listen for FAB-triggered expense adds
-  const { activeModal } = useFAB();
-  const prevModal = useRef<string | null>(null);
-  useEffect(() => {
-    // When GlobalExpenseModal closes (activeModal goes from 'expense' to null), refresh
-    if (prevModal.current === 'expense' && activeModal !== 'expense') fetchExpenses();
-    prevModal.current = activeModal;
-  }, [activeModal, fetchExpenses]);
-
-  const dateRange = useMemo(() => {
-    const now = new Date();
-    switch (dateFilter) {
-      case 'today': return { from: startOfToday(), to: now };
-      case '7days': return { from: startOfDay(subDays(now, 7)), to: now };
-      case '30days': return { from: startOfDay(subDays(now, 30)), to: now };
-      default: return { from: startOfDay(subDays(now, 365)), to: now };
-    }
-  }, [dateFilter]);
+  useRefreshOnSave('expense', fetchExpenses);
 
   const filtered = useMemo(() => {
-    let list = expenses.filter((e) => {
-      const d = new Date(e.date);
-      return d >= dateRange.from && d <= dateRange.to;
-    });
+    let list = expenses.filter((e) => inDayFilter(e.date, dateFilter));
     if (typeFilter !== 'all') list = list.filter((e) => e.type === typeFilter);
     return list;
-  }, [expenses, dateRange, typeFilter]);
+  }, [expenses, dateFilter, typeFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -218,7 +198,7 @@ export default function Expenses() {
       const headers = ['Type', `Amount ${symbol}`, 'Platform', 'Notes', 'Date'];
       const rows = filtered.map(e => [
         e.type, e.amount, e.platform || '', e.notes || '',
-        fnsFormat(new Date(e.date), 'dd/MM/yyyy'),
+        fnsFormat(parseDay(e.date), 'dd/MM/yyyy'),
       ]);
       const totals = ['TOTAL', filtered.reduce((s, e) => s + e.amount, 0), '', '', ''];
       await exportXLSX({ headers, rows, totalsRow: totals, filename: `Expenses_Export_${todaySuffix()}.xlsx` });
@@ -333,7 +313,7 @@ export default function Expenses() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(new Date(e.date), 'dd/MM/yyyy')}</td>
+                      <td className="px-3 py-2.5 tabular-nums bg-[var(--chart-card-bg)] font-extrabold">{fnsFormat(parseDay(e.date), 'dd/MM/yyyy')}</td>
                       <td className="px-3 py-2.5 bg-[var(--chart-card-bg)]">
                         {!readOnly && (
                           <div className="flex items-center gap-1">

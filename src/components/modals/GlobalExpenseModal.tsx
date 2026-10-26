@@ -18,7 +18,7 @@ const nativeSelectClass =
 
 export default function GlobalExpenseModal() {
   const { symbol } = useCurrency();
-  const { activeModal, closeModal } = useFAB();
+  const { activeModal, closeModal, notifySaved } = useFAB();
   const { ownerIdForQueries } = useAuth();
   const isOpen = activeModal === 'expense';
 
@@ -48,6 +48,7 @@ export default function GlobalExpenseModal() {
     });
     if (error) { toast.error('Failed to add expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
     toast.success('Expense added ✓');
+    notifySaved('expense');
     closeModal();
   }
 

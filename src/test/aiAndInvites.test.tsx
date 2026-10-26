@@ -64,14 +64,14 @@ describe('AI assistant', () => {
 
   it('shows the same numbers business_snapshot returns, for the last 30 days', async () => {
     render(<AIAssistant />);
-    expect(await screen.findByText('📊 Last 30 days')).toBeInTheDocument();
+    expect(await screen.findByText('৳1,25,000')).toBeInTheDocument();
+    expect(screen.getByText('Last 30 days')).toBeInTheDocument();
     expect(mocks.rpc).toHaveBeenCalledWith('business_snapshot', expect.objectContaining({ p_from: expect.any(String) }));
-    expect(screen.getByText('৳1,25,000')).toBeInTheDocument();
     expect(screen.getByText('৳31,250')).toBeInTheDocument();
     expect(screen.getByText('25%')).toBeInTheDocument();
     expect(screen.getByText('Panjabi (30 units)')).toBeInTheDocument();
     expect(screen.getByText('Facebook (80%)')).toBeInTheDocument();
-    expect(screen.getByText('1 items')).toBeInTheDocument();
+    expect(screen.getByText('1 product')).toBeInTheDocument();
   });
 
   it('uses the workspace currency', async () => {
@@ -82,7 +82,7 @@ describe('AI assistant', () => {
 
   it('sends only the message and history, never business numbers', async () => {
     render(<AIAssistant />);
-    await screen.findByText('📊 Last 30 days');
+    await screen.findByText('৳1,25,000');
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'How was my week?' } });
     fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
 

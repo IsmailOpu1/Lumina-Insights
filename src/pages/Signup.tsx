@@ -15,9 +15,9 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score: 25, label: 'Weak', color: '#EF4444' };
-  if (score === 2) return { score: 50, label: 'Medium', color: '#F59E0B' };
-  if (score === 3) return { score: 75, label: 'Good', color: '#3B82F6' };
+  if (score <= 1) return { score: 25, label: 'Weak', color: '#F43F5E' };
+  if (score === 2) return { score: 50, label: 'Medium', color: '#F5A524' };
+  if (score === 3) return { score: 75, label: 'Good', color: '#5EEAD4' };
   return { score: 100, label: 'Strong', color: '#10B981' };
 }
 
@@ -93,12 +93,12 @@ export default function Signup() {
         <AuthLeftPanel />
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'var(--page-bg, #1a1a2e)' }}>
+      <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl">
           {emailSent ? (
             <div className="text-center flex flex-col items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#4A7C59]/20 mx-auto">
-                <Mail size={40} className="text-[#4A7C59]" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 mx-auto">
+                <Mail size={40} className="text-primary" />
               </div>
               <h1 className="text-2xl font-bold text-foreground">
                 Check your email
@@ -108,7 +108,7 @@ export default function Signup() {
               </p>
               <Button
                 onClick={() => navigate('/login')}
-                className="mt-4 h-12 w-full bg-[#4A7C59] font-bold text-white"
+                className="mt-4 h-12 w-full bg-primary font-bold text-white"
               >
                 Go to Login
               </Button>
@@ -116,7 +116,7 @@ export default function Signup() {
           ) : (
             <>
               <div className="flex items-center gap-2 mb-6 lg:hidden">
-                <Sparkles size={28} className="text-[#F0B429]" />
+                <Sparkles size={28} className="text-primary" />
                 <span className="text-xl font-bold text-foreground">Lumina Insights</span>
               </div>
 
@@ -160,20 +160,20 @@ export default function Signup() {
                   <Checkbox id="terms" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} />
                   <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer">
                     I agree to the{' '}
-                    <Link to="/terms" target="_blank" className="font-bold text-[#4A7C59] hover:underline">Terms of Service</Link>
+                    <Link to="/terms" target="_blank" className="font-bold text-primary hover:underline">Terms of Service</Link>
                     {' '}and{' '}
-                    <Link to="/privacy" target="_blank" className="font-bold text-[#4A7C59] hover:underline">Privacy Policy</Link>
+                    <Link to="/privacy" target="_blank" className="font-bold text-primary hover:underline">Privacy Policy</Link>
                   </label>
                 </div>
 
-                <Button type="submit" disabled={loading} className="h-12 w-full bg-[#4A7C59] font-bold text-white hover:bg-[#3d6a4b]">
+                <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
                   {loading ? <Loader2 className="animate-spin" size={20} /> : 'Create Account'}
                 </Button>
               </form>
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 Already have an account?{' '}
-                <Link to="/login" className="font-bold text-[#4A7C59] hover:underline">Sign in</Link>
+                <Link to="/login" className="font-bold text-primary hover:underline">Sign in</Link>
               </p>
             </>
           )}

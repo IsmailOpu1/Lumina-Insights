@@ -1,4 +1,4 @@
-import { LucideIcon } from 'lucide-react';
+import { LucideIcon, Plus } from 'lucide-react';
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -10,17 +10,21 @@ interface EmptyStateProps {
 
 export default function EmptyState({ icon: Icon, title, message, actionLabel, onAction }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 rounded-full bg-muted p-4">
-        <Icon size={48} className="text-muted-foreground" />
+    <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+      <div className="relative mb-5">
+        <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl" />
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+          <Icon size={26} />
+        </div>
       </div>
-      <h3 className="mb-1 text-base font-bold text-foreground">{title}</h3>
-      <p className="mb-6 max-w-xs text-sm text-muted-foreground">{message}</p>
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 max-w-xs text-sm text-muted-foreground">{message}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.97]"
+          className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 active:scale-[0.97]"
         >
+          <Plus size={16} />
           {actionLabel}
         </button>
       )}

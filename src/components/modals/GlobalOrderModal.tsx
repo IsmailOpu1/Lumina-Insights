@@ -146,8 +146,8 @@ export default function GlobalOrderModal() {
           </select>
           {selectedProduct && (
             <p className={cn('mt-1 text-xs font-medium',
-              selectedProduct.stock_quantity === 0 ? 'text-[#EF4444]' :
-              selectedProduct.stock_quantity < selectedProduct.low_stock_threshold ? 'text-[#F59E0B]' :
+              selectedProduct.stock_quantity === 0 ? 'text-destructive' :
+              selectedProduct.stock_quantity < selectedProduct.low_stock_threshold ? 'text-warning' :
               'text-muted-foreground'
             )}>{selectedProduct.stock_quantity} units in stock</p>
           )}

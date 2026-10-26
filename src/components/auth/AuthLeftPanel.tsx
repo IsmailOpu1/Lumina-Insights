@@ -31,7 +31,7 @@ export default function AuthLeftPanel() {
 
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <Sparkles size={28} className="text-[#F0B429]" />
+        <Sparkles size={28} className="text-primary" />
         <span className="text-[32px] font-bold text-white">Lumina Insights</span>
       </div>
 
@@ -47,8 +47,8 @@ export default function AuthLeftPanel() {
                 animation: `slideUp 500ms ease ${i * 100}ms backwards`,
               }}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0B429]/20">
-                <Icon size={20} className="text-[#F0B429]" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/20">
+                <Icon size={20} className="text-primary" />
               </div>
               <div>
                 <p className="font-bold text-white">{f.name}</p>

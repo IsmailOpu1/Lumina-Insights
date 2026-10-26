@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -11,7 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import { Download, Loader2, Check, Palette, Type, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User, Users, Copy, X, MailPlus, Camera } from 'lucide-react';
+import { Download, Loader2, Check, Palette, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User, Users, Copy, X, MailPlus, Camera, type LucideIcon } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
+import Segmented from '@/components/dashboard/Segmented';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { todaySuffix } from '@/lib/xlsxExport';
@@ -38,10 +40,68 @@ const DEFAULT_PREFS: NotifPrefs = {
 };
 
 const PREF_LABELS: Record<keyof NotifPrefs, string> = {
-  new_order: 'New Order', cancelled_order: 'Cancelled Order',
-  low_stock: 'Low Stock', critical_stock: 'Critical Stock',
-  profit_drop: 'Profit Drop', roas_alert: 'ROAS Alerts', weekly_summary: 'Weekly Summary',
+  new_order: 'New order', cancelled_order: 'Cancelled order',
+  low_stock: 'Low stock', critical_stock: 'Out of stock',
+  profit_drop: 'Profit drop', roas_alert: 'ROAS alert', weekly_summary: 'Weekly summary',
 };
+
+const PREF_HINTS: Record<keyof NotifPrefs, string> = {
+  new_order: 'When an order comes in',
+  cancelled_order: 'When an order is cancelled',
+  low_stock: 'When a product drops below its threshold',
+  critical_stock: 'When a product runs out',
+  profit_drop: 'When profit falls sharply',
+  roas_alert: 'When ad returns drop below your limit',
+  weekly_summary: 'A short recap every week',
+};
+
+const ROLE_STYLE: Record<string, string> = {
+  owner: 'border-primary/30 bg-primary/10 text-primary',
+  manager: 'border-highlight/30 bg-highlight/10 text-highlight',
+  viewer: 'border-border bg-muted text-muted-foreground',
+};
+
+function RoleBadge({ role }: { role: string }) {
+  return (
+    <span className={cn('shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize', ROLE_STYLE[role] ?? ROLE_STYLE.viewer)}>
+      {role}
+    </span>
+  );
+}
+
+function SettingsCard({ id, icon: Icon, title, description, action, children }: {
+  id: string; icon: LucideIcon; title: string; description: string; action?: ReactNode; children: ReactNode;
+}) {
+  return (
+    <section id={id} className="surface scroll-mt-4 overflow-hidden">
+      <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div className="flex gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+            <Icon size={16} />
+          </span>
+          <div>
+            <h2 className="text-base font-semibold">{title}</h2>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        {action}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function SettingRow({ label, description, children }: { label: string; description: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 border-b border-border/60 px-5 py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
 
 const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nunito', 'dmsans'];
 
@@ -369,12 +429,9 @@ export default function SettingsPage() {
     toast.success('Link copied!');
   }
 
-  const sectionClass = 'settings-hover rounded-xl border border-border p-5 bg-[var(--chart-card-bg)]';
-  const sectionTitleClass = 'flex items-center gap-2 text-base font-bold text-foreground mb-4 pb-3 border-b border-border';
-
   if (loading) return (
-    <div>
-      <h1 className="mb-5 text-[28px] font-bold text-pink-200">Settings</h1>
+    <div className="mx-auto max-w-[1100px]">
+      <PageHeader title="Settings" />
       <SkeletonLoader variant="row" count={6} />
     </div>
   );
@@ -386,342 +443,253 @@ export default function SettingsPage() {
     .toUpperCase()
     .slice(0, 2);
 
+  const planBadge = !subscription ? null
+    : subscription.state === 'trialing' ? 'Pro trial'
+    : subscription.state === 'expired' ? 'Expired'
+    : subscription.limits.name;
+
+  const sections = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'alerts', label: 'Notifications', icon: Bell },
+    { id: 'rules', label: 'Business rules', icon: Gauge },
+    ...(isOwner ? [{ id: 'team', label: 'Team', icon: Users }] : []),
+    { id: 'data', label: 'Data', icon: Database },
+  ];
+
   return (
-    <div className="max-w-[1100px]">
-      <div className="flex items-center gap-3 mb-5">
-        <h1 className="text-[28px] font-bold text-pink-200">Settings</h1>
-        {saved && <span className="text-sm font-bold text-primary flex items-center gap-1 animate-in fade-in"><Check size={14} />Saved ✓</span>}
-      </div>
+    <div className="mx-auto max-w-[1100px]">
+      <PageHeader
+        title="Settings"
+        subtitle="Your profile, how Lumina looks, and the rules behind your alerts."
+        actions={saved && <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success animate-in fade-in"><Check size={13} />Saved</span>}
+      />
 
-      {/* User Info Section — full width */}
-      <div className={cn(sectionClass, 'mb-6')}>
-        <div className="flex flex-col md:flex-row md:items-center gap-5">
-          {/* Avatar */}
-          <div 
-            className={`relative shrink-0 w-16 h-16 ${isEditingProfile ? 'group cursor-pointer' : ''}`}
-            onClick={isEditingProfile ? () => fileInputRef.current?.click() : undefined}
-          >
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white overflow-hidden"
-              style={{
-                backgroundColor: displayAvatar ? 'transparent' : 'var(--accent-color)',
-                border: '3px solid rgba(255,255,255,0.2)',
-              }}
-            >
-              {displayAvatar ? (
-                <img src={displayAvatar} alt="Avatar" className="h-full w-full object-cover" />
-              ) : (
-                initials
-              )}
-            </div>
-            
-            {/* Camera icon — only in edit mode on hover */}
-            {isEditingProfile && (
-              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera size={20} className="text-white" />
+      <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
+        {/* Section nav */}
+        <nav aria-label="Settings sections" className="lg:sticky lg:top-4 lg:self-start">
+          <ul className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:px-0">
+            {sections.map(({ id, label, icon: Icon }) => (
+              <li key={id}>
+                <a href={`#${id}`} className="flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                  <Icon size={16} />
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="min-w-0 space-y-6">
+          {/* Profile */}
+          <section id="profile" className="surface relative scroll-mt-4 overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-primary/20 via-highlight/10 to-transparent" />
+            <div className="relative flex flex-col gap-5 p-6 pt-10 md:flex-row md:items-end">
+              <div className="relative h-20 w-20 shrink-0">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-highlight text-2xl font-semibold text-primary-foreground ring-4 ring-card">
+                  {displayAvatar ? <img src={displayAvatar} alt="" className="h-full w-full object-cover" /> : initials}
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
               </div>
-            )}
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarUpload}
-              disabled={uploadingAvatar}
-            />
-            <span
-              className="online-pulse absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white"
-              style={{ backgroundColor: '#10B981' }}
-            />
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
-              <button
-                onClick={openProfileModal}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <Pencil size={14} />
-              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate text-xl font-semibold">{displayName}</h2>
+                  {planBadge && <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{planBadge}</span>}
+                </div>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">{displayEmail}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {businessName}{user?.created_at && <> · Member since {fnsFormat(new Date(user.created_at), 'MMM yyyy')}</>}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={openProfileModal}>
+                  <Pencil size={14} /> Edit profile
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={async () => { await signOut(); navigate('/login', { replace: true }); }}
+                >
+                  <LogOut size={14} /> Sign out
+                </Button>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">{displayEmail}</p>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-xs text-muted-foreground">
-                Member since {fnsFormat(new Date(), 'MMM yyyy')}
-              </span>
-              <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold"
-                style={{ backgroundColor: '#F0B429', color: '#000' }}
-              >
-                Pro
-              </span>
-            </div>
-          </div>
+          </section>
 
-          {/* Actions */}
-          <div className="flex gap-2 shrink-0">
-            <Button
-              variant="outline"
-              className="gap-1.5 font-bold border-border"
-              onClick={openProfileModal}
-            >
-              <Pencil size={14} /> Edit Profile
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-1.5 font-bold border-destructive/30 text-destructive hover:bg-destructive/5"
-              onClick={async () => { await signOut(); navigate('/login', { replace: true }); }}
-            >
-              <LogOut size={14} /> Sign Out
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Two column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* LEFT COLUMN */}
-        <div className="space-y-6">
           {/* Appearance */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Palette size={18} style={{ color: 'var(--accent-color)' }} />
-              Appearance
-            </h2>
-            <div>
-              <Label className="text-sm font-extrabold mb-2 block">Font Style</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {FONT_OPTIONS.map(f => (
-                  <button
-                    key={f}
-                    onClick={() => handleFontChange(f)}
-                    style={{ fontFamily: FONT_FAMILIES[f] }}
-                    className={cn(
-                      'rounded-lg px-3 py-2 text-sm transition-colors text-center',
-                      fontStyle === f
-                        ? 'bg-[#F0B429]/20 border-2 border-[#F0B429] font-bold text-foreground'
-                        : 'border border-border hover:border-primary text-accent font-extrabold'
-                    )}
-                  >
-                    {FONT_LABELS[f]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Dashboard Defaults */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <LayoutDashboard size={18} style={{ color: 'var(--accent-color)' }} />
-              Dashboard Defaults
-            </h2>
-            <Label className="text-sm font-extrabold mb-2 block">Default Date Filter</Label>
-            <div className="flex gap-2">
-              {[{ l: 'Today', v: 'today' }, { l: '7 Days', v: '7days' }, { l: '30 Days', v: '30days' }].map(o => (
+          <SettingsCard id="appearance" icon={Palette} title="Appearance" description="Lumina uses one dark theme. Pick the font you find easiest to read.">
+            <div className="grid grid-cols-2 gap-2 p-5 sm:grid-cols-3">
+              {FONT_OPTIONS.map(f => (
                 <button
-                  key={o.v}
-                  onClick={() => handleDashFilter(o.v)}
+                  key={f}
+                  onClick={() => handleFontChange(f)}
+                  aria-pressed={fontStyle === f}
                   className={cn(
-                    'rounded-full px-4 py-1.5 text-sm transition-colors',
-                    dashboardFilter === o.v
-                      ? 'font-extrabold bg-teal-950 text-gray-500'
-                      : 'border border-border hover:border-primary text-accent font-extrabold'
+                    'rounded-lg border px-3 py-3 text-left transition-colors',
+                    fontStyle === f ? 'border-primary/60 bg-primary/10 ring-1 ring-primary/40' : 'border-border hover:border-primary/40 hover:bg-secondary'
                   )}
                 >
-                  {o.l}
+                  <span className="block text-lg leading-none" style={{ fontFamily: FONT_FAMILIES[f] }}>Aa</span>
+                  <span className="mt-1.5 block text-xs text-muted-foreground" style={{ fontFamily: FONT_FAMILIES[f] }}>{FONT_LABELS[f]}</span>
                 </button>
               ))}
             </div>
-          </div>
+          </SettingsCard>
 
-          {/* Notification Preferences */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Bell size={18} style={{ color: 'var(--accent-color)' }} />
-              Notification Preferences
-            </h2>
-            <div className="flex flex-col gap-3">
+          {/* Dashboard */}
+          <SettingsCard id="dashboard" icon={LayoutDashboard} title="Dashboard" description="What you see first when you open Lumina.">
+            <SettingRow label="Default date range" description="The period the Dashboard opens on.">
+              <Segmented
+                label="Default date range"
+                value={dashboardFilter}
+                onChange={handleDashFilter}
+                options={[{ label: 'Today', value: 'today' }, { label: '7 days', value: '7days' }, { label: '30 days', value: '30days' }]}
+              />
+            </SettingRow>
+          </SettingsCard>
+
+          {/* Notifications */}
+          <SettingsCard id="alerts" icon={Bell} title="Notifications" description="Choose which alerts you get in the bell menu.">
+            <div className="grid sm:grid-cols-2">
               {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => {
                 // The weekly summary is only sent on Pro, so don't offer it elsewhere.
                 const proOnly = key === 'weekly_summary' && !features.weeklySummary;
                 return (
-                  <div key={key} className="flex items-center justify-between">
-                    <Label className="text-sm font-extrabold">
-                      {PREF_LABELS[key]}
-                      {proOnly && <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">Pro</span>}
-                    </Label>
+                  <label key={key} className="flex cursor-pointer items-center justify-between gap-4 border-b border-border/60 px-5 py-3.5 sm:odd:border-r">
+                    <span>
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        {PREF_LABELS[key]}
+                        {proOnly && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">Pro</span>}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">{PREF_HINTS[key]}</span>
+                    </span>
                     <Switch
                       checked={proOnly ? false : notifPrefs[key]}
                       disabled={proOnly}
                       onCheckedChange={() => handlePrefToggle(key)}
                       aria-label={PREF_LABELS[key]}
                     />
-                  </div>
+                  </label>
                 );
               })}
             </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="space-y-6">
-          {/* Business Thresholds */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Gauge size={18} style={{ color: 'var(--accent-color)' }} />
-              Business Thresholds
-            </h2>
-            <div className="mb-4">
-              <Label className="text-sm font-extrabold">ROAS Threshold</Label>
-              <p className="mb-1 text-accent font-extrabold text-sm">Alert when ROAS falls below this value</p>
-              <Input type="number" min={0} step="0.1" value={roasThreshold} onChange={e => handleRoas(e.target.value)} className="w-32" />
+            <div className="flex justify-end px-5 py-3">
+              <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setClearOpen(true)}>Clear my notifications</Button>
             </div>
-            <div className="mb-3">
-              <Label className="text-sm font-extrabold">Dead Product Days</Label>
-              <p className="mb-1 text-accent font-extrabold text-sm">Flag products with no sales in this many days</p>
-              <Input type="number" min={1} value={deadDays} onChange={e => handleDeadDays(e.target.value)} className="w-32" />
-            </div>
-            <p className="italic text-accent font-extrabold text-sm">Low stock threshold is set per-product in Inventory module</p>
-          </div>
+          </SettingsCard>
 
-          {/* Team Management - Only for owners */}
+          {/* Business rules */}
+          <SettingsCard id="rules" icon={Gauge} title="Business rules" description="The numbers behind your alerts and insights.">
+            <SettingRow label="ROAS alert" description="Warn me when return on ad spend drops below this.">
+              <div className="relative w-28">
+                <Input type="number" min={0} step="0.1" value={roasThreshold} onChange={e => handleRoas(e.target.value)} className="pr-7 text-right tabular-nums" aria-label="ROAS threshold" />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">x</span>
+              </div>
+            </SettingRow>
+            <SettingRow label="Not selling after" description="Flag a product as not selling after this many days without a sale.">
+              <div className="relative w-28">
+                <Input type="number" min={1} value={deadDays} onChange={e => handleDeadDays(e.target.value)} className="pr-12 text-right tabular-nums" aria-label="Dead product days" />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">days</span>
+              </div>
+            </SettingRow>
+            <p className="px-5 py-3 text-xs text-muted-foreground">Low-stock levels are set on each product in Inventory.</p>
+          </SettingsCard>
+
+          {/* Team */}
           {isOwner && (
-            <div className={sectionClass}>
-              <h2 className={sectionTitleClass}>
-                <Users size={18} style={{ color: 'var(--accent-color)' }} />
-                Team Management
-              </h2>
-              {teamAllowed ? (
-                <Button
-                  variant="outline"
-                  className="w-full border-primary/30 text-primary hover:bg-primary/5 font-bold mb-4"
-                  onClick={() => setInviteModalOpen(true)}
-                >
-                  <MailPlus className="mr-2 h-4 w-4" />
-                  Invite Team Member
+            <SettingsCard
+              id="team"
+              icon={Users}
+              title="Team"
+              description="Managers can add and edit data. Viewers can only look."
+              action={teamAllowed && (
+                <Button size="sm" className="gap-1.5" onClick={() => setInviteModalOpen(true)}>
+                  <MailPlus size={14} /> Invite
                 </Button>
-              ) : (
-                <div className="mb-4 rounded-lg bg-muted/50 p-3">
-                  <p className="text-sm font-bold text-foreground">Team members are a Pro feature.</p>
-                  <p className="mb-2 text-sm text-muted-foreground">
+              )}
+            >
+              {!teamAllowed && (
+                <div className="m-5 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <p className="text-sm font-medium">Team members are a Pro feature.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Upgrade to Pro to invite people. Anyone you invited before keeps their place and gets access back when you upgrade.
                   </p>
-                  <Button size="sm" className="font-bold" onClick={() => navigate('/billing')}>See plans</Button>
+                  <Button size="sm" className="mt-3" onClick={() => navigate('/billing')}>See plans</Button>
                 </div>
               )}
 
-              {/* Pending Invites */}
-              {pendingInvites.length > 0 && (
-                <div className="mb-4">
-                  <Label className="text-sm font-extrabold mb-2 block">Pending Invites ({pendingInvites.length})</Label>
-                  <div className="flex flex-col gap-2">
-                    {pendingInvites.map((invite) => (
-                      <div key={invite.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{invite.email}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{invite.role} · Expires {fnsFormat(new Date(invite.expires_at), 'MMM d')}</p>
-                        </div>
-                        <button
-                          onClick={() => copyInviteLink(invite.token)}
-                          className="text-muted-foreground hover:text-foreground transition-colors"
-                          title="Copy invite link"
-                        >
-                          <Copy size={16} />
-                        </button>
-                        <button
-                          onClick={() => revokeInvite(invite.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors"
-                          title="Revoke invite"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))}
+              <ul>
+                <li className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-highlight text-xs font-semibold text-primary-foreground">
+                    {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{fullName || businessName} <span className="text-muted-foreground">(you)</span></p>
+                    <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                   </div>
-                </div>
-              )}
-
-              {/* Current Team Members */}
-              <div>
-                <Label className="text-sm font-extrabold mb-2 block">Team Members ({teamMembers.length + 1})</Label>
-                <div className="flex flex-col gap-2">
-                  {/* Owner (you) */}
-                  <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden bg-[#F0B429] text-xs font-bold text-white">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                      ) : (
-                        businessName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-                      )}
+                  <RoleBadge role="owner" />
+                </li>
+                {teamMembers.map((member) => (
+                  <li key={member.id} className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                      {member.email?.[0]?.toUpperCase() || '?'}
+                    </span>
+                    <p className="min-w-0 flex-1 truncate text-sm">{member.email}</p>
+                    <RoleBadge role={member.role} />
+                    <button onClick={() => removeTeamMember(member.id)} className="icon-btn-danger" aria-label={`Remove ${member.email}`}>
+                      <X size={16} />
+                    </button>
+                  </li>
+                ))}
+                {pendingInvites.map((invite) => (
+                  <li key={invite.id} className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
+                      <MailPlus size={14} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">{invite.email}</p>
+                      <p className="text-xs text-muted-foreground">Invite pending · expires {fnsFormat(new Date(invite.expires_at), 'MMM d')}</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{fullName || businessName}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email} · <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F0B429]/20 text-[#F0B429]">Owner</span></p>
-                    </div>
-                  </div>
-                  {/* Other members */}
-                  {teamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
-                        {member.email?.[0]?.toUpperCase() || '?'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{member.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {member.role === 'owner' && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F0B429]/20 text-[#F0B429]">Owner</span>
-                          )}
-                          {member.role === 'manager' && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Manager</span>
-                          )}
-                          {member.role === 'viewer' && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Viewer</span>
-                          )}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => removeTeamMember(member.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        title="Remove member"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                    <RoleBadge role={invite.role} />
+                    <button onClick={() => copyInviteLink(invite.token)} className="icon-btn" aria-label="Copy invite link">
+                      <Copy size={16} />
+                    </button>
+                    <button onClick={() => revokeInvite(invite.id)} className="icon-btn-danger" aria-label="Revoke invite">
+                      <X size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="px-5 py-3 text-xs text-muted-foreground">
+                {teamMembers.length + 1} member{teamMembers.length ? 's' : ''}
+                {subscription && subscription.limits.max_team_members > 0 && ` · up to ${subscription.limits.max_team_members} on your plan`}
+              </p>
+            </SettingsCard>
           )}
 
-          {/* Data Management */}
-          <div className={sectionClass}>
-            <h2 className={sectionTitleClass}>
-              <Database size={18} style={{ color: 'var(--accent-color)' }} />
-              Data Management
-            </h2>
-            <div className="flex flex-col gap-3">
-              <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 font-bold justify-start" onClick={handleExportAll} disabled={exporting}>
+          {/* Data */}
+          <SettingsCard id="data" icon={Database} title="Data" description="Your data belongs to you.">
+            <SettingRow label="Export everything" description="Orders, inventory and expenses in one Excel file.">
+              <Button variant="outline" onClick={handleExportAll} disabled={exporting}>
                 {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                {exporting ? 'Exporting...' : 'Export All Data (XLSX)'}
+                {exporting ? 'Exporting...' : 'Export'}
               </Button>
-            </div>
-          </div>
+            </SettingRow>
+          </SettingsCard>
         </div>
       </div>
 
       <AlertDialog open={clearOpen} onOpenChange={o => { if (!o) setClearOpen(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear all notifications?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete all notifications.</AlertDialogDescription>
+            <AlertDialogTitle>Clear your notifications?</AlertDialogTitle>
+            <AlertDialogDescription>They disappear from your bell menu. Your teammates keep theirs.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearNotifs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Clear All</AlertDialogAction>
+            <AlertDialogAction onClick={handleClearNotifs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Clear</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -730,12 +698,12 @@ export default function SettingsPage() {
       <AlertDialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Invite Team Member</AlertDialogTitle>
-            <AlertDialogDescription>Send an invite to join your team</AlertDialogDescription>
+            <AlertDialogTitle>Invite a team member</AlertDialogTitle>
+            <AlertDialogDescription>They get an email with a link to join your workspace.</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-sm font-extrabold mb-2 block">Email Address</Label>
+              <Label className="mb-2 block text-sm">Email Address</Label>
               <Input
                 type="email"
                 placeholder="team@example.com"
@@ -745,12 +713,12 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <Label className="text-sm font-extrabold mb-2 block">Role</Label>
+              <Label className="mb-2 block text-sm">Role</Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant={inviteRole === 'manager' ? 'default' : 'outline'}
-                  className={inviteRole === 'manager' ? 'bg-[#F0B429] text-black hover:bg-[#F0B429]/90' : ''}
+                  
                   onClick={() => setInviteRole('manager')}
                   disabled={sendingInvite}
                 >
@@ -759,7 +727,7 @@ export default function SettingsPage() {
                 <Button
                   type="button"
                   variant={inviteRole === 'viewer' ? 'default' : 'outline'}
-                  className={inviteRole === 'viewer' ? 'bg-[#F0B429] text-black hover:bg-[#F0B429]/90' : ''}
+                  
                   onClick={() => setInviteRole('viewer')}
                   disabled={sendingInvite}
                 >
@@ -776,10 +744,10 @@ export default function SettingsPage() {
             <AlertDialogAction
               onClick={sendTeamInvite}
               disabled={!inviteEmail.trim() || sendingInvite}
-              className="bg-[#4A7C59] hover:bg-[#3d6a4b]"
+              
             >
               {sendingInvite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Send Invite
+              Send invite
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -789,7 +757,7 @@ export default function SettingsPage() {
       <AlertDialog open={profileModalOpen} onOpenChange={setProfileModalOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Edit Profile</AlertDialogTitle>
+            <AlertDialogTitle>Edit profile</AlertDialogTitle>
             <AlertDialogDescription>Update your profile information</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
@@ -804,7 +772,7 @@ export default function SettingsPage() {
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-[#F0B429] flex items-center justify-center text-xl font-bold text-white">
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary to-highlight text-xl font-semibold text-primary-foreground">
                       {user?.email?.[0]?.toUpperCase()}
                     </div>
                   )}
@@ -819,7 +787,7 @@ export default function SettingsPage() {
 
             {/* Full Name */}
             <div>
-              <Label className="text-sm font-extrabold mb-2 block">Full Name</Label>
+              <Label className="mb-2 block text-sm">Full Name</Label>
               <Input
                 value={profileFullName}
                 onChange={e => setProfileFullName(e.target.value)}
@@ -830,7 +798,7 @@ export default function SettingsPage() {
             {/* Business Name - only for owners */}
             {isOwner && (
               <div>
-                <Label className="text-sm font-extrabold mb-2 block">Business Name</Label>
+                <Label className="mb-2 block text-sm">Business Name</Label>
                 <Input
                   value={profileBusinessName}
                   onChange={e => setProfileBusinessName(e.target.value)}
@@ -841,7 +809,7 @@ export default function SettingsPage() {
 
             {/* Email (Read-only) */}
             <div>
-              <Label className="text-sm font-extrabold mb-2 block">Email</Label>
+              <Label className="mb-2 block text-sm">Email</Label>
               <Input
                 value={user?.email || ''}
                 disabled
@@ -855,9 +823,9 @@ export default function SettingsPage() {
             <AlertDialogAction
               onClick={handleProfileSave}
               disabled={!profileFullName.trim() && !profileBusinessName.trim()}
-              className="bg-[#4A7C59] hover:bg-[#3d6a4b]"
+              
             >
-              Save Changes
+              Save changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

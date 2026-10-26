@@ -4,8 +4,9 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import {
   Send, RefreshCw, ChevronDown, ChevronUp,
-  BookmarkPlus, Check, ImageIcon, X, Mic, MicOff
+  BookmarkPlus, Check, ImageIcon, X, Mic, MicOff, Sparkles, BarChart3
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -342,54 +343,49 @@ export default function AIAssistant() {
     }
   }
 
-  const contextItems = context
+  const contextItems: { label: string; value: string; tone?: string }[] = context
     ? [
-        {
-          label: 'Revenue',
-          value: formatCurrency(context.revenue),
-          color: '#F0B429',
-        },
-        {
-          label: 'Net Profit',
-          value: formatCurrency(context.profit),
-          color: context.profit >= 0 ? '#10B981' : '#EF4444',
-        },
-        {
-          label: 'Margin',
-          value: `${context.margin}%`,
-          color: context.margin >= 0 ? '#10B981' : '#EF4444',
-        },
-        { label: 'Top Product', value: context.top_product },
-        {
-          label: 'Low Stock',
-          value: `${context.low_stock} items`,
-          color: context.low_stock > 0 ? '#F59E0B' : '#10B981',
-        },
-        { label: 'Best Channel', value: context.top_sales_source },
-        { label: `Orders (${CONTEXT_DAYS} days)`, value: `${context.total_orders}` },
+        { label: 'Revenue', value: formatCurrency(context.revenue) },
+        { label: 'Net profit', value: formatCurrency(context.profit), tone: context.profit >= 0 ? 'text-success' : 'text-destructive' },
+        { label: 'Margin', value: `${context.margin}%`, tone: context.margin >= 0 ? 'text-success' : 'text-destructive' },
+        { label: 'Orders', value: `${context.total_orders}` },
+        { label: 'Top product', value: context.top_product },
+        { label: 'Best channel', value: context.top_sales_source },
+        { label: 'Low stock', value: `${context.low_stock} ${context.low_stock === 1 ? 'product' : 'products'}`, tone: context.low_stock > 0 ? 'text-warning' : 'text-success' },
       ]
     : [];
 
+  const contextList = (
+    <dl className="divide-y divide-border/60">
+      {contextItems.map((item) => (
+        <div key={item.label} className="flex items-baseline justify-between gap-3 py-2.5">
+          <dt className="shrink-0 text-xs text-muted-foreground">{item.label}</dt>
+          <dd className={cn('truncate text-right text-sm font-medium tabular-nums', item.tone ?? 'text-foreground')}>{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+
   const WaveformBars = () => (
-    <div className="flex items-center justify-center gap-[3px] h-6">
+    <div className="flex h-6 items-center justify-center gap-[3px]">
       {[0, 100, 200, 300, 400].map((delay) => (
         <span
           key={delay}
-          className="w-[3px] rounded-full"
-          style={{
-            backgroundColor: '#F0B429',
-            animation: `waveform 0.8s ease-in-out infinite`,
-            animationDelay: `${delay}ms`,
-          }}
+          className="w-[3px] rounded-full bg-primary"
+          style={{ animation: 'waveform 0.8s ease-in-out infinite', animationDelay: `${delay}ms` }}
         />
       ))}
     </div>
   );
 
+  const AssistantAvatar = () => (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary">
+      <Sparkles size={15} />
+    </span>
+  );
+
   return (
-    // FIX 1: removed -m-4 md:-m-6 negative margins
-    // Use w-full instead to fill container properly
-    <div className="flex flex-col h-full bg-[var(--sidebar-bg)]">
+    <div className="-m-4 flex h-[calc(100%+2rem)] md:-m-6 md:h-[calc(100%+3rem)]">
       <style>{`
         @keyframes waveform {
           0%, 100% { height: 4px; }
@@ -397,305 +393,199 @@ export default function AIAssistant() {
         }
       `}</style>
 
-      {/* Context Panel Desktop */}
-      <div className="hidden md:flex items-center gap-2 p-3 border-b border-border overflow-x-auto scrollbar-none w-full">
-        {contextLoading ? (
-          <SkeletonLoader variant="card" count={1} />
-        ) : (
-          <>
-            <span className="shrink-0 whitespace-nowrap border border-border rounded-full px-2 py-1 font-extrabold text-sm text-teal-700 bg-cyan-950">
-              📊 Last {CONTEXT_DAYS} days
-            </span>
-            {contextItems.map((item) => (
-              <div
-                key={item.label}
-                className="shrink-0 rounded-lg px-3 py-2"
-                style={{
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                }}
-              >
-                <p className="font-extrabold text-xs text-green-600">
-                  {item.label}
-                </p>
-                <p
-                  className="text-[14px] font-bold"
-                  style={{ color: item.color || '#F0B429' }}
-                >
-                  {item.value}
-                </p>
-              </div>
-            ))}
-            <button
-              onClick={fetchContext}
-              className="shrink-0 ml-auto text-muted-foreground hover:text-card-foreground transition-colors p-2"
-            >
-              <RefreshCw
-                size={14}
-                className={contextLoading ? 'animate-spin' : ''}
-              />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Mobile Context */}
-      {/* FIX 2: w-full ensures full width */}
-      <div
-        className="md:hidden border-b border-border w-full"
-        style={{ backgroundColor: 'var(--chart-card-bg)' }}
-      >
-        <button
-          onClick={() => setContextOpen(!contextOpen)}
-          className="flex items-center justify-between w-full px-4 py-2 text-sm font-bold text-card-foreground"
-        >
-          Your Business (last {CONTEXT_DAYS} days)
-          {contextOpen ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
-        </button>
-        {contextOpen && !contextLoading && (
-          <div className="grid grid-cols-2 gap-2 px-4 pb-3">
-            {contextItems.map((item) => (
-              <div key={item.label}>
-                <p className="text-[10px] text-accent font-extrabold">
-                  {item.label}
-                </p>
-                <p
-                  className="font-bold text-xs"
-                  style={item.color ? { color: item.color } : undefined}
-                >
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* FIX 3: Messages with overflow-hidden */}
-      <div
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 w-full min-h-0"
-      >
-        <div style={{ flex: 1 }} />
-
-        {messages.length === 0 && !isGenerating && historyLoaded && (
-          <div className="flex flex-col items-center justify-center gap-3 py-8">
-            <img src="/icon.png" alt="" className="w-8 h-8" />
-            <p className="text-[18px] font-bold text-center text-pink-200">
-              ✦ Ask me anything about your business
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 mt-2">
-              {EXAMPLES.map((e) => (
-                <button
-                  key={e}
-                  onClick={() => sendMessage(e)}
-                  className="rounded-full border px-3 py-1.5 transition-colors border-[#414039] bg-[#f0b428]/[0.07] font-extrabold text-sm opacity-65 text-pink-200"
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* FIX 4: w-full overflow-hidden on messages */}
-        <div className="space-y-3 w-full">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex w-full ${
-                msg.role === 'user' ? 'justify-end' : 'justify-start'
-              } animate-in fade-in slide-in-from-bottom-2 duration-200`}
-            >
-              {/* FIX 5: max-w-[80%] and overflow-hidden */}
-              <div
-                className={`max-w-[80%] px-4 py-2.5 overflow-hidden ${
-                  msg.role === 'user'
-                    ? 'bg-[var(--sidebar-bg)] text-white font-bold rounded-[18px_18px_4px_18px]'
-                    : 'border border-border text-card-foreground rounded-[18px_18px_18px_4px] bg-[var(--chart-card-bg)]'
-                }`}
-              >
-                {msg.role === 'assistant' ? (
-                  <div className="text-[15px] font-medium leading-[1.6] overflow-hidden">
-                    <ReactMarkdown
-                      components={{
-                        strong: ({ children }) => (
-                          <strong className="text-accent font-extrabold">
-                            {children}
-                          </strong>
-                        ),
-                        p: ({ children }) => (
-                          <p className="mb-2 last:mb-0 font-extrabold break-words">
-                            {children}
-                          </p>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-disc pl-4 mb-2">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="list-decimal pl-4 mb-2">
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => (
-                          <li className="mb-1 break-words">{children}</li>
-                        ),
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                      <span className="text-[11px] text-accent font-extrabold">
-                        Based on your live data
-                      </span>
-                      {msg.savedToNotes ? (
-                        <span className="text-[11px] text-green-600 font-bold flex items-center gap-1">
-                          <Check size={12} /> Saved ✓
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => saveToNotes(msg)}
-                          className="text-[11px] text-muted-foreground hover:text-card-foreground font-bold flex items-center gap-1 transition-colors"
-                        >
-                          <BookmarkPlus size={12} /> Save to Notes
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {msg.role === 'user' && msg.imagePreview && (
-                      <img
-                        src={msg.imagePreview}
-                        alt="Uploaded"
-                        className="max-w-[200px] rounded-lg mb-2 object-cover border border-border"
-                      />
-                    )}
-                    <span className="text-[15px] break-words">
-                      {msg.content}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {isGenerating && (
-            <div className="flex justify-start animate-in fade-in duration-200">
-              <div className="bg-card border border-border rounded-[18px_18px_18px_4px] px-4 py-3 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
-                <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
-                <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
-              </div>
-            </div>
-          )}
+      {/* Chat */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile context */}
+        <div className="border-b border-border lg:hidden">
+          <button
+            onClick={() => setContextOpen(!contextOpen)}
+            aria-expanded={contextOpen}
+            className="flex w-full items-center justify-between px-4 py-2.5 text-sm"
+          >
+            <span className="flex items-center gap-2 font-medium"><BarChart3 size={15} className="text-primary" />Your business, last {CONTEXT_DAYS} days</span>
+            {contextOpen ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+          </button>
+          {contextOpen && !contextLoading && <div className="px-4 pb-2">{contextList}</div>}
         </div>
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Image preview */}
-      {imagePreview && (
-        <div className="px-4 pb-1 w-full">
-          <div className="relative inline-block">
-            <img
-              src={imagePreview}
-              alt="Upload"
-              className="h-[60px] rounded-lg border border-border object-cover max-w-[200px]"
-            />
-            <button
-              onClick={removeImage}
-              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center"
-            >
-              <X size={12} />
-            </button>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
-              {imageFile?.name}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* FIX 6: Input bar full width, no mx-2 gap */}
-      <div className="border-t border-border w-full"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageSelect}
-        />
-
-        {isListening ? (
-          <div className="flex items-center gap-3 px-3 py-3 bg-[var(--chart-card-bg)] rounded-full mx-2 my-2 w-[calc(100%-16px)]">
-            <button
-              onClick={toggleListening}
-              className="w-11 h-11 flex items-center justify-center shrink-0 rounded-full bg-destructive text-white"
-              style={{ boxShadow: '0 0 12px rgba(239,68,68,0.5)' }}
-            >
-              <MicOff size={20} />
-            </button>
-            <div className="flex-1 flex flex-col items-center justify-center overflow-hidden">
-              {input || interimTranscript ? (
-                <p className="text-sm truncate w-full text-center text-card-foreground font-extrabold">
-                  {input}{' '}
-                  <span className="italic text-accent text-sm font-extrabold">
-                    {interimTranscript}
+        <div ref={messagesContainerRef} className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6">
+            {messages.length === 0 && !isGenerating && historyLoaded && (
+              <div className="flex flex-col items-center py-10 text-center md:py-16">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-2xl bg-primary/30 blur-xl" />
+                  <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+                    <Sparkles size={26} />
                   </span>
+                </div>
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight">Ask about your business</h1>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                  Answers come from your own orders, stock and expenses. You can also send a photo, like a product or a receipt.
                 </p>
-              ) : (
-                <WaveformBars />
+                <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-3">
+                  {EXAMPLES.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => sendMessage(e)}
+                      className="surface-interactive px-4 py-3 text-left text-sm text-foreground"
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {messages.map((msg) => (
+                <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  {msg.role === 'user' ? (
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[15px] text-primary-foreground">
+                        {msg.imagePreview && (
+                          <img src={msg.imagePreview} alt="Uploaded" className="mb-2 max-w-[200px] rounded-lg object-cover" />
+                        )}
+                        <span className="break-words">{msg.content}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3">
+                      <AssistantAvatar />
+                      <div className="min-w-0 flex-1 pt-1">
+                        <div className="text-[15px] leading-relaxed text-foreground">
+                          <ReactMarkdown
+                            components={{
+                              strong: ({ children }) => <strong className="font-semibold text-highlight">{children}</strong>,
+                              p: ({ children }) => <p className="mb-3 break-words last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 marker:text-primary">{children}</ul>,
+                              ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 marker:text-primary">{children}</ol>,
+                              li: ({ children }) => <li className="break-words">{children}</li>,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                        <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>Based on your live data</span>
+                          {msg.savedToNotes ? (
+                            <span className="flex items-center gap-1 text-success"><Check size={12} /> Saved to Notes</span>
+                          ) : (
+                            <button onClick={() => saveToNotes(msg)} className="flex items-center gap-1 transition-colors hover:text-foreground">
+                              <BookmarkPlus size={12} /> Save to Notes
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {isGenerating && (
+                <div className="flex gap-3 animate-in fade-in duration-200">
+                  <AssistantAvatar />
+                  <div className="flex items-center gap-1.5 pt-3">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:0ms]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:150ms]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:300ms]" />
+                  </div>
+                </div>
               )}
-              <span className="text-xs mt-1 font-extrabold text-accent">
-                Listening... tap to stop
-              </span>
             </div>
+            <div ref={messagesEndRef} />
           </div>
-        ) : (
-          /* FIX 7: w-[calc(100%-16px)] fills full width */
-          <div className="flex items-center gap-2 px-3 py-0 border rounded-full bg-[var(--chart-card-bg)] mx-2 my-2 w-[calc(100%-16px)]">
-            <button
-              onClick={toggleListening}
-              className="w-11 h-11 shrink-0 rounded-full transition-colors flex items-center justify-center"
-            >
-              <Mic size={20} className="text-lime-900" />
-            </button>
+        </div>
 
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-11 h-11 shrink-0 transition-colors flex items-center justify-start"
-            >
-              <ImageIcon size={20} className="text-lime-900" />
-            </button>
+        {/* Composer */}
+        <div className="px-4 pb-4 pt-2 md:px-6" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="mx-auto w-full max-w-3xl">
+            <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleImageSelect} />
 
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything about your business..."
-              className="flex-1 bg-transparent text-[16px] outline-none font-extrabold text-accent min-w-0"
-            />
+            <div className="surface p-2 shadow-xl shadow-black/30 focus-within:border-primary/40">
+              {imagePreview && (
+                <div className="relative mb-2 ml-1 mt-1 inline-block">
+                  <img src={imagePreview} alt="Upload" className="h-16 max-w-[200px] rounded-lg border border-border object-cover" />
+                  <button
+                    onClick={removeImage}
+                    aria-label="Remove image"
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
 
-            <button
-              onClick={() => sendMessage()}
-              disabled={
-                (!input.trim() && !imageFile) || isGenerating
-              }
-              className="w-11 h-11 rounded-full bg-[var(--sidebar-bg)] text-white flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity hover:opacity-90"
-            >
-              <Send size={18} />
-            </button>
+              {isListening ? (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={toggleListening}
+                    aria-label="Stop listening"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive text-destructive-foreground shadow-[0_0_12px_hsl(var(--destructive)/0.5)]"
+                  >
+                    <MicOff size={18} />
+                  </button>
+                  <div className="flex flex-1 flex-col items-center justify-center overflow-hidden">
+                    {input || interimTranscript ? (
+                      <p className="w-full truncate text-center text-sm">
+                        {input} <span className="italic text-muted-foreground">{interimTranscript}</span>
+                      </p>
+                    ) : (
+                      <WaveformBars />
+                    )}
+                    <span className="mt-1 text-xs text-muted-foreground">Listening... tap to stop</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <button onClick={toggleListening} aria-label="Speak your question" className="icon-btn h-10 w-10 shrink-0">
+                    <Mic size={18} />
+                  </button>
+                  <button onClick={() => fileInputRef.current?.click()} aria-label="Attach an image" className="icon-btn h-10 w-10 shrink-0">
+                    <ImageIcon size={18} />
+                  </button>
+                  <input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask anything about your business..."
+                    className="min-w-0 flex-1 bg-transparent px-2 text-[15px] text-foreground outline-none placeholder:text-muted-foreground max-md:text-[16px]"
+                    style={{ outline: 'none' }}
+                  />
+                  <button
+                    onClick={() => sendMessage()}
+                    disabled={(!input.trim() && !imageFile) || isGenerating}
+                    aria-label="Send"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:brightness-110 disabled:opacity-30"
+                  >
+                    <Send size={17} />
+                  </button>
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">AI can make mistakes. Check important numbers on your Dashboard.</p>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Business context panel (desktop) */}
+      <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-sidebar lg:flex">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <p className="text-sm font-medium">Your business</p>
+            <p className="text-xs text-muted-foreground">Last {CONTEXT_DAYS} days</p>
+          </div>
+          <button onClick={fetchContext} aria-label="Refresh numbers" className="icon-btn h-8 w-8">
+            <RefreshCw size={14} className={contextLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-2">
+          {contextLoading && !context ? <SkeletonLoader variant="row" count={5} /> : contextList}
+          <p className="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+            The assistant sees these same numbers when it answers.
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

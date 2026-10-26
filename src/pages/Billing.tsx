@@ -48,7 +48,7 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
       {limit !== null && (
         <div className="mt-1.5 h-2 rounded-full bg-muted">
           <div
-            className={cn('h-2 rounded-full', pct >= 90 ? 'bg-destructive' : pct >= 70 ? 'bg-[#F59E0B]' : 'bg-primary')}
+            className={cn('h-2 rounded-full', pct >= 90 ? 'bg-destructive' : pct >= 70 ? 'bg-warning' : 'bg-primary')}
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -110,7 +110,7 @@ export default function Billing() {
 
   const ends = accessEndsAt(subscription);
   const daysLeft = daysUntil(ends);
-  const sectionClass = 'rounded-xl border border-border p-5 bg-[var(--chart-card-bg)]';
+  const sectionClass = 'rounded-xl border border-border p-5 bg-[hsl(var(--card))]';
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -121,7 +121,7 @@ export default function Billing() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-bold text-muted-foreground">Current plan</p>
-            <p className="text-2xl font-extrabold text-foreground">{planLabel(subscription)}</p>
+            <p className="text-2xl font-semibold text-foreground">{planLabel(subscription)}</p>
             <p className={cn('mt-1 text-sm font-semibold', subscription.state === 'expired' ? 'text-destructive' : 'text-muted-foreground')}>
               {subscription.state === 'expired'
                 ? 'Expired — your workspace is read-only until you choose a plan.'
@@ -170,10 +170,10 @@ export default function Billing() {
               return (
                 <div key={p.id} className={cn('flex flex-col rounded-xl border p-5', p.id === 'pro' ? 'border-primary' : 'border-border')}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-extrabold text-foreground">{p.name}</h3>
+                    <h3 className="text-xl font-semibold text-foreground">{p.name}</h3>
                     {p.id === 'pro' && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">Most popular</span>}
                   </div>
-                  <p className="mt-2 text-3xl font-extrabold text-foreground">
+                  <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
                     {taka(price)}
                     <span className="text-base font-semibold text-muted-foreground"> / {period === 'yearly' ? 'year' : 'month'}</span>
                   </p>

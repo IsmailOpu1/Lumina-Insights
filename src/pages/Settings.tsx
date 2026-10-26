@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/context/AuthContext';
@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import { Download, Loader2, Check, Palette, LayoutDashboard, Gauge, Bell, Database, Pencil, LogOut, User, Users, Copy, X, MailPlus, Camera, type LucideIcon } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import { Download, Loader2, Check, Palette, Gauge, Bell, Database, Pencil, LogOut, Users, Copy, X, MailPlus, Camera, Crown, ShoppingBag, Sparkles, Mail, Building2, CalendarDays, CreditCard, UserRound, FileSpreadsheet, Package, Receipt, ShieldCheck, XCircle, AlertTriangle, PackageX, TrendingDown, Megaphone, type LucideIcon } from 'lucide-react';
+import GlowBackdrop from '@/components/GlowBackdrop';
+import UserAvatar from '@/components/UserAvatar';
 import Segmented from '@/components/dashboard/Segmented';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,16 @@ const PREF_HINTS: Record<keyof NotifPrefs, string> = {
   weekly_summary: 'A short recap every week',
 };
 
+const PREF_ICONS: Record<keyof NotifPrefs, LucideIcon> = {
+  new_order: ShoppingBag,
+  cancelled_order: XCircle,
+  low_stock: AlertTriangle,
+  critical_stock: PackageX,
+  profit_drop: TrendingDown,
+  roas_alert: Megaphone,
+  weekly_summary: CalendarDays,
+};
+
 const ROLE_STYLE: Record<string, string> = {
   owner: 'border-primary/30 bg-primary/10 text-primary',
   manager: 'border-highlight/30 bg-highlight/10 text-highlight',
@@ -69,11 +80,11 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-function SettingsCard({ id, icon: Icon, title, description, action, children }: {
-  id: string; icon: LucideIcon; title: string; description: string; action?: ReactNode; children: ReactNode;
+function SettingsCard({ id, icon: Icon, title, description, action, className, children }: {
+  id: string; icon: LucideIcon; title: string; description: string; action?: ReactNode; className?: string; children: ReactNode;
 }) {
   return (
-    <section id={id} className="surface scroll-mt-4 overflow-hidden">
+    <section id={id} className={cn('scroll-mt-4 overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-xl', className)}>
       <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div className="flex gap-3">
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
@@ -185,6 +196,12 @@ export default function SettingsPage() {
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
+  // Links like /settings#profile land on that card once the page has loaded.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!loading && hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loading, hash]);
+
   const fetchTeamData = useCallback(async () => {
     if (!user || !isOwner) return;
     const [membersRes, invitesRes] = await Promise.all([
@@ -261,9 +278,15 @@ export default function SettingsPage() {
       if (uploadError) throw uploadError;
       
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setAvatarUrl(publicUrl);
-      saveDebounced({ avatar_url: publicUrl });
-      toast.success('Avatar updated successfully');
+      // Same file name on every upload, so bust caches to show the new photo.
+      const url = `${publicUrl}?v=${Date.now()}`;
+      if (settingsId) {
+        const { error } = await supabase.from('user_settings').update({ avatar_url: url }).eq('id', settingsId);
+        if (error) throw error;
+      }
+      setAvatarUrl(url);
+      await refreshSettings();
+      toast.success('Photo updated');
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar');
@@ -430,8 +453,8 @@ export default function SettingsPage() {
   }
 
   if (loading) return (
-    <div className="mx-auto max-w-[1100px]">
-      <PageHeader title="Settings" />
+    <div className="mx-auto max-w-[1200px]">
+      <h1 className="page-title mb-6">Settings</h1>
       <SkeletonLoader variant="row" count={6} />
     </div>
   );
@@ -448,237 +471,299 @@ export default function SettingsPage() {
     : subscription.state === 'expired' ? 'Expired'
     : subscription.limits.name;
 
-  const sections = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'appearance', label: 'Appearance', icon: Palette },
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'alerts', label: 'Notifications', icon: Bell },
-    { id: 'rules', label: 'Business rules', icon: Gauge },
-    ...(isOwner ? [{ id: 'team', label: 'Team', icon: Users }] : []),
-    { id: 'data', label: 'Data', icon: Database },
-  ];
+  const usage = subscription?.usage;
+  const limits = subscription?.limits;
+  const heroStats = subscription && usage && limits ? [
+    { label: 'Plan', value: planBadge ?? '—', icon: Crown },
+    { label: 'Orders this month', value: limits.max_orders_per_month === null ? `${usage.orders_this_month}` : `${usage.orders_this_month} / ${limits.max_orders_per_month}`, icon: ShoppingBag },
+    { label: 'AI questions today', value: `${usage.ai_chat_today} / ${limits.ai_chat_per_day}`, icon: Sparkles },
+    { label: 'Team', value: limits.max_team_members > 0 ? `${usage.team_members + 1} / ${limits.max_team_members + 1}` : 'Just you', icon: Users },
+  ] : [];
 
   return (
-    <div className="mx-auto max-w-[1100px]">
-      <PageHeader
-        title="Settings"
-        subtitle="Your profile, how Lumina looks, and the rules behind your alerts."
-        actions={saved && <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success animate-in fade-in"><Check size={13} />Saved</span>}
-      />
+    <div className="relative isolate mx-auto max-w-[1200px]">
+      <GlowBackdrop className="-inset-x-10 -top-10" />
 
-      <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
-        {/* Section nav */}
-        <nav aria-label="Settings sections" className="lg:sticky lg:top-4 lg:self-start">
-          <ul className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:px-0">
-            {sections.map(({ id, label, icon: Icon }) => (
-              <li key={id}>
-                <a href={`#${id}`} className="flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-                  <Icon size={16} />
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="page-title">Settings</h1>
+          <p className="page-subtitle">Your account, how Lumina looks, and the rules behind your alerts.</p>
+        </div>
+        {saved && <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success animate-in fade-in"><Check size={13} />Saved</span>}
+      </div>
 
-        <div className="min-w-0 space-y-6">
-          {/* Profile */}
-          <section id="profile" className="surface relative scroll-mt-4 overflow-hidden">
-            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-primary/20 via-highlight/10 to-transparent" />
-            <div className="relative flex flex-col gap-5 p-6 pt-10 md:flex-row md:items-end">
-              <div className="relative h-20 w-20 shrink-0">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-highlight text-2xl font-semibold text-primary-foreground ring-4 ring-card">
-                  {displayAvatar ? <img src={displayAvatar} alt="" className="h-full w-full object-cover" /> : initials}
-                </div>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-xl font-semibold">{displayName}</h2>
-                  {planBadge && <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{planBadge}</span>}
-                </div>
-                <p className="mt-0.5 truncate text-sm text-muted-foreground">{displayEmail}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {businessName}{user?.created_at && <> · Member since {fnsFormat(new Date(user.created_at), 'MMM yyyy')}</>}
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={openProfileModal}>
-                  <Pencil size={14} /> Edit profile
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={async () => { await signOut(); navigate('/login', { replace: true }); }}
-                >
-                  <LogOut size={14} /> Sign out
-                </Button>
-              </div>
+      {/* Profile hero */}
+      <section id="profile" className="relative mb-6 scroll-mt-4 overflow-hidden rounded-2xl border border-primary/25 bg-card/70 backdrop-blur-xl">
+        <div className="bg-grid pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_top_left,black,transparent_70%)]" />
+        <div className="pointer-events-none absolute -left-20 -top-32 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-[-120px] h-64 w-64 rounded-full bg-highlight/20 blur-3xl" />
+
+        <div className="relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:p-8">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="group relative h-24 w-24 shrink-0 self-start rounded-3xl md:self-auto"
+            aria-label="Change profile photo"
+          >
+            <span className="absolute -inset-1 rounded-[28px] bg-gradient-to-br from-primary to-highlight opacity-60 blur-md transition-opacity group-hover:opacity-90" />
+            <span className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-highlight text-3xl font-semibold text-primary-foreground ring-2 ring-background">
+              {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
+            </span>
+            <span className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100">
+              {uploadingAvatar ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} />}
+            </span>
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-2xl font-semibold tracking-tight">{displayName}</h2>
+              {planBadge && <span className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary shadow-glow">{planBadge}</span>}
             </div>
-          </section>
+            <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Mail size={14} />{displayEmail}</span>
+              <span className="flex items-center gap-1.5"><Building2 size={14} />{businessName}</span>
+              {user?.created_at && <span className="flex items-center gap-1.5"><CalendarDays size={14} />Since {fnsFormat(new Date(user.created_at), 'MMM yyyy')}</span>}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" className="gap-1.5" onClick={openProfileModal}>
+                <Pencil size={14} /> Edit profile
+              </Button>
+              {isOwner && (
+                <Button size="sm" variant="outline" className="gap-1.5 bg-background/40" onClick={() => navigate('/billing')}>
+                  <CreditCard size={14} /> Billing
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={async () => { await signOut(); navigate('/login', { replace: true }); }}
+              >
+                <LogOut size={14} /> Sign out
+              </Button>
+            </div>
+          </div>
+        </div>
 
-          {/* Appearance */}
-          <SettingsCard id="appearance" icon={Palette} title="Appearance" description="Lumina uses one dark theme. Pick the font you find easiest to read.">
-            <div className="grid grid-cols-2 gap-2 p-5 sm:grid-cols-3">
-              {FONT_OPTIONS.map(f => (
-                <button
-                  key={f}
-                  onClick={() => handleFontChange(f)}
-                  aria-pressed={fontStyle === f}
+        {heroStats.length > 0 && (
+          <div className="relative grid grid-cols-2 border-t border-border/70 bg-background/30 lg:grid-cols-4">
+            {heroStats.map(({ label, value, icon: Icon }, i) => (
+              <div key={label} className={cn('flex items-center gap-3 px-6 py-4', i % 2 === 1 && 'border-l border-border/70', i >= 2 && 'max-lg:border-t lg:border-l')}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon size={16} /></span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-muted-foreground">{label}</p>
+                  <p className="truncate text-sm font-semibold tabular-nums">{value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Appearance */}
+        <SettingsCard id="appearance" icon={Palette} title="Appearance" description="Pick the font you find easiest to read.">
+          <div className="grid grid-cols-3 gap-2 p-5">
+            {FONT_OPTIONS.map(f => (
+              <button
+                key={f}
+                onClick={() => handleFontChange(f)}
+                aria-pressed={fontStyle === f}
+                className={cn(
+                  'relative rounded-xl border px-3 py-3 text-left transition-colors',
+                  fontStyle === f ? 'border-primary/60 bg-primary/10 ring-1 ring-primary/40' : 'border-border bg-background/30 hover:border-primary/40 hover:bg-secondary'
+                )}
+              >
+                {fontStyle === f && <Check size={13} className="absolute right-2 top-2 text-primary" />}
+                <span className="block text-2xl leading-none" style={{ fontFamily: FONT_FAMILIES[f] }}>Aa</span>
+                <span className="mt-2 block text-xs text-muted-foreground" style={{ fontFamily: FONT_FAMILIES[f] }}>{FONT_LABELS[f]}</span>
+              </button>
+            ))}
+          </div>
+        </SettingsCard>
+
+        {/* Dashboard + rules */}
+        <SettingsCard id="rules" icon={Gauge} title="Dashboard and alerts" description="What you see first, and when Lumina warns you.">
+          <SettingRow label="Default date range" description="The period the Dashboard opens on.">
+            <Segmented
+              label="Default date range"
+              value={dashboardFilter}
+              onChange={handleDashFilter}
+              options={[{ label: 'Today', value: 'today' }, { label: '7 days', value: '7days' }, { label: '30 days', value: '30days' }]}
+            />
+          </SettingRow>
+          <SettingRow label="ROAS alert" description="Warn me when return on ad spend drops below this.">
+            <div className="relative w-28">
+              <Input type="number" min={0} step="0.1" value={roasThreshold} onChange={e => handleRoas(e.target.value)} className="pr-7 text-right tabular-nums" aria-label="ROAS threshold" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">x</span>
+            </div>
+          </SettingRow>
+          <SettingRow label="Not selling after" description="Flag a product after this many days without a sale.">
+            <div className="relative w-28">
+              <Input type="number" min={1} value={deadDays} onChange={e => handleDeadDays(e.target.value)} className="pr-12 text-right tabular-nums" aria-label="Dead product days" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">days</span>
+            </div>
+          </SettingRow>
+        </SettingsCard>
+
+        {/* Notifications */}
+        <SettingsCard
+          id="alerts"
+          icon={Bell}
+          title="Notifications"
+          description="Choose which alerts reach your bell menu."
+          className="lg:col-span-2"
+          action={<Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setClearOpen(true)}>Clear mine</Button>}
+        >
+          <div className="grid gap-2 p-5 sm:grid-cols-2 xl:grid-cols-4">
+            {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => {
+              // The weekly summary is only sent on Pro, so don't offer it elsewhere.
+              const proOnly = key === 'weekly_summary' && !features.weeklySummary;
+              const on = proOnly ? false : notifPrefs[key];
+              const Icon = PREF_ICONS[key];
+              return (
+                <label
+                  key={key}
                   className={cn(
-                    'rounded-lg border px-3 py-3 text-left transition-colors',
-                    fontStyle === f ? 'border-primary/60 bg-primary/10 ring-1 ring-primary/40' : 'border-border hover:border-primary/40 hover:bg-secondary'
+                    'flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition-colors',
+                    on ? 'border-primary/30 bg-primary/[0.06]' : 'border-border bg-background/30',
+                    proOnly && 'cursor-not-allowed opacity-70'
                   )}
                 >
-                  <span className="block text-lg leading-none" style={{ fontFamily: FONT_FAMILIES[f] }}>Aa</span>
-                  <span className="mt-1.5 block text-xs text-muted-foreground" style={{ fontFamily: FONT_FAMILIES[f] }}>{FONT_LABELS[f]}</span>
-                </button>
-              ))}
-            </div>
-          </SettingsCard>
-
-          {/* Dashboard */}
-          <SettingsCard id="dashboard" icon={LayoutDashboard} title="Dashboard" description="What you see first when you open Lumina.">
-            <SettingRow label="Default date range" description="The period the Dashboard opens on.">
-              <Segmented
-                label="Default date range"
-                value={dashboardFilter}
-                onChange={handleDashFilter}
-                options={[{ label: 'Today', value: 'today' }, { label: '7 days', value: '7days' }, { label: '30 days', value: '30days' }]}
-              />
-            </SettingRow>
-          </SettingsCard>
-
-          {/* Notifications */}
-          <SettingsCard id="alerts" icon={Bell} title="Notifications" description="Choose which alerts you get in the bell menu.">
-            <div className="grid sm:grid-cols-2">
-              {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => {
-                // The weekly summary is only sent on Pro, so don't offer it elsewhere.
-                const proOnly = key === 'weekly_summary' && !features.weeklySummary;
-                return (
-                  <label key={key} className="flex cursor-pointer items-center justify-between gap-4 border-b border-border/60 px-5 py-3.5 sm:odd:border-r">
-                    <span>
-                      <span className="flex items-center gap-2 text-sm font-medium">
-                        {PREF_LABELS[key]}
-                        {proOnly && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">Pro</span>}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">{PREF_HINTS[key]}</span>
+                  <span className="flex items-center justify-between">
+                    <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', on ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground')}>
+                      <Icon size={15} />
                     </span>
                     <Switch
-                      checked={proOnly ? false : notifPrefs[key]}
+                      checked={on}
                       disabled={proOnly}
                       onCheckedChange={() => handlePrefToggle(key)}
                       aria-label={PREF_LABELS[key]}
                     />
-                  </label>
-                );
-              })}
-            </div>
-            <div className="flex justify-end px-5 py-3">
-              <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setClearOpen(true)}>Clear my notifications</Button>
-            </div>
-          </SettingsCard>
+                  </span>
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      {PREF_LABELS[key]}
+                      {proOnly && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">Pro</span>}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">{PREF_HINTS[key]}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </SettingsCard>
 
-          {/* Business rules */}
-          <SettingsCard id="rules" icon={Gauge} title="Business rules" description="The numbers behind your alerts and insights.">
-            <SettingRow label="ROAS alert" description="Warn me when return on ad spend drops below this.">
-              <div className="relative w-28">
-                <Input type="number" min={0} step="0.1" value={roasThreshold} onChange={e => handleRoas(e.target.value)} className="pr-7 text-right tabular-nums" aria-label="ROAS threshold" />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">x</span>
+        {/* Team */}
+        {isOwner && (
+          <SettingsCard
+            id="team"
+            icon={Users}
+            title="Team"
+            description="Managers can add and edit data. Viewers can only look."
+            action={teamAllowed && (
+              <Button size="sm" className="gap-1.5" onClick={() => setInviteModalOpen(true)}>
+                <MailPlus size={14} /> Invite
+              </Button>
+            )}
+          >
+            {!teamAllowed && (
+              <div className="m-5 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <p className="text-sm font-medium">Team members are a Pro feature.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Upgrade to Pro to invite people. Anyone you invited before keeps their place and gets access back when you upgrade.
+                </p>
+                <Button size="sm" className="mt-3" onClick={() => navigate('/billing')}>See plans</Button>
               </div>
-            </SettingRow>
-            <SettingRow label="Not selling after" description="Flag a product as not selling after this many days without a sale.">
-              <div className="relative w-28">
-                <Input type="number" min={1} value={deadDays} onChange={e => handleDeadDays(e.target.value)} className="pr-12 text-right tabular-nums" aria-label="Dead product days" />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">days</span>
-              </div>
-            </SettingRow>
-            <p className="px-5 py-3 text-xs text-muted-foreground">Low-stock levels are set on each product in Inventory.</p>
-          </SettingsCard>
+            )}
 
-          {/* Team */}
-          {isOwner && (
-            <SettingsCard
-              id="team"
-              icon={Users}
-              title="Team"
-              description="Managers can add and edit data. Viewers can only look."
-              action={teamAllowed && (
-                <Button size="sm" className="gap-1.5" onClick={() => setInviteModalOpen(true)}>
-                  <MailPlus size={14} /> Invite
-                </Button>
-              )}
-            >
-              {!teamAllowed && (
-                <div className="m-5 rounded-lg border border-primary/30 bg-primary/5 p-4">
-                  <p className="text-sm font-medium">Team members are a Pro feature.</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Upgrade to Pro to invite people. Anyone you invited before keeps their place and gets access back when you upgrade.
-                  </p>
-                  <Button size="sm" className="mt-3" onClick={() => navigate('/billing')}>See plans</Button>
+            <ul>
+              <li className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
+                <UserAvatar className="h-9 w-9 text-xs" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{fullName || businessName} <span className="text-muted-foreground">(you)</span></p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
-              )}
-
-              <ul>
-                <li className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-highlight text-xs font-semibold text-primary-foreground">
-                    {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials}
+                <RoleBadge role="owner" />
+              </li>
+              {teamMembers.map((member) => (
+                <li key={member.id} className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    {member.email?.[0]?.toUpperCase() || '?'}
+                  </span>
+                  <p className="min-w-0 flex-1 truncate text-sm">{member.email}</p>
+                  <RoleBadge role={member.role} />
+                  <button onClick={() => removeTeamMember(member.id)} className="icon-btn-danger" aria-label={`Remove ${member.email}`}>
+                    <X size={16} />
+                  </button>
+                </li>
+              ))}
+              {pendingInvites.map((invite) => (
+                <li key={invite.id} className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
+                    <MailPlus size={14} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{fullName || businessName} <span className="text-muted-foreground">(you)</span></p>
-                    <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                    <p className="truncate text-sm">{invite.email}</p>
+                    <p className="text-xs text-muted-foreground">Invite pending · expires {fnsFormat(new Date(invite.expires_at), 'MMM d')}</p>
                   </div>
-                  <RoleBadge role="owner" />
+                  <RoleBadge role={invite.role} />
+                  <button onClick={() => copyInviteLink(invite.token)} className="icon-btn" aria-label="Copy invite link">
+                    <Copy size={16} />
+                  </button>
+                  <button onClick={() => revokeInvite(invite.id)} className="icon-btn-danger" aria-label="Revoke invite">
+                    <X size={16} />
+                  </button>
                 </li>
-                {teamMembers.map((member) => (
-                  <li key={member.id} className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                      {member.email?.[0]?.toUpperCase() || '?'}
-                    </span>
-                    <p className="min-w-0 flex-1 truncate text-sm">{member.email}</p>
-                    <RoleBadge role={member.role} />
-                    <button onClick={() => removeTeamMember(member.id)} className="icon-btn-danger" aria-label={`Remove ${member.email}`}>
-                      <X size={16} />
-                    </button>
-                  </li>
-                ))}
-                {pendingInvites.map((invite) => (
-                  <li key={invite.id} className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
-                      <MailPlus size={14} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm">{invite.email}</p>
-                      <p className="text-xs text-muted-foreground">Invite pending · expires {fnsFormat(new Date(invite.expires_at), 'MMM d')}</p>
-                    </div>
-                    <RoleBadge role={invite.role} />
-                    <button onClick={() => copyInviteLink(invite.token)} className="icon-btn" aria-label="Copy invite link">
-                      <Copy size={16} />
-                    </button>
-                    <button onClick={() => revokeInvite(invite.id)} className="icon-btn-danger" aria-label="Revoke invite">
-                      <X size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <p className="px-5 py-3 text-xs text-muted-foreground">
-                {teamMembers.length + 1} member{teamMembers.length ? 's' : ''}
-                {subscription && subscription.limits.max_team_members > 0 && ` · up to ${subscription.limits.max_team_members} on your plan`}
-              </p>
-            </SettingsCard>
-          )}
-
-          {/* Data */}
-          <SettingsCard id="data" icon={Database} title="Data" description="Your data belongs to you.">
-            <SettingRow label="Export everything" description="Orders, inventory and expenses in one Excel file.">
-              <Button variant="outline" onClick={handleExportAll} disabled={exporting}>
-                {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                {exporting ? 'Exporting...' : 'Export'}
-              </Button>
-            </SettingRow>
+              ))}
+            </ul>
+            {teamMembers.length === 0 && pendingInvites.length === 0 && teamAllowed && (
+              <div className="flex flex-col items-center px-5 py-8 text-center">
+                <div className="flex -space-x-2">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-muted text-muted-foreground"><UserRound size={15} /></span>
+                  ))}
+                </div>
+                <p className="mt-3 text-sm font-medium">Run the shop together</p>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground">Invite a manager to record orders, or a viewer like a partner who only wants to see the numbers.</p>
+              </div>
+            )}
           </SettingsCard>
-        </div>
+        )}
+
+        {/* Data */}
+        <SettingsCard id="data" icon={Database} title="Your data" description="It belongs to you. Take a copy any time." className={cn(!isOwner && 'lg:col-span-2')}>
+          <div className="space-y-3 p-5">
+            <button
+              onClick={handleExportAll}
+              disabled={exporting}
+              className="group flex w-full items-center gap-4 rounded-xl border border-border bg-background/30 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/[0.04] disabled:opacity-60"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                {exporting ? <Loader2 size={20} className="animate-spin" /> : <FileSpreadsheet size={20} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium">{exporting ? 'Exporting...' : 'Export everything to Excel'}</span>
+                <span className="block text-xs text-muted-foreground">Orders, inventory and expenses, one sheet each</span>
+              </span>
+              <Download size={16} className="text-muted-foreground transition-colors group-hover:text-primary" />
+            </button>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[{ label: 'Orders', icon: ShoppingBag }, { label: 'Inventory', icon: Package }, { label: 'Expenses', icon: Receipt }].map(({ label, icon: Icon }) => (
+                <div key={label} className="rounded-lg border border-border/70 bg-background/20 px-2 py-3">
+                  <Icon size={16} className="mx-auto text-muted-foreground" />
+                  <p className="mt-1.5 text-xs text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <ShieldCheck size={14} className="mt-px shrink-0 text-primary" />
+              Only you and the people you invite can see this workspace.
+            </p>
+          </div>
+        </SettingsCard>
       </div>
 
       <AlertDialog open={clearOpen} onOpenChange={o => { if (!o) setClearOpen(false); }}>

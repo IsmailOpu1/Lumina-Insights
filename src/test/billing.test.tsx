@@ -159,9 +159,16 @@ describe('Billing page', () => {
   it('does not let a Pro customer buy Starter while Pro is still running', async () => {
     mocks.sub = sub({ plan: 'pro', limits: plans[1] });
     renderAt('/billing', <Billing />);
-    expect(await screen.findByRole('button', { name: 'Pay ৳499' })).toBeDisabled();
-    expect(screen.getByText(/switch to Starter after that/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Renew Pro' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Renew Pro' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Pay ৳499' })).not.toBeInTheDocument();
+    expect(screen.getByText('Included in your Pro plan')).toBeInTheDocument();
+    expect(screen.getByText(/switch to Starter after/)).toBeInTheDocument();
+  });
+
+  it('tells a Pro account with no end date that it never needs Starter', async () => {
+    mocks.sub = sub({ plan: 'pro', limits: plans[1], current_period_end: '2100-01-01T00:00:00Z' });
+    renderAt('/billing', <Billing />);
+    expect(await screen.findByText(/Pro with no end date/)).toBeInTheDocument();
   });
 
   it('marks an expired plan as read-only', () => {

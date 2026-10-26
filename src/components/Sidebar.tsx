@@ -8,6 +8,7 @@ import { useNotifications } from '@/context/NotificationContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import UserAvatar from './UserAvatar';
 
 const NAV_GROUPS = [
   {
@@ -154,15 +155,13 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
         {/* Business card */}
         {!isCollapsed && userSettings?.business_name && (
           <div className="border-t border-border p-3">
-            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/30 to-highlight/20 text-xs font-semibold text-foreground">
-                {userSettings.business_name.slice(0, 1).toUpperCase()}
-              </span>
+            <button onClick={() => handleNav('/settings#profile')} disabled={isViewer} className="flex w-full disabled:pointer-events-none items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary">
+              <UserAvatar className="h-8 w-8 text-xs" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">{userSettings.business_name}</p>
                 <p className="truncate text-xs text-muted-foreground">{isOwner ? 'Owner' : isViewer ? 'Viewer' : 'Manager'}</p>
               </div>
-            </div>
+            </button>
           </div>
         )}
       </aside>

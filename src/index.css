@@ -165,6 +165,25 @@
   }
 }
 
+/* Slow-drifting glow orbs behind hero areas */
+@keyframes orb-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(40px, -30px, 0) scale(1.08); }
+  100% { transform: translate3d(-30px, 20px, 0) scale(0.95); }
+}
+
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  animation: orb-drift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb { animation: none; }
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

@@ -184,15 +184,23 @@ export default function Billing() {
                       </li>
                     ))}
                   </ul>
-                  <Button onClick={() => pay(p.id as PlanId)} disabled={paying !== null || blocked} className="h-11 w-full font-bold">
-                    {paying === p.id
-                      ? <Loader2 className="animate-spin" size={18} />
-                      : isCurrent ? `Renew ${p.name}` : `Pay ${taka(price)}`}
-                  </Button>
-                  {blocked && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      You're on Pro until {format(new Date(ends!), 'd MMM yyyy')}. You can switch to Starter after that.
-                    </p>
+                  {blocked ? (
+                    <>
+                      <div className="flex h-11 items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/10 text-sm font-medium text-primary">
+                        <Check size={16} /> Included in your Pro plan
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {isOpenEnded(subscription)
+                          ? 'Your account has Pro with no end date, so you never need Starter.'
+                          : `Everything in Starter is part of Pro. You can switch to Starter after ${format(new Date(ends!), 'd MMM yyyy')}.`}
+                      </p>
+                    </>
+                  ) : (
+                    <Button onClick={() => pay(p.id as PlanId)} disabled={paying !== null} className="h-11 w-full font-bold">
+                      {paying === p.id
+                        ? <Loader2 className="animate-spin" size={18} />
+                        : isCurrent ? `Renew ${p.name}` : `Pay ${taka(price)}`}
+                    </Button>
                   )}
                 </div>
               );

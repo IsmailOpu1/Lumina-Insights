@@ -184,6 +184,50 @@
   .orb { animation: none; }
 }
 
+/* Mouse-reactive 3D (see useTilt). Variables default to rest. */
+.tilt {
+  transform: perspective(1400px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.tilt-glare {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(500px circle at var(--px, 50%) var(--py, 0%), hsl(var(--primary) / 0.14), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tilt:hover .tilt-glare,
+.tilt-glare-on .tilt-glare {
+  opacity: 1;
+}
+
+/* Layers that float off the tilted surface */
+.depth-sm { transform: translateZ(30px); }
+.depth-md { transform: translateZ(60px); }
+.depth-lg { transform: translateZ(100px); }
+
+/* Moves with the pointer, for background layers */
+.parallax {
+  transform: translate3d(calc(var(--mx, 0) * var(--shift, 24px)), calc(var(--my, 0) * var(--shift, 24px)), 0);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes float-y {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
+}
+.float-y { animation: float-y 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt, .parallax { transform: none !important; transition: none; }
+  .float-y { animation: none; }
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

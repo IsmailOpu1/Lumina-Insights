@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, Bell, Bot, Check, ChevronDown, Megaphone, Package, ShoppingBag, Sparkles, TrendingUp, Users,
+  type LucideIcon,
 } from 'lucide-react';
+import { useTilt } from '@/hooks/useTilt';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/hooks/useCurrency';
 import { LEGAL } from '@/lib/legal';
@@ -59,13 +61,56 @@ function SectionHeading({ eyebrow, title, sub }: { eyebrow: string; title: strin
 }
 
 /** A static picture of the dashboard for the hero. Numbers are illustrative. */
+function FloatingCard({ icon: Icon, tone, title, detail, className, delay = '0s' }: {
+  icon: LucideIcon; tone: string; title: string; detail: string; className: string; delay?: string;
+}) {
+  return (
+    <div className={cn('absolute z-10', className)}>
+      <div className="float-y flex items-center gap-3 rounded-xl border border-border bg-popover/90 px-3.5 py-2.5 text-left shadow-2xl shadow-black/60 backdrop-blur-md" style={{ animationDelay: delay }}>
+        <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', tone)}><Icon size={15} /></span>
+        <span className="min-w-0">
+          <span className="block whitespace-nowrap text-xs font-medium text-foreground">{title}</span>
+          <span className="block whitespace-nowrap text-[11px] text-muted-foreground">{detail}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function ProductPreview() {
+  const tiltRef = useTilt<HTMLDivElement>({ max: 9, global: true });
   const bars = [38, 52, 44, 61, 57, 72, 66, 80, 74, 90, 84, 96];
   const points = bars.map((b, i) => `${(i / (bars.length - 1)) * 100},${100 - b}`).join(' ');
   return (
-    <div className="relative mx-auto mt-16 max-w-5xl" aria-hidden="true">
+    <div ref={tiltRef} className="tilt tilt-glare-on relative mx-auto mt-16 max-w-5xl" aria-hidden="true">
       <div className="absolute -inset-x-10 -top-10 bottom-0 rounded-[40px] bg-primary/20 blur-3xl" />
-      <div className="relative rounded-2xl border border-border bg-card/80 p-2 shadow-2xl shadow-black/60 backdrop-blur">
+
+      <FloatingCard
+        icon={ShoppingBag}
+        tone="bg-primary/15 text-primary"
+        title="New order · ৳2,450"
+        detail="Facebook · just now"
+        className="depth-lg -top-6 left-6 hidden sm:block xl:-left-10"
+      />
+      <FloatingCard
+        icon={Package}
+        tone="bg-warning/15 text-warning"
+        title="Low stock: Panjabi"
+        detail="3 left · restock soon"
+        className="depth-md right-3 top-1/2 hidden sm:block xl:-right-14"
+        delay="-2s"
+      />
+      <FloatingCard
+        icon={Bot}
+        tone="bg-highlight/15 text-highlight"
+        title="AI: Facebook ads pay off"
+        detail="ROAS 4.2x this week"
+        className="depth-lg -bottom-6 left-1/4 hidden md:block"
+        delay="-4s"
+      />
+
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/80 p-2 shadow-2xl shadow-black/60 backdrop-blur">
+        <div className="tilt-glare" />
         <div className="flex items-center gap-1.5 px-3 py-2">
           <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
@@ -117,7 +162,19 @@ function ProductPreview() {
   );
 }
 
+/** A card that tilts toward the pointer with a soft mint glare. */
+function TiltCard({ className, children, max = 6 }: { className?: string; children: React.ReactNode; max?: number }) {
+  const ref = useTilt<HTMLDivElement>({ max });
+  return (
+    <div ref={ref} className={cn('tilt relative', className)}>
+      <div className="tilt-glare" />
+      {children}
+    </div>
+  );
+}
+
 export default function Landing() {
+  const heroRef = useTilt<HTMLElement>({ global: true });
   const [plans, setPlans] = useState<Plan[]>([]);
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
 
@@ -148,9 +205,17 @@ export default function Landing() {
 
       <main>
         {/* Hero */}
-        <section className="relative">
-          <div className="bg-grid pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)]" />
-          <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[900px] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
+        <section ref={heroRef} className="relative overflow-hidden">
+          <div className="bg-grid parallax pointer-events-none absolute -inset-10 [--shift:-14px] [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_70%)]" />
+          <div className="parallax pointer-events-none absolute inset-x-0 top-0 flex justify-center [--shift:40px]">
+            <div className="h-[480px] w-[900px] max-w-[160vw] rounded-full bg-primary/15 blur-3xl" />
+          </div>
+          <div className="parallax pointer-events-none absolute -left-32 top-40 [--shift:-50px]">
+            <div className="orb !static h-72 w-72 bg-highlight/15" />
+          </div>
+          <div className="parallax pointer-events-none absolute -right-24 top-24 [--shift:60px]">
+            <div className="orb !static h-64 w-64 bg-primary/20 [animation-delay:-9s]" />
+          </div>
           <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 text-center sm:pt-24">
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <Sparkles size={13} /> Built for Bangladeshi online sellers
@@ -180,13 +245,13 @@ export default function Landing() {
           <SectionHeading eyebrow="Features" title="Everything a growing shop needs" sub="One app instead of a notebook, three spreadsheets and guesswork." />
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="surface-interactive p-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+              <TiltCard key={title} className="surface-interactive p-6">
+                <div className="depth-sm flex h-10 w-10 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
                   <Icon size={20} />
                 </div>
-                <h3 className="mt-4 font-semibold">{title}</h3>
+                <h3 className="depth-sm mt-4 font-semibold">{title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{desc}</p>
-              </div>
+              </TiltCard>
             ))}
           </div>
           <p className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -233,9 +298,10 @@ export default function Landing() {
             {plans.map((p) => {
               const pro = p.id === 'pro';
               return (
-                <div
+                <TiltCard
                   key={p.id}
-                  className={cn('relative flex flex-col rounded-2xl border p-7',
+                  max={4}
+                  className={cn('flex flex-col rounded-2xl border p-7',
                     pro ? 'border-primary/50 bg-gradient-to-b from-primary/10 to-card shadow-glow' : 'border-border bg-card')}
                 >
                   <div className="flex items-center justify-between">
@@ -263,7 +329,7 @@ export default function Landing() {
                   >
                     Start free trial
                   </Link>
-                </div>
+                </TiltCard>
               );
             })}
           </div>

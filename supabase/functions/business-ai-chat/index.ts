@@ -3,6 +3,10 @@ import { generate, historyToTurns } from "../_shared/gemini.ts";
 
 const MAX_HISTORY_MESSAGES = 20;
 const CONTEXT_DAYS = 30;
+const MAX_MESSAGE_CHARS = 4000;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
+// 5 MB of image once decoded, matching the limit on the page.
+const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 
 function systemPrompt(sym: string, data: string) {
   return `You are Lumina, the business advisor built into Lumina Insights. You work for the owner of a small online or retail business in Bangladesh, most likely selling through Facebook, Instagram, WhatsApp, a website or a shop. Today is ${todayInDhaka()}.
@@ -66,6 +70,16 @@ Deno.serve(async (req) => {
 
     const { message, conversation_history, image_base64, image_type } = await req.json();
     if (!message || typeof message !== "string") return json({ error: "message is required" }, 400);
+    if (message.length > MAX_MESSAGE_CHARS) {
+      return json({ error: `Please keep your message under ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters.` }, 400);
+    }
+    const hasImage = Boolean(image_base64);
+    if (hasImage && (typeof image_base64 !== "string" || !IMAGE_TYPES.includes(image_type))) {
+      return json({ error: "Please attach a JPG, PNG, WebP, GIF or HEIC image." }, 400);
+    }
+    if (hasImage && image_base64.length > MAX_IMAGE_BASE64_CHARS) {
+      return json({ error: "That image is too large. Please use one under 5 MB." }, 400);
+    }
 
     const quotaError = await consumeQuota(caller.client, "ai_chat");
     if (quotaError) return quotaError;
@@ -82,7 +96,7 @@ Deno.serve(async (req) => {
 
     // The image, if any, goes alongside the latest message.
     const parts: Record<string, unknown>[] = [{ text: message }];
-    if (image_base64 && image_type) {
+    if (hasImage) {
       parts.push({ inline_data: { mime_type: image_type, data: image_base64 } });
     }
     const contents = [...historyToTurns(conversation_history, MAX_HISTORY_MESSAGES), { role: "user" as const, parts }];

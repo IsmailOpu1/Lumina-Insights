@@ -15,7 +15,7 @@ export function historyToTurns(history: unknown, limit: number): GeminiTurn[] {
   if (!Array.isArray(history)) return [];
   const turns: GeminiTurn[] = [];
   for (const m of history.slice(-limit)) {
-    const text = typeof m?.content === "string" ? m.content.trim() : "";
+    const text = typeof m?.content === "string" ? m.content.trim().slice(0, 8000) : "";
     if (!text) continue;
     const role = m.role === "user" ? "user" : "model";
     const last = turns[turns.length - 1];

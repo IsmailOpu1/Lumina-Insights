@@ -1,4 +1,4 @@
-import { consumeQuota, corsHeaders, currencySymbol, describeBusiness, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
+import { cleanText, consumeQuota, corsHeaders, currencySymbol, describeBusiness, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
 import { generate } from "../_shared/gemini.ts";
 
 const PLATFORM_GUIDES: Record<string, string> = {
@@ -69,8 +69,12 @@ Deno.serve(async (req) => {
     const caller = await getCaller(req);
     if (!caller) return json({ error: "Unauthorized" }, 401);
 
-    const { product_name, platform: requested, product_features, target_audience } = await req.json();
-    if (!product_name || typeof product_name !== "string") return json({ error: "product_name is required" }, 400);
+    const body = await req.json();
+    const product_name = cleanText(body.product_name, 200);
+    const product_features = cleanText(body.product_features, 1500);
+    const target_audience = cleanText(body.target_audience, 500);
+    const requested = body.platform;
+    if (!product_name) return json({ error: "product_name is required" }, 400);
     const platform = typeof requested === "string" && Object.hasOwn(PLATFORM_GUIDES, requested) ? requested : "Instagram";
 
     const quotaError = await consumeQuota(caller.client, "marketing");
@@ -90,7 +94,7 @@ Deno.serve(async (req) => {
       caller.client.from("inventory").select("product_name, selling_price, stock_quantity, low_stock_threshold").limit(500),
     ]);
     const sym = currencySymbol(snapshot);
-    const wanted = product_name.trim().toLowerCase();
+    const wanted = product_name.toLowerCase();
     const item = ((inventory ?? []) as InventoryRow[]).find((p) => p.product_name.trim().toLowerCase() === wanted);
     const shopFacts = item
       ? `From the shop's inventory: selling price ${sym}${Math.round(item.selling_price).toLocaleString("en-US")}, ${item.stock_quantity} in stock${item.stock_quantity <= item.low_stock_threshold ? " (low stock)" : ""}.`
@@ -98,9 +102,9 @@ Deno.serve(async (req) => {
 
     const userPrompt = `Write ${platform} marketing content.
 
-PRODUCT: ${product_name.trim()}
-FEATURES AND OFFER DETAILS: ${product_features?.trim() || "Not given. Keep claims general and true."}
-TARGET AUDIENCE: ${target_audience?.trim() || "Not given. Pick the most likely Bangladeshi buyers for this product and write for them."}
+PRODUCT: ${product_name}
+FEATURES AND OFFER DETAILS: ${product_features || "Not given. Keep claims general and true."}
+TARGET AUDIENCE: ${target_audience || "Not given. Pick the most likely Bangladeshi buyers for this product and write for them."}
 ${shopFacts}
 Today's date: ${todayInDhaka()}
 

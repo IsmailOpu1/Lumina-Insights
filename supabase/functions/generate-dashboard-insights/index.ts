@@ -1,4 +1,4 @@
-import { consumeQuota, corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json, refundQuota } from "../_shared/business.ts";
+import { cleanText, consumeQuota, corsHeaders, describeSnapshot, fetchSnapshot, getCaller, json, refundQuota } from "../_shared/business.ts";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -21,7 +21,8 @@ Deno.serve(async (req) => {
 
     // Only the date range and an optional question come from the client;
     // the numbers are computed by the database for the caller's workspace.
-    const { from, to, focusQuestion } = await req.json();
+    const { from, to, focusQuestion: rawQuestion } = await req.json();
+    const focusQuestion = cleanText(rawQuestion, 500);
     if ((from && !DATE_RE.test(from)) || (to && !DATE_RE.test(to))) {
       return json({ error: "from/to must be YYYY-MM-DD" }, 400);
     }

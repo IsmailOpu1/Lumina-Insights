@@ -61,8 +61,9 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) return json({ error: "Email service not configured" }, 500);
 
-    const siteUrl = (Deno.env.get("SITE_URL") || req.headers.get("origin") || "").replace(/\/$/, "");
-    if (!siteUrl) return json({ error: "SITE_URL is not configured" }, 500);
+    // Never taken from the request: an Origin header is set by the caller and
+    // would let anyone send a genuine Lumina email linking to their own site.
+    const siteUrl = (Deno.env.get("SITE_URL") || "https://lumina-insights-ashen.vercel.app").replace(/\/$/, "");
 
     const businessName = escapeHtml(settings?.business_name || "A business");
     const role = escapeHtml(invite.role);

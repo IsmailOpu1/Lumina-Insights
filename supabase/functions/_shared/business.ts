@@ -156,6 +156,11 @@ export function todayInDhaka() {
   });
 }
 
+/** Trims a free-text field from the request and caps its length. */
+export function cleanText(value: unknown, max: number): string {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
 export type QuotaMetric = "ai_chat" | "insights" | "marketing";
 
 const QUOTA_MESSAGES: Record<string, { status: number; error: string }> = {

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { siteUrl } from '@/lib/siteUrl';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -17,7 +18,7 @@ export default function ForgotPassword() {
     setLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${siteUrl()}/reset-password`,
     });
 
     if (error) {

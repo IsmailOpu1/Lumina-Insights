@@ -1,12 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { dbErrorMessage } from '@/lib/dbErrors';
+import { siteUrl } from '@/lib/siteUrl';
 
 export type InviteRole = 'manager' | 'viewer';
 
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export function inviteLink(token: string) {
-  return `${window.location.origin}/invite/${token}`;
+  return `${siteUrl()}/invite/${token}`;
 }
 
 /**

@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Loader2, Sparkles, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
+import { siteUrl } from '@/lib/siteUrl';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -73,7 +74,7 @@ export default function Signup() {
       password,
       options: {
         data: { full_name: fullName.trim(), ...(token ? { invite_token: token } : {}) },
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: `${siteUrl()}/login`,
       },
     });
 

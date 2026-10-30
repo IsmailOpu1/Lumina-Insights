@@ -112,6 +112,50 @@ Daily sales (days with orders):
 ${list(s.daily, (d) => `${d.date}: ${d.orders} orders, ${money(d.revenue)} revenue, ${money(d.profit)} profit`)}`;
 }
 
+/**
+ * Figures worked out in code so the model never has to do arithmetic:
+ * per-order averages, cost ratios and the change against the period before.
+ */
+export function describeKeyFigures(s: Snapshot, previous?: Snapshot) {
+  const c = currencySymbol(s);
+  const money = (n: number) => `${c}${Math.round(n).toLocaleString("en-US")}`;
+  const pct = (part: number, whole: number) => (whole > 0 ? `${((part / whole) * 100).toFixed(1)}%` : "n/a");
+  const change = (now: number, before: number) => {
+    if (before === 0) return now === 0 ? "no change" : "new (nothing in the previous period)";
+    const d = ((now - before) / Math.abs(before)) * 100;
+    return `${d >= 0 ? "+" : ""}${d.toFixed(1)}%`;
+  };
+  const totalOrders = s.orders + s.cancelled_orders;
+
+  const lines = [
+    `Average order value: ${s.orders ? money(s.revenue / s.orders) : "n/a"}`,
+    `Profit per order: ${s.orders ? money(s.net_profit / s.orders) : "n/a"}`,
+    `Cancellation rate: ${pct(s.cancelled_orders, totalOrders)}`,
+    `Expenses as share of revenue: ${pct(s.expenses, s.revenue)}`,
+    `Ad spend as share of revenue: ${pct(s.ad_spend, s.revenue)}`,
+    `Days with at least one order: ${s.daily.length}`,
+  ];
+  if (previous) {
+    lines.push(
+      "",
+      `COMPARED WITH THE PREVIOUS PERIOD (${previous.period.from} to ${previous.period.to}):`,
+      `Revenue: ${money(previous.revenue)} then, ${money(s.revenue)} now (${change(s.revenue, previous.revenue)})`,
+      `Net profit: ${money(previous.net_profit)} then, ${money(s.net_profit)} now (${change(s.net_profit, previous.net_profit)})`,
+      `Orders: ${previous.orders} then, ${s.orders} now (${change(s.orders, previous.orders)})`,
+      `Expenses: ${money(previous.expenses)} then, ${money(s.expenses)} now (${change(s.expenses, previous.expenses)})`,
+      `Ad spend: ${money(previous.ad_spend)} then, ${money(s.ad_spend)} now (${change(s.ad_spend, previous.ad_spend)})`,
+    );
+  }
+  return `KEY FIGURES (already calculated, use as given):\n${lines.join("\n")}`;
+}
+
+/** Today's date in Bangladesh, e.g. "Saturday, 31 October 2026". */
+export function todayInDhaka() {
+  return new Date().toLocaleDateString("en-GB", {
+    timeZone: "Asia/Dhaka", weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
 export type QuotaMetric = "ai_chat" | "insights" | "marketing";
 
 const QUOTA_MESSAGES: Record<string, { status: number; error: string }> = {

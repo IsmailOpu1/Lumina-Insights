@@ -24,6 +24,10 @@ const PAYMENT_RESULT: Record<string, { kind: 'success' | 'error' | 'info'; text:
   pending: { kind: 'info', text: "We're confirming your payment with SSLCommerz. This page will update shortly." },
   failed: { kind: 'error', text: 'The payment did not go through. You have not been charged; please try again.' },
   cancelled: { kind: 'info', text: 'Payment cancelled. Your plan has not changed.' },
+  review: {
+    kind: 'info',
+    text: "SSLCommerz is reviewing this payment, which is routine for some cards and wallets. Your plan will switch on once it's approved, so please don't pay again.",
+  },
 };
 
 function planFeatures(p: Plan): string[] {

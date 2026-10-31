@@ -73,7 +73,7 @@ export default function Signup() {
 
     // With an invite, the token rides along in user metadata; AuthContext
     // accepts it on the first confirmed sign-in.
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -84,6 +84,15 @@ export default function Signup() {
 
     if (error) {
       setSignupError(authEmailErrorMessage(error));
+      setLoading(false);
+      return;
+    }
+
+    // Supabase answers "success" for an address that already has a confirmed
+    // account but sends no email (so the form can't reveal who has one). Such
+    // a reply comes back with no identities.
+    if (data.user && data.user.identities?.length === 0) {
+      setSignupError(`An account with this email already exists. Please sign in, or use "Forgot password?" if you don't remember it.`);
       setLoading(false);
       return;
     }

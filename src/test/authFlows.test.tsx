@@ -41,7 +41,7 @@ vi.mock('sonner', () => ({ toast: { error: mocks.toastError, success: mocks.toas
 beforeEach(() => {
   for (const m of [mocks.signIn, mocks.signUp, mocks.resend, mocks.rpc, mocks.invoke, mocks.insert, mocks.refreshSettings, mocks.toastError, mocks.toastSuccess]) m.mockReset();
   mocks.signIn.mockResolvedValue({ error: null });
-  mocks.signUp.mockResolvedValue({ error: null });
+  mocks.signUp.mockResolvedValue({ data: { user: { id: 'u1', identities: [{ id: 'i1' }] } }, error: null });
   mocks.resend.mockResolvedValue({ error: null });
   mocks.rpc.mockResolvedValue({ data: [], error: null });
   mocks.invoke.mockResolvedValue({ error: null });
@@ -163,6 +163,16 @@ describe('Signup', () => {
     fillSignup();
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/hit our sending limit/);
+    expect(screen.queryByText('Check your email')).not.toBeInTheDocument();
+  });
+
+  it('says so when the email already has an account, instead of "check your email"', async () => {
+    mocks.signUp.mockResolvedValue({ data: { user: { id: 'u1', identities: [] } }, error: null });
+    renderAt('/signup', <Signup />, '/signup');
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'owner@example.com' } });
+    fillSignup();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/already exists/);
     expect(screen.queryByText('Check your email')).not.toBeInTheDocument();
   });
 

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useFilter } from '@/context/FilterContext';
+import { Button } from '@/components/ui/button';
 import { useDashboardData, computeKPIs, getRevenueBySource, getOrdersByStatus, getTopProducts } from '@/hooks/useDashboardData';
 import DateFilterBar from '@/components/dashboard/DateFilterBar';
 import KPICards, { type KPI } from '@/components/dashboard/KPICards';
@@ -14,9 +16,9 @@ import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
 import ProfitCalculator from '@/components/dashboard/ProfitCalculator';
 import { useCurrency } from '@/hooks/useCurrency';
-import { format, min, startOfWeek, subDays, subWeeks } from 'date-fns';
+import { format, min, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns';
 import {
-  AlertTriangle, Crown, Gauge, Megaphone, Package, Percent, Repeat, ShoppingBag, TrendingUp, Wallet,
+  AlertTriangle, CalendarSearch, Crown, Gauge, Megaphone, Package, Percent, Repeat, ShoppingBag, TrendingUp, Wallet,
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -26,6 +28,21 @@ export default function Dashboard() {
   const [allOrders, setAllOrders] = useState<typeof orders>([]);
   const [deadProductDays, setDeadProductDays] = useState(30);
   const [roasThreshold, setRoasThreshold] = useState(2.0);
+  const { dateFilter, setDateFilter } = useFilter();
+  const [latestSale, setLatestSale] = useState<string | null>(null);
+
+  // An empty period isn't an empty business: imported history is often
+  // older than the default 7 days, so say where the sales are.
+  const periodEmpty = !loading && orders.length === 0 && dateFilter !== 'all';
+  useEffect(() => {
+    if (!periodEmpty) return;
+    supabase
+      .from('orders')
+      .select('date')
+      .order('date', { ascending: false })
+      .limit(1)
+      .then(({ data }) => setLatestSale(data?.[0]?.date ?? null));
+  }, [periodEmpty]);
 
   // Recent orders independent of the date filter: enough for last week's
   // comparison, the dead-product window and the recent orders table.
@@ -127,6 +144,16 @@ export default function Dashboard() {
         </div>
         <DateFilterBar />
       </header>
+
+      {periodEmpty && latestSale && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-foreground">
+            <CalendarSearch size={16} className="shrink-0 text-primary" />
+            No sales in this period. Your latest sale was on {format(parseISO(latestSale), 'd MMMM yyyy')}.
+          </p>
+          <Button size="sm" variant="outline" onClick={() => setDateFilter('all')}>Show all time</Button>
+        </div>
+      )}
 
       <KPICards primary={primaryKpis} secondary={secondaryKpis} loading={loading} />
 

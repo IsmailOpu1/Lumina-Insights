@@ -19,6 +19,7 @@ import {
 import { useReadOnly } from '@/hooks/useReadOnly';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { useNotifications } from '@/context/NotificationContext';
+import { useFilter } from '@/context/FilterContext';
 import { cn } from '@/lib/utils';
 import { ENTITY_LABELS, FIELDS, missingRequired, type Entity, type Mapping } from '@/lib/import/fields';
 import { ACCEPTED_EXTENSIONS, ImportFileError, readSpreadsheet, type SheetData } from '@/lib/import/readFile';
@@ -52,6 +53,7 @@ export default function ImportData() {
   const readOnly = useReadOnly();
   const { refresh: refreshSubscription } = useSubscription();
   const { refreshCount } = useNotifications();
+  const { setDateFilter } = useFilter();
 
   const [step, setStep] = useState<Step>('upload');
   const [fileName, setFileName] = useState('');
@@ -456,7 +458,7 @@ export default function ImportData() {
             ))}
           </div>
           <div className="mt-7 flex flex-wrap justify-center gap-2">
-            <Button onClick={() => navigate('/')} className="gap-1.5 shadow-glow">See your dashboard</Button>
+            <Button onClick={() => { setDateFilter('all'); navigate('/'); }} className="gap-1.5 shadow-glow">See your dashboard</Button>
             <Button variant="outline" onClick={() => navigate('/ai-assistant')} className="gap-1.5"><Bot size={15} /> Ask AI about your history</Button>
             <Button variant="ghost" onClick={reset}>Import another file</Button>
           </div>

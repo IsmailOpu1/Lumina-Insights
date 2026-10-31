@@ -1,13 +1,12 @@
-import { useFilter } from '@/context/FilterContext';
+import { useFilter, type DateFilterType } from '@/context/FilterContext';
 import { Input } from '@/components/ui/input';
 import Segmented from './Segmented';
-
-type DateFilterType = 'today' | '7days' | '30days' | 'custom';
 
 const OPTIONS: { label: string; value: DateFilterType }[] = [
   { label: 'Today', value: 'today' },
   { label: '7 days', value: '7days' },
   { label: '30 days', value: '30days' },
+  { label: 'All time', value: 'all' },
   { label: 'Custom', value: 'custom' },
 ];
 

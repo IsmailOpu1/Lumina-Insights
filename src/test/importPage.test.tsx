@@ -23,6 +23,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.mock('@/hooks/useReadOnly', () => ({ useReadOnly: () => mocks.readOnly }));
 vi.mock('@/context/SubscriptionContext', () => ({ useSubscription: () => ({ refresh: vi.fn() }) }));
 vi.mock('@/context/NotificationContext', () => ({ useNotifications: () => ({ refreshCount: vi.fn() }) }));
+vi.mock('@/context/FilterContext', () => ({ useFilter: () => ({ setDateFilter: vi.fn() }) }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 const CSV = [

@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, Loader2, Sparkles, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Sparkles, Mail, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 import { siteUrl } from '@/lib/siteUrl';
+import { authEmailErrorMessage } from '@/lib/authEmail';
+import ResendConfirmation from '@/components/auth/ResendConfirmation';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -34,6 +36,7 @@ export default function Signup() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
 
   const strength = getPasswordStrength(password);
 
@@ -66,6 +69,7 @@ export default function Signup() {
     }
 
     setLoading(true);
+    setSignupError(null);
 
     // With an invite, the token rides along in user metadata; AuthContext
     // accepts it on the first confirmed sign-in.
@@ -79,7 +83,7 @@ export default function Signup() {
     });
 
     if (error) {
-      toast.error('Signup failed', { description: error.message });
+      setSignupError(authEmailErrorMessage(error));
       setLoading(false);
       return;
     }
@@ -107,12 +111,16 @@ export default function Signup() {
               <p className="text-muted-foreground text-sm">
                 We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account, then come back to sign in.
               </p>
+              <p className="text-muted-foreground text-xs">
+                Not there after a minute? Check your spam or promotions folder. If you already had an account with this email, just sign in.
+              </p>
               <Button
                 onClick={() => navigate('/login')}
-                className="mt-4 h-12 w-full bg-primary font-bold text-white"
+                className="mt-2 h-12 w-full bg-primary font-bold text-white"
               >
                 Go to Login
               </Button>
+              <ResendConfirmation email={email} />
             </div>
           ) : (
             <>
@@ -166,6 +174,13 @@ export default function Signup() {
                     <Link to="/privacy" target="_blank" className="font-bold text-primary hover:underline">Privacy Policy</Link>
                   </label>
                 </div>
+
+                {signupError && (
+                  <div role="alert" className="flex gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground">
+                    <AlertCircle size={18} className="mt-0.5 shrink-0 text-destructive" />
+                    <span>{signupError}</span>
+                  </div>
+                )}
 
                 <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
                   {loading ? <Loader2 className="animate-spin" size={20} /> : 'Create Account'}

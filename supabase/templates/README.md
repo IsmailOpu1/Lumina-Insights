@@ -3,10 +3,21 @@
 Branded emails for Supabase Auth. They are plain tables with inline styles,
 so they render in Gmail, Outlook, Apple Mail and phone mail apps.
 
-## Where to paste them
+## How they get to Supabase
 
-Supabase dashboard → **Authentication → Emails → Templates**. For each
-template, set the subject and paste the whole HTML file into the body.
+The subjects and files are wired up in `supabase/config.toml`. After
+editing a template, push it with:
+
+    supabase config push
+
+The command shows a diff and asks before changing anything. The `[auth]`
+section in `config.toml` mirrors the live settings (Site URL, redirect
+URLs, confirmations, 2FA), so the push changes only what you edited. If
+you change one of those settings in the dashboard, change it in
+`config.toml` too, or the next push will undo it.
+
+Pasting by hand also works: **Authentication → Emails → Templates**, set
+the subject and paste the whole HTML file into the body.
 
 | Supabase template   | Subject                                         | File                      |
 |---------------------|-------------------------------------------------|---------------------------|

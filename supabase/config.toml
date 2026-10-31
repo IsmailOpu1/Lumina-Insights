@@ -27,3 +27,41 @@ verify_jwt = false
 
 [functions.map-import-columns]
 verify_jwt = true
+
+# Mirrors the live auth settings so a push changes only the email templates.
+[auth]
+site_url = "https://lumina-insights-ashen.vercel.app"
+additional_redirect_urls = ["https://lumina-insights-ashen.vercel.app"]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.email.template.confirmation]
+subject = "Confirm your email to start your Lumina trial"
+content_path = "./supabase/templates/confirm_signup.html"
+
+[auth.email.template.invite]
+subject = "You've been invited to Lumina Insights"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.magic_link]
+subject = "Your Lumina sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email address for Lumina"
+content_path = "./supabase/templates/change_email.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Lumina password"
+content_path = "./supabase/templates/reset_password.html"
+
+[auth.email.template.reauthentication]
+subject = "Your Lumina verification code"
+content_path = "./supabase/templates/reauthentication.html"

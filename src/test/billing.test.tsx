@@ -98,6 +98,7 @@ describe('subscription helpers', () => {
     const now = new Date('2026-10-26T12:00:00Z');
     expect(paymentStatusLabel('pending', '2026-10-26T11:30:00Z', now)).toBe('Pending');
     expect(paymentStatusLabel('pending', '2026-10-26T09:00:00Z', now)).toBe('Not completed');
+    expect(paymentStatusLabel('review', '2026-10-26T09:00:00Z', now)).toBe('Under review');
     expect(paymentStatusLabel('paid', '2026-10-01T09:00:00Z', now)).toBe('Paid');
   });
 

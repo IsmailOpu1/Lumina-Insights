@@ -63,6 +63,8 @@ export async function createSession(req: SessionRequest): Promise<string> {
 }
 
 export interface ValidatedPayment {
+  /** SSLCommerz flagged it as risky: real money, but hold it for review. */
+  flagged: boolean;
   tranId: string;
   valId: string;
   amount: number;
@@ -91,10 +93,11 @@ export async function validatePayment(valId: string): Promise<ValidatedPayment |
   const data = await res.json();
 
   const valid = data.status === "VALID" || data.status === "VALIDATED";
-  // risk_level 1 means SSLCommerz flagged the payment; hold it for review.
-  if (!valid || data.currency_type !== "BDT" || String(data.risk_level) === "1") return null;
+  if (!valid || data.currency_type !== "BDT") return null;
 
   return {
+    // risk_level 1 means SSLCommerz flagged the payment; hold it for review.
+    flagged: String(data.risk_level) === "1",
     tranId: String(data.tran_id),
     valId: String(data.val_id),
     amount: Number(data.currency_amount ?? data.amount),

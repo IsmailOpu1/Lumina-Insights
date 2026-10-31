@@ -58,6 +58,7 @@ export function paymentStatusLabel(status: string, createdAt: string, now = new 
   if (status === 'pending' && now.getTime() - new Date(createdAt).getTime() > ABANDONED_AFTER_MS) {
     return 'Not completed';
   }
+  if (status === 'review') return 'Under review';
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 

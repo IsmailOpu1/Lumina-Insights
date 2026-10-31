@@ -31,10 +31,20 @@ Deno.serve(async (req) => {
       .single();
     if (!planRow) return json({ error: "Unknown plan" }, 400);
 
+    // Stops a script from opening endless checkouts in someone's name.
+    const admin = adminClient();
+    const { count: recent } = await admin
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", caller.user.id)
+      .gte("created_at", new Date(Date.now() - 10 * 60_000).toISOString());
+    if ((recent ?? 0) >= 5) {
+      return json({ error: "Too many payment attempts. Please wait a few minutes and try again." }, 429);
+    }
+
     const amount = Number(billing_period === "yearly" ? planRow.yearly_price : planRow.monthly_price);
     const tranId = `LUM-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 
-    const admin = adminClient();
     const { error: insertError } = await admin.from("payments").insert({
       owner_id: caller.user.id,
       tran_id: tranId,

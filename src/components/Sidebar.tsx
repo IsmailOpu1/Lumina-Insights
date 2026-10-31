@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, Package, Receipt, Sparkles,
-  Bot, StickyNote, Bell, Settings, CreditCard, ChevronLeft, ChevronRight
+  Bot, StickyNote, Bell, Settings, CreditCard, ChevronLeft, ChevronRight, FileUp
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
@@ -30,6 +30,7 @@ const NAV_GROUPS = [
   {
     label: 'Workspace',
     items: [
+      { label: 'Import data', path: '/import', icon: FileUp },
       { label: 'Notes', path: '/notes', icon: StickyNote },
       { label: 'Notifications', path: '/notifications', icon: Bell },
       { label: 'Billing', path: '/billing', icon: CreditCard },
@@ -57,7 +58,8 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
     () => NAV_GROUPS.map(g => ({
       ...g,
       items: g.items.filter(item =>
-        (item.label !== 'Billing' || isOwner) && (item.label !== 'Settings' || !isViewer)),
+        (item.label !== 'Billing' || isOwner) && (item.label !== 'Settings' || !isViewer)
+        && (item.label !== 'Import data' || !isViewer)),
     })),
     [isViewer, isOwner]
   );

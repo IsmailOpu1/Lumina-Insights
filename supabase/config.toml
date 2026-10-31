@@ -24,3 +24,6 @@ verify_jwt = false
 
 [functions.sslcommerz-ipn]
 verify_jwt = false
+
+[functions.map-import-columns]
+verify_jwt = true

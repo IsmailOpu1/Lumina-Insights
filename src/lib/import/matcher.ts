@@ -40,7 +40,11 @@ function recalled(sheet: SheetData): SheetPlan | null {
 
 function fallback(sheet: SheetData): SheetPlan {
   const target = guessEntity(sheet.name, sheet.headers);
-  return { target, mapping: autoMap(target, sheet.headers), origin: 'auto' };
+  const mapping = autoMap(target, sheet.headers);
+  // A sheet of notes or a summary matches at most one column; leave it out
+  // rather than show every row as a problem. It can still be switched on.
+  if (mapping.filter(Boolean).length < 2) return { target: 'skip', mapping: sheet.headers.map(() => null), origin: 'auto' };
+  return { target, mapping, origin: 'auto' };
 }
 
 /** The AI's mapping, topped up with confident built-in matches it left out. */

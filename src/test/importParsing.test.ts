@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as XLSX from 'xlsx';
 import { mapExpenseType, mapSource, mapStatus, parseAmount, parseCount, parseDate, parseNumber } from '@/lib/import/normalize';
 import { autoMap, guessEntity, missingRequired } from '@/lib/import/fields';
@@ -87,6 +87,31 @@ describe('column matching', () => {
 
   it('reports required fields that are not matched', () => {
     expect(missingRequired('expenses', ['date', null]).map((f) => f.key)).toEqual(['amount']);
+  });
+});
+
+describe('Banglish shop files', () => {
+  it('reads a "Khoroch" sheet as expenses', () => {
+    expect(guessEntity('Khoroch', ['Date', 'Khat', 'Taka', 'Details'])).toBe('expenses');
+    expect(autoMap('expenses', ['Date', 'Khat', 'Taka', 'Details'])).toEqual(['date', 'type', 'amount', 'notes']);
+  });
+
+  it('matches "Kotha theke" and "Payment" on a "Bikri" sheet', () => {
+    expect(guessEntity('Bikri', ['Tarikh', 'Item', 'Total taka'])).toBe('orders');
+    expect(autoMap('orders', ['Tarikh', 'Item', 'Total taka', 'Kotha theke', 'Payment']))
+      .toEqual(['date', 'product_name', 'total', 'source', 'status']);
+  });
+
+  it('leaves out a sheet that only holds notes when the AI is unavailable', async () => {
+    vi.resetModules();
+    vi.doMock('@/integrations/supabase/client', () => ({
+      supabase: { functions: { invoke: async () => ({ data: null, error: new Error('off') }) } },
+    }));
+    const { planSheets } = await import('@/lib/import/matcher');
+    const sheet = (name: string, headers: string[]) => ({ name, headers, rows: [headers.map(() => 'x')], rowNumbers: [2] });
+    const plans = await planSheets([sheet('Notes', ['Notes']), sheet('Khoroch', ['Date', 'Khat', 'Taka'])]);
+    expect(plans.map((p) => p.target)).toEqual(['skip', 'expenses']);
+    vi.doUnmock('@/integrations/supabase/client');
   });
 });
 

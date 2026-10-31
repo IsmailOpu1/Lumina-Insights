@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import { startOfDay, subDays, startOfToday } from 'date-fns';
 
-type DateFilterType = 'today' | '7days' | '30days' | 'custom';
+export type DateFilterType = 'today' | '7days' | '30days' | 'all' | 'custom';
 
 interface FilterContextType {
   dateFilter: DateFilterType;
@@ -31,6 +31,9 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
         return { from: startOfDay(subDays(now, 7)), to: now };
       case '30days':
         return { from: startOfDay(subDays(now, 30)), to: now };
+      case 'all':
+        // Imported history can go back years; the importer accepts 2000 on.
+        return { from: new Date(2000, 0, 1), to: now };
       case 'custom':
         return {
           from: customRange.from ?? startOfDay(subDays(now, 7)),

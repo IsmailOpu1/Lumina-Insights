@@ -31,6 +31,7 @@ const TYPE_COLORS: Record<string, string> = {
   profit_drop: '#F59E0B',
   roas_alert: '#3B82F6',
   weekly_summary: '#6366F1',
+  data_import: '#10B981',
 };
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {

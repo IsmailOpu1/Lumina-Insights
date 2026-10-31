@@ -17,6 +17,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/notifications': 'Notifications',
   '/settings': 'Settings',
   '/billing': 'Billing',
+  '/import': 'Import data',
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -26,7 +27,8 @@ const TYPE_COLORS: Record<string, string> = {
   cancelled_order: '#F43F5E',
   profit_drop: '#F5A524',
   roas_alert: '#60A5FA',
-  weekly_summary: '#5EEAD4'
+  weekly_summary: '#5EEAD4',
+  data_import: '#10B981'
 };
 
 interface TopbarProps {
@@ -77,6 +79,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       notif.type === 'weekly_summary'
     ) {
       navigate('/');
+    } else if (notif.type === 'data_import') {
+      navigate('/import');
     } else {
       navigate('/notifications');
     }

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Bell, ShoppingBag, AlertTriangle,
-  TrendingDown, BarChart3, Mail, X, Trash2
+  TrendingDown, BarChart3, Mail, X, Trash2, FileUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +34,7 @@ const TYPE_COLORS: Record<string, string> = {
   profit_drop: '#F5A524',
   roas_alert: '#F5A524',
   weekly_summary: '#5EEAD4',
+  data_import: '#10B981',
 };
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -44,6 +45,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   profit_drop: TrendingDown,
   roas_alert: BarChart3,
   weekly_summary: Mail,
+  data_import: FileUp,
 };
 
 type FilterTab = 'all' | 'unread' | 'orders' | 'stock' | 'finance';

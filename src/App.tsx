@@ -25,6 +25,7 @@ const Notes = lazy(() => import('@/pages/Notes'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const SettingsPage = lazy(() => import('@/pages/Settings'));
 const Billing = lazy(() => import('@/pages/Billing'));
+const ImportData = lazy(() => import('@/pages/ImportData'));
 const Landing = lazy(() => import('@/pages/Landing'));
 const Terms = lazy(() => import('@/pages/Terms'));
 const Privacy = lazy(() => import('@/pages/Privacy'));
@@ -99,6 +100,7 @@ const App = () => (
                         <Route path="/notifications" element={<Notifications />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/billing" element={<Billing />} />
+                        <Route path="/import" element={<ImportData />} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>

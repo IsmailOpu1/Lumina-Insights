@@ -10,6 +10,7 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signUp: vi.fn(),
+  resend: vi.fn(),
   rpc: vi.fn(),
   invoke: vi.fn(),
   insert: vi.fn(),
@@ -21,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    auth: { signInWithPassword: mocks.signIn, signUp: mocks.signUp },
+    auth: { signInWithPassword: mocks.signIn, signUp: mocks.signUp, resend: mocks.resend },
     rpc: mocks.rpc,
     functions: { invoke: mocks.invoke },
     from: () => ({
@@ -38,9 +39,10 @@ vi.mock('@/context/AuthContext', () => ({
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError, success: mocks.toastSuccess, warning: vi.fn() } }));
 
 beforeEach(() => {
-  for (const m of [mocks.signIn, mocks.signUp, mocks.rpc, mocks.invoke, mocks.insert, mocks.refreshSettings, mocks.toastError, mocks.toastSuccess]) m.mockReset();
+  for (const m of [mocks.signIn, mocks.signUp, mocks.resend, mocks.rpc, mocks.invoke, mocks.insert, mocks.refreshSettings, mocks.toastError, mocks.toastSuccess]) m.mockReset();
   mocks.signIn.mockResolvedValue({ error: null });
   mocks.signUp.mockResolvedValue({ error: null });
+  mocks.resend.mockResolvedValue({ error: null });
   mocks.rpc.mockResolvedValue({ data: [], error: null });
   mocks.invoke.mockResolvedValue({ error: null });
   mocks.auth = { session: null, userSettings: null, loading: false };
@@ -101,6 +103,21 @@ describe('Login', () => {
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Login failed', { description: 'Invalid login credentials' }));
     expect(screen.queryByText('Dashboard page')).not.toBeInTheDocument();
   });
+
+  it('offers to resend the confirmation email when the email is not confirmed', async () => {
+    mocks.signIn.mockResolvedValue({ error: { code: 'email_not_confirmed', message: 'Email not confirmed' } });
+    renderAt('/login', <Login />, '/login');
+    fillLogin();
+    expect(await screen.findByText(/Please confirm your email first/)).toBeInTheDocument();
+    expect(mocks.toastError).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Resend confirmation email' }));
+    await waitFor(() => expect(mocks.resend).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'owner@example.com',
+      options: { emailRedirectTo: expect.stringMatching(/\/login$/) },
+    }));
+    expect(await screen.findByRole('button', { name: /Send again in \d+s/ })).toBeDisabled();
+  });
 });
 
 describe('Signup', () => {
@@ -137,6 +154,26 @@ describe('Signup', () => {
     await screen.findByText('Check your email');
     expect(mocks.signUp.mock.calls[0][0].options.data).toEqual({ full_name: 'Karim Ahmed' });
     expect(mocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('shows a clear message when the email sending limit is hit', async () => {
+    mocks.signUp.mockResolvedValue({ error: { code: 'over_email_send_rate_limit', message: 'email rate limit exceeded' } });
+    renderAt('/signup', <Signup />, '/signup');
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
+    fillSignup();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/hit our sending limit/);
+    expect(screen.queryByText('Check your email')).not.toBeInTheDocument();
+  });
+
+  it('lets people resend the confirmation email after signing up', async () => {
+    renderAt('/signup', <Signup />, '/signup');
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
+    fillSignup();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Resend confirmation email' }));
+    await waitFor(() => expect(mocks.resend).toHaveBeenCalledWith(expect.objectContaining({ type: 'signup', email: 'new@example.com' })));
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Confirmation email sent', expect.anything());
   });
 
   it('blocks mismatched passwords before calling Supabase', async () => {

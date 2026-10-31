@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Sparkles, MailWarning } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 import { acceptInvite } from '@/lib/invites';
+import { isUnconfirmed } from '@/lib/authEmail';
+import ResendConfirmation from '@/components/auth/ResendConfirmation';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -19,16 +21,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
     setLoading(true);
+    setUnconfirmed(false);
 
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (error) {
-      toast.error('Login failed', { description: error.message });
+      if (isUnconfirmed(error)) setUnconfirmed(true);
+      else toast.error('Login failed', { description: error.message });
       setLoading(false);
       return;
     }
@@ -43,6 +48,16 @@ export default function Login() {
     await refreshSettings();
     navigate('/', { replace: true });
   };
+
+  const unconfirmedNotice = unconfirmed && (
+    <div role="alert" className="mt-4 flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/10 p-4">
+      <div className="flex gap-2 text-sm text-foreground">
+        <MailWarning size={18} className="mt-0.5 shrink-0 text-primary" />
+        <span>Please confirm your email first. Click the link we sent to <strong>{email.trim()}</strong>, or get a new one below.</span>
+      </div>
+      <ResendConfirmation email={email} />
+    </div>
+  );
 
   return (
     <>
@@ -144,6 +159,7 @@ export default function Login() {
                   {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
                 </Button>
               </form>
+              {unconfirmedNotice}
 
               <div className="my-6 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
@@ -207,6 +223,7 @@ export default function Login() {
                 {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
               </Button>
             </form>
+            {unconfirmedNotice}
 
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />

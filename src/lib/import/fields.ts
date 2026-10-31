@@ -59,9 +59,9 @@ export const FIELDS: Record<Entity, FieldDef[]> = {
     { key: 'ad_cost', label: 'Ad cost', kind: 'amount',
       synonyms: ['adcost', 'ads', 'adspend', 'boost', 'marketing', 'marketingcost'] },
     { key: 'source', label: 'Channel', kind: 'source',
-      synonyms: ['source', 'channel', 'platform', 'via', 'from', 'medium', 'salechannel', 'orderfrom'] },
+      synonyms: ['source', 'channel', 'platform', 'via', 'from', 'medium', 'salechannel', 'orderfrom', 'kothatheke', 'kothay', 'মাধ্যম'] },
     { key: 'status', label: 'Status', kind: 'status',
-      synonyms: ['status', 'orderstatus', 'state', 'deliverystatus', 'অবস্থা'] },
+      synonyms: ['status', 'orderstatus', 'state', 'deliverystatus', 'payment', 'paymentstatus', 'obostha', 'অবস্থা', 'পেমেন্ট'] },
     { key: 'external_ref', label: 'Your order no.', kind: 'text',
       synonyms: ['orderid', 'orderno', 'ordernumber', 'invoice', 'invoiceno', 'invoicenumber', 'ref', 'reference', 'billno', 'memo', 'memono', 'অর্ডারনং', 'ইনভয়েস'] },
   ],
@@ -69,13 +69,13 @@ export const FIELDS: Record<Entity, FieldDef[]> = {
     { key: 'date', label: 'Date', kind: 'date', required: true,
       synonyms: ['date', 'day', 'paidon', 'expensedate', 'তারিখ'] },
     { key: 'amount', label: 'Amount', kind: 'amount', required: true,
-      synonyms: ['amount', 'cost', 'total', 'expense', 'spent', 'paid', 'value', 'টাকা', 'খরচ', 'পরিমাণ'] },
+      synonyms: ['amount', 'cost', 'total', 'expense', 'spent', 'paid', 'value', 'taka', 'tk', 'khoroch', 'khorch', 'kharach', 'টাকা', 'খরচ', 'পরিমাণ'] },
     { key: 'type', label: 'Category', kind: 'expense_type',
-      synonyms: ['type', 'category', 'head', 'expensetype', 'purpose', 'for', 'খাত'] },
+      synonyms: ['type', 'category', 'head', 'expensetype', 'purpose', 'for', 'khat', 'dhoron', 'খাত', 'ধরন'] },
     { key: 'platform', label: 'Platform', kind: 'text',
       synonyms: ['platform', 'channel', 'where', 'vendor', 'paidto'] },
     { key: 'notes', label: 'Notes', kind: 'text',
-      synonyms: ['notes', 'note', 'details', 'description', 'remarks', 'comment', 'particulars', 'বিবরণ', 'মন্তব্য'] },
+      synonyms: ['notes', 'note', 'details', 'description', 'remarks', 'comment', 'particulars', 'biboron', 'বিবরণ', 'মন্তব্য'] },
   ],
 };
 
@@ -117,9 +117,9 @@ export function autoMap(entity: Entity, headers: string[]): Mapping {
 }
 
 const SHEET_HINTS: [RegExp, Entity][] = [
-  [/(order|sale|sell|invoice|বিক্রি|বিক্রয়|অর্ডার)/i, 'orders'],
-  [/(expense|cost|spend|খরচ|ব্যয়)/i, 'expenses'],
-  [/(product|inventory|stock|item|catalog|মাল|পণ্য|স্টক)/i, 'inventory'],
+  [/(order|sale|sell|invoice|bikri|bikroy|বিক্রি|বিক্রয়|অর্ডার)/i, 'orders'],
+  [/(expense|cost|spend|khoroch|khorch|kharach|খরচ|ব্যয়)/i, 'expenses'],
+  [/(product|inventory|stock|item|catalog|maal|ponno|মাল|পণ্য|স্টক)/i, 'inventory'],
 ];
 
 /** Which kind of records a sheet most likely holds. */

@@ -1,14 +1,16 @@
 import { Sparkles, BarChart3, Megaphone, MessageSquare, Mic, Bell } from 'lucide-react';
+import { msg, useT } from '@/i18n';
 
 const FEATURES = [
-  { icon: BarChart3, name: 'AI Business Insights', desc: 'Smart analysis of your real business data' },
-  { icon: Megaphone, name: 'Marketing AI', desc: 'Generate content for Instagram, Facebook, TikTok' },
-  { icon: MessageSquare, name: 'Business AI Assistant', desc: 'Personal advisor that knows your business' },
-  { icon: Mic, name: 'Voice Notes', desc: 'Record and transcribe business notes instantly' },
-  { icon: Bell, name: 'Smart Notifications', desc: 'Real-time alerts for orders, stock, performance' },
+  { icon: BarChart3, name: msg('AI Business Insights'), desc: msg('Smart analysis of your real business data') },
+  { icon: Megaphone, name: msg('Marketing AI'), desc: msg('Generate content for Instagram, Facebook, TikTok') },
+  { icon: MessageSquare, name: msg('Business AI Assistant'), desc: msg('Personal advisor that knows your business') },
+  { icon: Mic, name: msg('Voice Notes'), desc: msg('Record and transcribe business notes instantly') },
+  { icon: Bell, name: msg('Smart Notifications'), desc: msg('Real-time alerts for orders, stock, performance') },
 ];
 
 export default function AuthLeftPanel() {
+  const { t } = useT();
   return (
     <div
       className="flex flex-col h-full min-h-screen w-full px-8 py-10"
@@ -51,8 +53,8 @@ export default function AuthLeftPanel() {
                 <Icon size={20} className="text-primary" />
               </div>
               <div>
-                <p className="font-bold text-white">{f.name}</p>
-                <p className="text-sm text-white/70">{f.desc}</p>
+                <p className="font-bold text-white">{t(f.name)}</p>
+                <p className="text-sm text-white/70">{t(f.desc)}</p>
               </div>
             </div>
           );

@@ -27,13 +27,14 @@ import { buildRecords, type BuiltRecords, type Overrides } from '@/lib/import/bu
 import { planSheets, rememberLayout, type SheetPlan, type SheetTarget } from '@/lib/import/matcher';
 import { listImports, runImport, undoImport, type ImportCounts, type ImportRecord } from '@/lib/import/importApi';
 import { downloadTemplate } from '@/lib/import/template';
+import { useT, tr, msg, currentDateLocale } from '@/i18n';
 
 const ENTITIES: Entity[] = ['inventory', 'orders', 'expenses'];
 const ENTITY_ICONS: Record<Entity, typeof Package> = { inventory: Package, orders: ShoppingBag, expenses: Receipt };
 const ORIGIN_LABEL: Record<SheetPlan['origin'], string> = {
-  ai: 'Matched by Lumina AI',
-  remembered: 'Same layout as last time',
-  auto: 'Matched automatically',
+  ai: msg('Matched by Lumina AI'),
+  remembered: msg('Same layout as last time'),
+  auto: msg('Matched automatically'),
 };
 const MAX_ISSUES_SHOWN = 50;
 
@@ -44,11 +45,20 @@ function sampleOf(sheet: SheetData, column: number) {
   return value === undefined ? '' : String(value).slice(0, 40);
 }
 
-function plural(n: number, one: string, many = `${one}s`) {
-  return `${n.toLocaleString()} ${n === 1 ? one : many}`;
+/** `one` and `many` are dictionary keys with an {n} placeholder. */
+function plural(n: number, one: string, many: string) {
+  return tr(n === 1 ? one : many, { n: n.toLocaleString() });
 }
 
+const ROWS: [string, string] = [msg('{n} row'), msg('{n} rows')];
+const ENTITY_COUNT: Record<Entity, [string, string]> = {
+  inventory: [msg('{n} product'), msg('{n} products')],
+  orders: [msg('{n} order'), msg('{n} orders')],
+  expenses: [msg('{n} expense'), msg('{n} expenses')],
+};
+
 export default function ImportData() {
+  const { t } = useT();
   const navigate = useNavigate();
   const readOnly = useReadOnly();
   const { refresh: refreshSubscription } = useSubscription();
@@ -91,7 +101,7 @@ export default function ImportData() {
       setOverrides(read.map(() => ({})));
       setStep('review');
     } catch (e) {
-      toast.error(e instanceof ImportFileError ? e.message : "Lumina couldn't read that file.");
+      toast.error(e instanceof ImportFileError ? e.message : t("Lumina couldn't read that file."));
       setStep('upload');
     } finally {
       if (inputRef.current) inputRef.current.value = '';
@@ -154,7 +164,7 @@ export default function ImportData() {
       refreshCount();
       loadHistory();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'The import did not finish, and nothing was saved.');
+      toast.error(e instanceof Error ? e.message : t('The import did not finish, and nothing was saved.'));
       setStep('review');
     }
   };
@@ -172,11 +182,11 @@ export default function ImportData() {
     setUndoing(true);
     try {
       await undoImport(undoTarget.id);
-      toast.success(`Undid the import of ${undoTarget.file_name}`);
+      toast.success(t('Undid the import of {file}', { file: undoTarget.file_name }));
       refreshSubscription();
       loadHistory();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not undo that import.');
+      toast.error(e instanceof Error ? e.message : t('Could not undo that import.'));
     } finally {
       setUndoing(false);
       setUndoTarget(null);
@@ -186,9 +196,9 @@ export default function ImportData() {
   if (readOnly) {
     return (
       <div className="mx-auto max-w-5xl">
-        <PageHeader title="Import data" subtitle="Bring your existing records into Lumina." />
+        <PageHeader title={t('Import data')} subtitle={t('Bring your existing records into Lumina.')} />
         <div className="surface">
-          <EmptyState icon={Lock} title="Importing isn't available" message="Only the owner and managers can import data, and the workspace needs an active plan." />
+          <EmptyState icon={Lock} title={t("Importing isn't available")} message={t('Only the owner and managers can import data, and the workspace needs an active plan.')} />
         </div>
       </div>
     );
@@ -198,16 +208,16 @@ export default function ImportData() {
     <div className="relative isolate mx-auto max-w-5xl">
       <GlowBackdrop />
       <PageHeader
-        title="Import data"
-        subtitle="Bring your products, orders and expenses in from Excel or CSV."
+        title={t('Import data')}
+        subtitle={t('Bring your products, orders and expenses in from Excel or CSV.')}
         actions={
           step === 'review' ? (
             <Button variant="outline" onClick={reset} className="gap-1.5 max-sm:flex-1">
-              <ArrowLeft size={15} /> Choose another file
+              <ArrowLeft size={15} /> {t('Choose another file')}
             </Button>
           ) : (
             <Button variant="outline" onClick={() => downloadTemplate()} className="gap-1.5 max-sm:flex-1">
-              <Download size={15} /> Download template
+              <Download size={15} /> {t('Download template')}
             </Button>
           )
         }
@@ -230,7 +240,7 @@ export default function ImportData() {
               type="file"
               accept={ACCEPTED_EXTENSIONS.join(',')}
               className="sr-only"
-              aria-label="Choose a spreadsheet to import"
+              aria-label={t('Choose a spreadsheet to import')}
               onChange={(e) => handleFile(e.target.files?.[0])}
             />
             <div className="relative mb-5">
@@ -241,22 +251,22 @@ export default function ImportData() {
             </div>
             {step === 'reading' ? (
               <>
-                <p className="text-base font-semibold">Reading {fileName}…</p>
-                <p className="mt-1 text-sm text-muted-foreground">Lumina AI is matching your columns.</p>
+                <p className="text-base font-semibold">{t('Reading {file}…', { file: fileName })}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t('Lumina AI is matching your columns.')}</p>
               </>
             ) : (
               <>
-                <p className="text-base font-semibold">Drop your Excel or CSV file here</p>
-                <p className="mt-1 text-sm text-muted-foreground">or click to choose a file · .xlsx, .xls or .csv up to 5 MB</p>
+                <p className="text-base font-semibold">{t('Drop your Excel or CSV file here')}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t('or click to choose a file · .xlsx, .xls or .csv up to 5 MB')}</p>
               </>
             )}
           </label>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {[
-              { icon: Wand2, title: 'Any layout', text: 'English, Banglish or Bangla columns, several sheets, messy dates and ৳ prices.' },
-              { icon: ShieldCheck, title: 'Stays private', text: 'Your file is read on your device. Only column names and 5 sample rows help the AI match.' },
-              { icon: RotateCcw, title: 'Safe to try', text: "Check everything before saving. Duplicates are skipped and any import can be undone." },
+              { icon: Wand2, title: t('Any layout'), text: t('English, Banglish or Bangla columns, several sheets, messy dates and ৳ prices.') },
+              { icon: ShieldCheck, title: t('Stays private'), text: t('Your file is read on your device. Only column names and 5 sample rows help the AI match.') },
+              { icon: RotateCcw, title: t('Safe to try'), text: t('Check everything before saving. Duplicates are skipped and any import can be undone.') },
             ].map(({ icon: Icon, title, text }) => (
               <div key={title} className="surface flex gap-3 p-4">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon size={17} /></span>
@@ -271,10 +281,10 @@ export default function ImportData() {
           <div className="surface mt-6 p-5">
             <div className="mb-3 flex items-center gap-2">
               <History size={16} className="text-primary" />
-              <h2 className="text-sm font-semibold">Import history</h2>
+              <h2 className="text-sm font-semibold">{t('Import history')}</h2>
             </div>
             {history.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No imports yet. Old orders you import count as history: they don't change today's stock or send order alerts.</p>
+              <p className="text-sm text-muted-foreground">{t("No imports yet. Old orders you import count as history: they don't change today's stock or send order alerts.")}</p>
             ) : (
               <ul className="divide-y divide-border">
                 {history.map((h) => (
@@ -282,15 +292,15 @@ export default function ImportData() {
                     <div className="min-w-0">
                       <p className={cn('truncate text-sm font-medium', h.undone_at && 'text-muted-foreground line-through')}>{h.file_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(h.created_at), { addSuffix: true })} ·{' '}
-                        {plural(h.counts.orders_created ?? 0, 'order')}, {plural((h.counts.products_created ?? 0) + (h.counts.products_updated ?? 0), 'product')}, {plural(h.counts.expenses_created ?? 0, 'expense')}
+                        {formatDistanceToNow(new Date(h.created_at), { addSuffix: true, locale: currentDateLocale() })} ·{' '}
+                        {plural(h.counts.orders_created ?? 0, ...ENTITY_COUNT.orders)}, {plural((h.counts.products_created ?? 0) + (h.counts.products_updated ?? 0), ...ENTITY_COUNT.inventory)}, {plural(h.counts.expenses_created ?? 0, ...ENTITY_COUNT.expenses)}
                       </p>
                     </div>
                     {h.undone_at ? (
-                      <span className="text-xs text-muted-foreground">Undone</span>
+                      <span className="text-xs text-muted-foreground">{t('Undone')}</span>
                     ) : (
                       <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setUndoTarget(h)}>
-                        <Undo2 size={14} /> Undo
+                        <Undo2 size={14} /> {t('Undo')}
                       </Button>
                     )}
                   </li>
@@ -317,19 +327,19 @@ export default function ImportData() {
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{sheet.name}</p>
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        {plural(sheet.rows.length, 'row')} ·
+                        {plural(sheet.rows.length, ...ROWS)} ·
                         {plan.origin === 'ai' && <Sparkles size={11} className="text-highlight" />}
-                        {ORIGIN_LABEL[plan.origin]}
+                        {t(ORIGIN_LABEL[plan.origin])}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Import as</span>
+                    <span className="text-xs text-muted-foreground">{t('Import as')}</span>
                     <Select value={plan.target} onValueChange={(v) => changeTarget(i, v as SheetTarget)} disabled={step === 'importing'}>
-                      <SelectTrigger className="h-9 w-40" aria-label={`Import ${sheet.name} as`}><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-40" aria-label={t('Import {sheet} as', { sheet: sheet.name })}><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {ENTITIES.map((e) => <SelectItem key={e} value={e}>{ENTITY_LABELS[e]}</SelectItem>)}
-                        <SelectItem value="skip">Don't import</SelectItem>
+                        {ENTITIES.map((e) => <SelectItem key={e} value={e}>{t(ENTITY_LABELS[e])}</SelectItem>)}
+                        <SelectItem value="skip">{t("Don't import")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -347,11 +357,11 @@ export default function ImportData() {
                             onValueChange={(v) => changeColumn(i, c, v === 'none' ? null : v)}
                             disabled={step === 'importing'}
                           >
-                            <SelectTrigger className="h-8 text-xs" aria-label={`Lumina field for ${h}`}><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs" aria-label={t('Lumina field for {column}', { column: h })}><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Don't import this column</SelectItem>
+                              <SelectItem value="none">{t("Don't import this column")}</SelectItem>
                               {fields.map((f) => (
-                                <SelectItem key={f.key} value={f.key}>{f.label}{f.required ? ' *' : ''}</SelectItem>
+                                <SelectItem key={f.key} value={f.key}>{t(f.label)}{f.required ? ' *' : ''}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -361,20 +371,20 @@ export default function ImportData() {
 
                     {missing.length > 0 && (
                       <p className="mt-4 flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
-                        <AlertTriangle size={15} /> Choose a column for {missing.map((f) => f.label).join(' and ')} to import this sheet.
+                        <AlertTriangle size={15} /> {t('Choose a column for {fields} to import this sheet.', { fields: missing.map((f) => t(f.label)).join(t(' and ')) })}
                       </p>
                     )}
 
                     {b && (
                       <div className="mt-4">
                         <div className="flex flex-wrap gap-2 text-xs">
-                          <span className="rounded-full bg-success/10 px-2.5 py-1 font-medium text-success">{plural(b.records.length, 'row')} ready</span>
+                          <span className="rounded-full bg-success/10 px-2.5 py-1 font-medium text-success">{t('{rows} ready', { rows: plural(b.records.length, ...ROWS) })}</span>
                           {b.invalidRows > 0 && (
-                            <span className="rounded-full bg-warning/10 px-2.5 py-1 font-medium text-warning">{plural(b.invalidRows, 'row')} {b.invalidRows === 1 ? 'needs' : 'need'} attention</span>
+                            <span className="rounded-full bg-warning/10 px-2.5 py-1 font-medium text-warning">{b.invalidRows === 1 ? t('1 row needs attention') : t('{n} rows need attention', { n: b.invalidRows.toLocaleString() })}</span>
                           )}
                           {b.notes.length > 0 && (
                             <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground" title={b.notes[0].message}>
-                              {plural(b.notes.length, 'channel')} saved as not specified
+                              {b.notes.length === 1 ? t('1 channel saved as not specified') : t('{n} channels saved as not specified', { n: b.notes.length })}
                             </span>
                           )}
                         </div>
@@ -383,7 +393,7 @@ export default function ImportData() {
                           <div className="mt-3 overflow-x-auto rounded-xl border border-border">
                             <table className="w-full min-w-[520px] text-sm">
                               <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
-                                <tr><th className="px-3 py-2 font-medium">Row</th><th className="px-3 py-2 font-medium">Problem</th><th className="px-3 py-2 font-medium">Fix it here</th></tr>
+                                <tr><th className="px-3 py-2 font-medium">{t('Row')}</th><th className="px-3 py-2 font-medium">{t('Problem')}</th><th className="px-3 py-2 font-medium">{t('Fix it here')}</th></tr>
                               </thead>
                               <tbody className="divide-y divide-border">
                                 {b.issues.slice(0, MAX_ISSUES_SHOWN).map((issue) => {
@@ -391,17 +401,17 @@ export default function ImportData() {
                                   return (
                                     <tr key={key + issue.field}>
                                       <td className="px-3 py-2 tabular-nums text-muted-foreground">{issue.row}</td>
-                                      <td className="px-3 py-2"><span className="font-medium">{issue.label}</span> {issue.message}</td>
+                                      <td className="px-3 py-2"><span className="font-medium">{t(issue.label)}</span> {issue.message}</td>
                                       <td className="px-3 py-2">
                                         {issue.column >= 0 ? (
                                           <Input
                                             className="h-8 text-xs"
                                             defaultValue={overrides[i]?.[key] ?? issue.value}
-                                            aria-label={`Fix ${issue.label} in row ${issue.row}`}
+                                            aria-label={t('Fix {field} in row {row}', { field: t(issue.label), row: issue.row })}
                                             onBlur={(e) => setOverride(i, key, e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                                           />
-                                        ) : <span className="text-xs text-muted-foreground">Choose a column above</span>}
+                                        ) : <span className="text-xs text-muted-foreground">{t('Choose a column above')}</span>}
                                       </td>
                                     </tr>
                                   );
@@ -409,7 +419,7 @@ export default function ImportData() {
                               </tbody>
                             </table>
                             <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-                              Rows you don't fix are skipped.{b.issues.length > MAX_ISSUES_SHOWN && ` Showing the first ${MAX_ISSUES_SHOWN} of ${b.issues.length}.`}
+                              {t("Rows you don't fix are skipped.")}{b.issues.length > MAX_ISSUES_SHOWN && ' ' + t('Showing the first {shown} of {total}.', { shown: MAX_ISSUES_SHOWN, total: b.issues.length })}
                             </p>
                           </div>
                         )}
@@ -425,15 +435,15 @@ export default function ImportData() {
             <div className="surface flex flex-wrap items-center justify-between gap-3 border-primary/30 p-4 shadow-2xl shadow-black/40 backdrop-blur">
               <div className="text-sm">
                 <p className="font-semibold">
-                  {recordCount === 0 ? 'Nothing to import yet' : ENTITIES.filter((e) => totals.records[e].length).map((e) => plural(totals.records[e].length, ENTITY_LABELS[e].toLowerCase().replace(/s$/, ''))).join(' · ')}
+                  {recordCount === 0 ? t('Nothing to import yet') : ENTITIES.filter((e) => totals.records[e].length).map((e) => plural(totals.records[e].length, ...ENTITY_COUNT[e])).join(' · ')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {totals.invalid > 0 ? `${plural(totals.invalid, 'row')} with problems will be skipped. ` : ''}
-                  Already-saved records are skipped. Old orders won't change today's stock.
+                  {totals.invalid > 0 ? t('{rows} with problems will be skipped.', { rows: plural(totals.invalid, ...ROWS) }) + ' ' : ''}
+                  {t("Already-saved records are skipped. Old orders won't change today's stock.")}
                 </p>
               </div>
               <Button onClick={startImport} disabled={blocked || recordCount === 0 || step === 'importing'} className="gap-1.5 shadow-glow max-sm:w-full">
-                {step === 'importing' ? <><Loader2 size={15} className="animate-spin" /> Importing…</> : <><UploadCloud size={15} /> Import now</>}
+                {step === 'importing' ? <><Loader2 size={15} className="animate-spin" /> {t('Importing…')}</> : <><UploadCloud size={15} /> {t('Import now')}</>}
               </Button>
             </div>
           </div>
@@ -443,13 +453,13 @@ export default function ImportData() {
       {step === 'done' && result && (
         <div className="surface relative overflow-hidden p-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-success/15 text-success"><CheckCircle2 size={28} /></div>
-          <h2 className="text-xl font-semibold">Import complete</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{fileName} is now part of your Lumina workspace.</p>
+          <h2 className="text-xl font-semibold">{t('Import complete')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('{file} is now part of your Lumina workspace.', { file: fileName })}</p>
           <div className="mx-auto mt-6 grid max-w-xl gap-3 sm:grid-cols-3">
             {[
-              { label: 'Orders', value: result.orders_created, extra: result.orders_skipped ? `${result.orders_skipped} already saved` : '' },
-              { label: 'Products', value: result.products_created + result.products_updated, extra: result.products_updated ? `${result.products_updated} updated` : '' },
-              { label: 'Expenses', value: result.expenses_created, extra: result.expenses_skipped ? `${result.expenses_skipped} already saved` : '' },
+              { label: t('Orders'), value: result.orders_created, extra: result.orders_skipped ? t('{n} already saved', { n: result.orders_skipped }) : '' },
+              { label: t('Products'), value: result.products_created + result.products_updated, extra: result.products_updated ? t('{n} updated', { n: result.products_updated }) : '' },
+              { label: t('Expenses'), value: result.expenses_created, extra: result.expenses_skipped ? t('{n} already saved', { n: result.expenses_skipped }) : '' },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-border bg-muted/30 p-4">
                 <p className="text-2xl font-bold tabular-nums">{s.value.toLocaleString()}</p>
@@ -458,9 +468,9 @@ export default function ImportData() {
             ))}
           </div>
           <div className="mt-7 flex flex-wrap justify-center gap-2">
-            <Button onClick={() => { setDateFilter('all'); navigate('/'); }} className="gap-1.5 shadow-glow">See your dashboard</Button>
-            <Button variant="outline" onClick={() => navigate('/ai-assistant')} className="gap-1.5"><Bot size={15} /> Ask AI about your history</Button>
-            <Button variant="ghost" onClick={reset}>Import another file</Button>
+            <Button onClick={() => { setDateFilter('all'); navigate('/'); }} className="gap-1.5 shadow-glow">{t('See your dashboard')}</Button>
+            <Button variant="outline" onClick={() => navigate('/ai-assistant')} className="gap-1.5"><Bot size={15} /> {t('Ask AI about your history')}</Button>
+            <Button variant="ghost" onClick={reset}>{t('Import another file')}</Button>
           </div>
         </div>
       )}
@@ -468,15 +478,15 @@ export default function ImportData() {
       <AlertDialog open={!!undoTarget} onOpenChange={(o) => !o && !undoing && setUndoTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Undo this import?</AlertDialogTitle>
+            <AlertDialogTitle>{t('Undo this import?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the orders and expenses imported from {undoTarget?.file_name}, removes the products it added (unless new orders use them), and puts products it updated back to how they were before the import.
+              {t('This removes the orders and expenses imported from {file}, removes the products it added (unless new orders use them), and puts products it updated back to how they were before the import.', { file: undoTarget?.file_name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={undoing}>Keep it</AlertDialogCancel>
+            <AlertDialogCancel disabled={undoing}>{t('Keep it')}</AlertDialogCancel>
             <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmUndo(); }} disabled={undoing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {undoing ? 'Undoing…' : 'Undo import'}
+              {undoing ? t('Undoing…') : t('Undo import')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

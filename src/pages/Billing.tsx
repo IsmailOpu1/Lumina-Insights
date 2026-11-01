@@ -15,29 +15,30 @@ import {
 } from '@/lib/subscription';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
+import { useT, tr, msg, currentDateLocale } from '@/i18n';
 
 // SSLCommerz charges in taka whatever currency the workspace reports in.
 const taka = (n: number) => formatCurrency(n, 'BDT');
 
 const PAYMENT_RESULT: Record<string, { kind: 'success' | 'error' | 'info'; text: string }> = {
-  success: { kind: 'success', text: 'Payment received — your plan is active. Thank you!' },
-  pending: { kind: 'info', text: "We're confirming your payment with SSLCommerz. This page will update shortly." },
-  failed: { kind: 'error', text: 'The payment did not go through. You have not been charged; please try again.' },
-  cancelled: { kind: 'info', text: 'Payment cancelled. Your plan has not changed.' },
+  success: { kind: 'success', text: msg('Payment received — your plan is active. Thank you!') },
+  pending: { kind: 'info', text: msg("We're confirming your payment with SSLCommerz. This page will update shortly.") },
+  failed: { kind: 'error', text: msg('The payment did not go through. You have not been charged; please try again.') },
+  cancelled: { kind: 'info', text: msg('Payment cancelled. Your plan has not changed.') },
   review: {
     kind: 'info',
-    text: "SSLCommerz is reviewing this payment, which is routine for some cards and wallets. Your plan will switch on once it's approved, so please don't pay again.",
+    text: msg("SSLCommerz is reviewing this payment, which is routine for some cards and wallets. Your plan will switch on once it's approved, so please don't pay again."),
   },
 };
 
 function planFeatures(p: Plan): string[] {
   return [
-    p.max_orders_per_month === null ? 'Unlimited orders' : `${p.max_orders_per_month} orders per month`,
-    p.max_team_members === 0 ? 'Just you (no team members)' : `Up to ${p.max_team_members} team members`,
-    `AI assistant: ${p.ai_chat_per_day} questions per day`,
-    p.marketing_per_month === null ? 'Unlimited Marketing AI content' : `Marketing AI: ${p.marketing_per_month} per month`,
-    ...(p.weekly_summary ? ['Weekly summary every Monday'] : []),
-    ...(p.data_export ? ['Excel export'] : []),
+    p.max_orders_per_month === null ? tr('Unlimited orders') : tr('{n} orders per month', { n: p.max_orders_per_month }),
+    p.max_team_members === 0 ? tr('Just you (no team members)') : tr('Up to {n} team members', { n: p.max_team_members }),
+    tr('AI assistant: {n} questions per day', { n: p.ai_chat_per_day }),
+    p.marketing_per_month === null ? tr('Unlimited Marketing AI content') : tr('Marketing AI: {n} per month', { n: p.marketing_per_month }),
+    ...(p.weekly_summary ? [tr('Weekly summary every Monday')] : []),
+    ...(p.data_export ? [tr('Excel export')] : []),
   ];
 }
 
@@ -47,7 +48,7 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
     <div>
       <div className="flex justify-between text-sm font-bold text-foreground">
         <span>{label}</span>
-        <span className="tabular-nums">{limit === null ? `${used} · unlimited` : `${used} / ${limit}`}</span>
+        <span className="tabular-nums">{limit === null ? tr('{n} · unlimited', { n: used }) : `${used} / ${limit}`}</span>
       </div>
       {limit !== null && (
         <div className="mt-1.5 h-2 rounded-full bg-muted">
@@ -62,6 +63,7 @@ function Meter({ label, used, limit }: { label: string; used: number; limit: num
 }
 
 export default function Billing() {
+  const { t } = useT();
   const { subscription, loading, refresh } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -85,9 +87,9 @@ export default function Billing() {
     if (!result) return;
     const message = PAYMENT_RESULT[result];
     if (message) {
-      if (message.kind === 'success') toast.success(message.text);
-      else if (message.kind === 'error') toast.error(message.text);
-      else toast(message.text);
+      if (message.kind === 'success') toast.success(tr(message.text));
+      else if (message.kind === 'error') toast.error(tr(message.text));
+      else toast(tr(message.text));
     }
     refresh();
     setSearchParams({}, { replace: true });
@@ -99,7 +101,7 @@ export default function Billing() {
       body: { plan, billing_period: period },
     });
     if (error || !data?.url) {
-      toast.error(await functionErrorMessage(error, 'Could not start the payment. Please try again.'));
+      toast.error(await functionErrorMessage(error, t('Could not start the payment. Please try again.')));
       setPaying(null);
       return;
     }
@@ -109,7 +111,7 @@ export default function Billing() {
   if (loading) return <SkeletonLoader variant="card" count={3} />;
 
   if (!subscription) {
-    return <p className="text-muted-foreground">Billing becomes available once your business profile is set up.</p>;
+    return <p className="text-muted-foreground">{t('Billing becomes available once your business profile is set up.')}</p>;
   }
 
   const ends = accessEndsAt(subscription);
@@ -118,32 +120,32 @@ export default function Billing() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <h1 className="text-2xl font-bold text-foreground">Billing</h1>
+      <h1 className="text-2xl font-bold text-foreground">{t('Billing')}</h1>
 
       {/* Current plan */}
       <section className={sectionClass}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-bold text-muted-foreground">Current plan</p>
-            <p className="text-2xl font-semibold text-foreground">{planLabel(subscription)}</p>
+            <p className="text-sm font-bold text-muted-foreground">{t('Current plan')}</p>
+            <p className="text-2xl font-semibold text-foreground">{t(planLabel(subscription))}</p>
             <p className={cn('mt-1 text-sm font-semibold', subscription.state === 'expired' ? 'text-destructive' : 'text-muted-foreground')}>
               {subscription.state === 'expired'
-                ? 'Expired — your workspace is read-only until you choose a plan.'
+                ? t('Expired — your workspace is read-only until you choose a plan.')
                 : isOpenEnded(subscription)
-                  ? 'Active'
-                  : `${subscription.state === 'trialing' ? 'Trial ends' : 'Paid until'} ${format(new Date(ends!), 'd MMM yyyy')} · ${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+                  ? t('Active')
+                  : t(subscription.state === 'trialing' ? 'Trial ends {date} · {n} days left' : 'Paid until {date} · {n} days left', { date: format(new Date(ends!), 'd MMM yyyy', { locale: currentDateLocale() }), n: daysLeft })}
             </p>
           </div>
           {!subscription.is_owner && (
-            <p className="max-w-xs text-sm text-muted-foreground">Only the workspace owner can change the plan or pay.</p>
+            <p className="max-w-xs text-sm text-muted-foreground">{t('Only the workspace owner can change the plan or pay.')}</p>
           )}
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Meter label="Orders this month" used={subscription.usage.orders_this_month} limit={subscription.limits.max_orders_per_month} />
-          <Meter label="Team members" used={subscription.usage.team_members} limit={subscription.limits.max_team_members} />
-          <Meter label="AI questions today" used={subscription.usage.ai_chat_today} limit={subscription.limits.ai_chat_per_day} />
-          <Meter label="Marketing AI this month" used={subscription.usage.marketing_this_month} limit={subscription.limits.marketing_per_month} />
+          <Meter label={t('Orders this month')} used={subscription.usage.orders_this_month} limit={subscription.limits.max_orders_per_month} />
+          <Meter label={t('Team members')} used={subscription.usage.team_members} limit={subscription.limits.max_team_members} />
+          <Meter label={t('AI questions today')} used={subscription.usage.ai_chat_today} limit={subscription.limits.ai_chat_per_day} />
+          <Meter label={t('Marketing AI this month')} used={subscription.usage.marketing_this_month} limit={subscription.limits.marketing_per_month} />
         </div>
       </section>
 
@@ -151,8 +153,8 @@ export default function Billing() {
       {subscription.is_owner && (
         <section className={sectionClass}>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-foreground"><CreditCard size={18} /> Choose a plan</h2>
-            <div className="inline-flex rounded-lg border border-border p-1" role="group" aria-label="Billing period">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-foreground"><CreditCard size={18} /> {t('Choose a plan')}</h2>
+            <div className="inline-flex rounded-lg border border-border p-1" role="group" aria-label={t('Billing period')}>
               {(['monthly', 'yearly'] as const).map((p) => (
                 <button
                   key={p}
@@ -160,7 +162,7 @@ export default function Billing() {
                   aria-pressed={period === p}
                   className={cn('rounded-md px-3 py-1.5 text-sm font-bold capitalize', period === p ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
                 >
-                  {p}{p === 'yearly' && ' · 2 months free'}
+                  {p === 'yearly' ? t('Yearly · 2 months free') : t('Monthly')}
                 </button>
               ))}
             </div>
@@ -175,11 +177,11 @@ export default function Billing() {
                 <div key={p.id} className={cn('flex flex-col rounded-xl border p-5', p.id === 'pro' ? 'border-primary' : 'border-border')}>
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-semibold text-foreground">{p.name}</h3>
-                    {p.id === 'pro' && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">Most popular</span>}
+                    {p.id === 'pro' && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">{t('Most popular')}</span>}
                   </div>
                   <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
                     {taka(price)}
-                    <span className="text-base font-semibold text-muted-foreground"> / {period === 'yearly' ? 'year' : 'month'}</span>
+                    <span className="text-base font-semibold text-muted-foreground"> / {period === 'yearly' ? t('year') : t('month')}</span>
                   </p>
                   <ul className="my-4 flex flex-1 flex-col gap-2">
                     {planFeatures(p).map((f) => (
@@ -191,19 +193,19 @@ export default function Billing() {
                   {blocked ? (
                     <>
                       <div className="flex h-11 items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/10 text-sm font-medium text-primary">
-                        <Check size={16} /> Included in your Pro plan
+                        <Check size={16} /> {t('Included in your Pro plan')}
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">
                         {isOpenEnded(subscription)
-                          ? 'Your account has Pro with no end date, so you never need Starter.'
-                          : `Everything in Starter is part of Pro. You can switch to Starter after ${format(new Date(ends!), 'd MMM yyyy')}.`}
+                          ? t('Your account has Pro with no end date, so you never need Starter.')
+                          : t('Everything in Starter is part of Pro. You can switch to Starter after {date}.', { date: format(new Date(ends!), 'd MMM yyyy', { locale: currentDateLocale() }) })}
                       </p>
                     </>
                   ) : (
                     <Button onClick={() => pay(p.id as PlanId)} disabled={paying !== null} className="h-11 w-full font-bold">
                       {paying === p.id
                         ? <Loader2 className="animate-spin" size={18} />
-                        : isCurrent ? `Renew ${p.name}` : `Pay ${taka(price)}`}
+                        : isCurrent ? t('Renew {plan}', { plan: p.name }) : t('Pay {amount}', { amount: taka(price) })}
                     </Button>
                   )}
                 </div>
@@ -211,8 +213,7 @@ export default function Billing() {
             })}
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            Pay securely with bKash, Nagad, Rocket or card through SSLCommerz. Plans don't renew automatically —
-            paying again while a plan or trial is active adds the new period on top, so no days are lost.
+            {t("Pay securely with bKash, Nagad, Rocket or card through SSLCommerz. Plans don't renew automatically — paying again while a plan or trial is active adds the new period on top, so no days are lost.")}
           </p>
         </section>
       )}
@@ -220,26 +221,26 @@ export default function Billing() {
       {/* History */}
       {subscription.is_owner && payments.length > 0 && (
         <section className={sectionClass}>
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-foreground"><Receipt size={18} /> Payment history</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-foreground"><Receipt size={18} /> {t('Payment history')}</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Date</th>
-                  <th className="py-2 pr-4">Plan</th>
-                  <th className="py-2 pr-4">Amount</th>
-                  <th className="py-2 pr-4">Method</th>
-                  <th className="py-2">Status</th>
+                  <th className="py-2 pr-4">{t('Date')}</th>
+                  <th className="py-2 pr-4">{t('Plan')}</th>
+                  <th className="py-2 pr-4">{t('Amount')}</th>
+                  <th className="py-2 pr-4">{t('Method')}</th>
+                  <th className="py-2">{t('Status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.map((p) => (
                   <tr key={p.id} className="border-t border-border text-foreground">
-                    <td className="py-2 pr-4">{format(new Date(p.created_at), 'd MMM yyyy')}</td>
-                    <td className="py-2 pr-4 capitalize">{p.plan} · {p.billing_period}</td>
+                    <td className="py-2 pr-4">{format(new Date(p.created_at), 'd MMM yyyy', { locale: currentDateLocale() })}</td>
+                    <td className="py-2 pr-4 capitalize">{p.plan} · {p.billing_period === 'yearly' ? t('Yearly') : t('Monthly')}</td>
                     <td className="py-2 pr-4 tabular-nums">{taka(p.amount)}</td>
                     <td className="py-2 pr-4">{p.card_type || '—'}</td>
-                    <td className="py-2">{paymentStatusLabel(p.status, p.created_at)}</td>
+                    <td className="py-2">{t(paymentStatusLabel(p.status, p.created_at))}</td>
                   </tr>
                 ))}
               </tbody>

@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useT, rich } from '@/i18n';
 
 interface InvitePreview {
   role: string;
@@ -12,6 +14,7 @@ interface InvitePreview {
 }
 
 export default function InvitePage() {
+  const { t } = useT();
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -43,9 +46,9 @@ export default function InvitePage() {
       <div className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl text-center">
           <AlertTriangle size={48} className="mx-auto text-destructive mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Invite Expired</h1>
-          <p className="text-muted-foreground mb-6">This invite link has expired or already been used. Please contact the workspace owner for a new invite.</p>
-          <Link to="/login" className="text-sm font-bold text-primary hover:underline">Go to login</Link>
+          <h1 className="text-2xl font-bold text-foreground mb-2">{t('Invite Expired')}</h1>
+          <p className="text-muted-foreground mb-6">{t('This invite link has expired or already been used. Please contact the workspace owner for a new invite.')}</p>
+          <Link to="/login" className="text-sm font-bold text-primary hover:underline">{t('Go to login')}</Link>
         </div>
       </div>
     );
@@ -54,25 +57,26 @@ export default function InvitePage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
       <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl text-center">
+        <LanguageToggle className="-mt-4 mb-2 ml-auto" />
         <Sparkles size={40} className="mx-auto text-primary mb-4" />
-        <h1 className="text-2xl font-bold text-foreground mb-2">You're invited!</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t("You're invited!")}</h1>
         <p className="text-muted-foreground mb-2">
-          You've been invited to join <strong className="text-foreground">{invite.business_name}</strong> on Lumina Insights
+          {rich(t("You've been invited to join {business} on Lumina Insights"), { business: <strong className="text-foreground">{invite.business_name}</strong> })}
         </p>
         <div className="my-4 inline-block rounded-full bg-primary/20 px-4 py-1.5 text-sm font-bold text-primary capitalize">
-          {invite.role}
+          {t(invite.role.charAt(0).toUpperCase() + invite.role.slice(1))}
         </div>
-        <p className="text-xs text-muted-foreground">Sign up or sign in with <strong>{invite.email}</strong></p>
+        <p className="text-xs text-muted-foreground">{rich(t('Sign up or sign in with {email}'), { email: <strong>{invite.email}</strong> })}</p>
 
         <div className="flex flex-col gap-3 mt-6">
           <Button
             onClick={() => navigate(`/signup?token=${token}`)}
             className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90"
           >
-            Accept & Create Account
+            {t('Accept & Create Account')}
           </Button>
           <Link to={`/login?token=${token}`} className="text-sm font-bold text-primary hover:underline">
-            Already have an account? Sign in
+            {t('Already have an account? Sign in')}
           </Link>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
 import { dbErrorMessage } from '@/lib/dbErrors';
+import { useT, currentDateLocale } from '@/i18n';
 
 interface Note {
   id: string;
@@ -52,6 +53,8 @@ function stripMarkdown(text: string): string {
 }
 
 export default function Notes() {
+  const { t, lang } = useT();
+  const speechLang = lang === 'bn' ? 'bn-BD' : 'en-US';
   const { ownerIdForQueries } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
   const [marketingOutputs, setMarketingOutputs] = useState<MarketingOutput[]>([]);
@@ -202,9 +205,9 @@ export default function Notes() {
       })
       .eq('id', activeNoteId);
     if (error) {
-      toast({ title: 'Error', description: dbErrorMessage(error.message), variant: 'destructive' });
+      toast({ title: t('Error'), description: dbErrorMessage(error.message), variant: 'destructive' });
     } else {
-      toast({ title: 'Saved ✓' });
+      toast({ title: t('Saved ✓') });
       setHasUnsaved(false);
       setIsEditing(false);
       fetchAll();
@@ -220,9 +223,9 @@ export default function Notes() {
       owner_id: ownerIdForQueries,
     });
     if (error) {
-      toast({ title: 'Error', description: dbErrorMessage(error.message), variant: 'destructive' });
+      toast({ title: t('Error'), description: dbErrorMessage(error.message), variant: 'destructive' });
     } else {
-      toast({ title: 'Note created ✓' });
+      toast({ title: t('Note created ✓') });
       setShowNewModal(false);
       setNewTitle('');
       setNewTranscript('');
@@ -246,7 +249,7 @@ export default function Notes() {
       }
     }
     setDeleteTarget(null);
-    toast({ title: 'Deleted' });
+    toast({ title: t('Deleted') });
     fetchAll();
   }
 
@@ -254,13 +257,13 @@ export default function Notes() {
   function startVoiceNote() {
     const SR = getSpeechRecognition();
     if (!SR) {
-      toast({ title: 'Voice notes need Chrome or Edge', variant: 'destructive' });
+      toast({ title: t('Voice notes need Chrome or Edge'), variant: 'destructive' });
       return;
     }
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = 'en-US';
+    rec.lang = speechLang;
     let finalText = '';
     rec.onresult = (e) => {
       let interim = '';
@@ -274,7 +277,7 @@ export default function Notes() {
       setLiveTranscript(finalText + interim);
     };
     rec.onerror = () => {
-      toast({ title: 'Mic error', variant: 'destructive' });
+      toast({ title: t('Mic error'), variant: 'destructive' });
       setIsRecording(false);
     };
     rec.onend = () => {};
@@ -287,8 +290,8 @@ export default function Notes() {
   function stopVoiceNote() {
     if (recognition) recognition.stop();
     setIsRecording(false);
-    const now = format(new Date(), 'hh:mm a — MMM d');
-    setNewTitle(`Voice Note — ${now}`);
+    const now = format(new Date(), 'hh:mm a — MMM d', { locale: currentDateLocale() });
+    setNewTitle(t('Voice Note — {time}', { time: now }));
     setNewTranscript(liveTranscript.trim());
     setShowNewModal(true);
   }
@@ -305,13 +308,13 @@ export default function Notes() {
   function startModalRecording() {
     const SR = getSpeechRecognition();
     if (!SR) {
-      toast({ title: 'Voice notes need Chrome or Edge', variant: 'destructive' });
+      toast({ title: t('Voice notes need Chrome or Edge'), variant: 'destructive' });
       return;
     }
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = false;
-    rec.lang = 'en-US';
+    rec.lang = speechLang;
 
     rec.onresult = (e) => {
       let transcript = '';
@@ -323,7 +326,7 @@ export default function Notes() {
     };
 
     rec.onerror = () => {
-      toast({ title: 'Mic error', variant: 'destructive' });
+      toast({ title: t('Mic error'), variant: 'destructive' });
       stopModalRecording();
     };
 
@@ -354,15 +357,15 @@ export default function Notes() {
   const activeMarketing = activeMarketingId ? marketingOutputs.find((m) => m.id === activeMarketingId) : null;
 
   const typeBadge = (type: string, platform?: string) => {
-    if (type === 'voice') return <Badge className="bg-highlight/15 text-highlight text-[11px]">Voice</Badge>;
-    if (type === 'ai_output') return <Badge className="bg-primary text-black text-[11px]">{platform ? platform : 'AI Output'}</Badge>;
-    return <Badge variant="secondary" className="text-[11px]">Manual</Badge>;
+    if (type === 'voice') return <Badge className="bg-highlight/15 text-highlight text-[11px]">{t('Voice')}</Badge>;
+    if (type === 'ai_output') return <Badge className="bg-primary text-black text-[11px]">{platform ? platform : t('AI Output')}</Badge>;
+    return <Badge variant="secondary" className="text-[11px]">{t('Manual')}</Badge>;
   };
 
   const tabs: { label: string; value: TabFilter }[] = [
-    { label: 'All', value: 'all' },
-    { label: 'Manual', value: 'manual' },
-    { label: 'AI Output', value: 'ai_output' },
+    { label: t('All'), value: 'all' },
+    { label: t('Manual'), value: 'manual' },
+    { label: t('AI Output'), value: 'ai_output' },
   ];
 
   const hasActiveItem = !!activeNote || !!activeMarketing;
@@ -370,7 +373,7 @@ export default function Notes() {
   // --- Render active note panel content ---
   function renderActivePanel() {
     if (!activeNote && !activeMarketing) {
-      return <p className="text-center py-16 text-muted-foreground">Select a note to view it</p>;
+      return <p className="text-center py-16 text-muted-foreground">{t('Select a note to view it')}</p>;
     }
 
     if (activeNote) {
@@ -382,7 +385,7 @@ export default function Notes() {
               onClick={() => setMobileTab('list')}
               className="flex items-center gap-1 text-sm font-bold text-muted-foreground mb-2 hover:text-card-foreground transition-colors"
             >
-              <ArrowLeft size={14} /> Notes
+              <ArrowLeft size={14} /> {t('Notes')}
             </button>
           )}
           {/* Title + badges */}
@@ -401,13 +404,13 @@ export default function Notes() {
                 <Badge variant="outline" className="text-[11px]">{activeNote.source_module}</Badge>
               )}
               <span className="text-[13px] text-muted-foreground">
-                {activeNote.created_at ? format(new Date(activeNote.created_at), 'MMM d, yyyy') : ''}
+                {activeNote.created_at ? format(new Date(activeNote.created_at), 'MMM d, yyyy', { locale: currentDateLocale() }) : ''}
               </span>
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
                   className="ml-auto text-muted-foreground hover:text-card-foreground transition-colors p-1"
-                  title="Edit"
+                  title={t('Edit')}
                 >
                   <Pencil size={14} />
                 </button>
@@ -420,7 +423,7 @@ export default function Notes() {
                     setHasUnsaved(false);
                   }}
                   className="ml-auto text-muted-foreground hover:text-card-foreground transition-colors p-1"
-                  title="Cancel edit"
+                  title={t('Cancel edit')}
                 >
                   <XIcon size={14} />
                 </button>
@@ -435,7 +438,7 @@ export default function Notes() {
                 value={editTranscript}
                 onChange={(e) => { setEditTranscript(e.target.value); setHasUnsaved(true); }}
                 className="w-full h-full bg-transparent border-none outline-none resize-none text-[15px] leading-[1.7] text-card-foreground font-medium"
-                placeholder="Write something..."
+                placeholder={t('Write something...')}
               />
             ) : activeNote.type === 'ai_output' ? (
               <div className="text-[15px] font-medium leading-[1.7] text-card-foreground">
@@ -459,14 +462,14 @@ export default function Notes() {
           {/* Buttons */}
           <div className={`flex gap-2 shrink-0 pt-3 ${isMobile ? 'sticky bottom-0 bg-transparent pb-2' : ''}`}>
             {hasUnsaved && (
-              <Button onClick={saveNote} className="font-bold">Save Changes</Button>
+              <Button onClick={saveNote} className="font-bold">{t('Save Changes')}</Button>
             )}
             <Button
               variant="destructive"
               onClick={() => setDeleteTarget({ type: 'note', id: activeNote.id })}
               className="font-bold gap-1"
             >
-              <Trash2 size={14} /> Delete
+              <Trash2 size={14} /> {t('Delete')}
             </Button>
           </div>
         </div>
@@ -481,7 +484,7 @@ export default function Notes() {
               onClick={() => setMobileTab('list')}
               className="flex items-center gap-1 text-sm font-bold text-muted-foreground mb-2 hover:text-card-foreground transition-colors"
             >
-              <ArrowLeft size={14} /> Notes
+              <ArrowLeft size={14} /> {t('Notes')}
             </button>
           )}
           <div className="shrink-0 mb-3">
@@ -490,50 +493,50 @@ export default function Notes() {
               <h2 className="text-xl font-bold text-card-foreground">{activeMarketing.product_name}</h2>
             </div>
             <span className="text-[13px] text-muted-foreground">
-              {activeMarketing.created_at ? format(new Date(activeMarketing.created_at), 'MMM d, yyyy') : ''}
+              {activeMarketing.created_at ? format(new Date(activeMarketing.created_at), 'MMM d, yyyy', { locale: currentDateLocale() }) : ''}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4" style={isMobile ? { height: 'calc(100vh - 220px)' } : undefined}>
             {activeMarketing.hook && (
               <div>
-                <p className="font-bold text-card-foreground">🎣 Hook</p>
+                <p className="font-bold text-card-foreground">🎣 {t('Hook')}</p>
                 <p className="text-card-foreground">{activeMarketing.hook}</p>
               </div>
             )}
             {activeMarketing.value_proposition && (
               <div>
-                <p className="font-bold text-card-foreground">💎 Value Proposition</p>
+                <p className="font-bold text-card-foreground">💎 {t('Value proposition')}</p>
                 <p className="text-card-foreground">{activeMarketing.value_proposition}</p>
               </div>
             )}
             {activeMarketing.cta && (
               <div>
-                <p className="font-bold text-card-foreground">📣 Call to Action</p>
+                <p className="font-bold text-card-foreground">📣 {t('Call to action')}</p>
                 <p className="text-card-foreground">{activeMarketing.cta}</p>
               </div>
             )}
             {activeMarketing.caption && (
               <div>
-                <p className="font-bold text-card-foreground">📱 Caption</p>
+                <p className="font-bold text-card-foreground">📱 {t('Caption')}</p>
                 <p className="text-card-foreground">{activeMarketing.caption}</p>
               </div>
             )}
             {activeMarketing.script && (
               <div>
-                <p className="font-bold text-card-foreground">🎬 Script</p>
+                <p className="font-bold text-card-foreground">🎬 {t('Script')}</p>
                 <p className="text-card-foreground whitespace-pre-wrap">{activeMarketing.script}</p>
               </div>
             )}
             {activeMarketing.hashtags && (
               <div>
-                <p className="font-bold text-card-foreground mb-1">#️⃣ Hashtags</p>
+                <p className="font-bold text-card-foreground mb-1">#️⃣ {t('Hashtags')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {activeMarketing.hashtags.split(',').map((h, i) => (
                     <button
                       key={i}
                       onClick={() => {
                         navigator.clipboard.writeText(h.trim());
-                        toast({ title: 'Copied!' });
+                        toast({ title: t('Copied!') });
                       }}
                       className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-secondary-foreground hover:bg-secondary/80 cursor-pointer"
                     >
@@ -550,7 +553,7 @@ export default function Notes() {
               onClick={() => setDeleteTarget({ type: 'marketing', id: activeMarketing.id })}
               className="font-bold gap-1"
             >
-              <Trash2 size={14} /> Delete
+              <Trash2 size={14} /> {t('Delete')}
             </Button>
           </div>
         </div>
@@ -587,7 +590,7 @@ export default function Notes() {
       `}</style>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-[28px] font-bold text-foreground">Notes</h1>
+        <h1 className="text-[28px] font-bold text-foreground">{t('Notes')}</h1>
         <div className="flex items-center gap-2">
           <Button
             onClick={() => {
@@ -596,7 +599,7 @@ export default function Notes() {
             variant="outline"
             className="font-bold gap-1.5 border-highlight/50 text-highlight hover:bg-highlight/10"
           >
-            <Mic size={16} /> Voice Note
+            <Mic size={16} /> {t('Voice Note')}
           </Button>
           <Button
             onClick={() => {
@@ -606,7 +609,7 @@ export default function Notes() {
             }}
             className="font-bold gap-1.5"
           >
-            <Plus size={16} /> New Note
+            <Plus size={16} /> {t('New Note')}
           </Button>
         </div>
       </div>
@@ -615,18 +618,18 @@ export default function Notes() {
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search notes..." className="pl-9" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search notes...')} className="pl-9" />
         </div>
         <div className="flex gap-1">
-          {tabs.map((t) => (
+          {tabs.map((tab) => (
             <button
-              key={t.value}
-              onClick={() => setActiveTab(t.value)}
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                activeTab === t.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                activeTab === tab.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -641,7 +644,7 @@ export default function Notes() {
               mobileTab === 'list' ? 'border-b-2 border-primary text-card-foreground' : 'text-muted-foreground'
             }`}
           >
-            Notes
+            {t('Notes')}
           </button>
           <button
             onClick={() => setMobileTab('view')}
@@ -649,7 +652,7 @@ export default function Notes() {
               mobileTab === 'view' ? 'border-b-2 border-primary text-card-foreground' : 'text-muted-foreground'
             }`}
           >
-            View Note
+            {t('View Note')}
           </button>
         </div>
       )}
@@ -662,7 +665,7 @@ export default function Notes() {
           {mobileTab === 'list' ? (
             <div className="overflow-y-auto h-full space-y-2 pr-1">
               {filteredItems.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">No notes yet.</p>
+                <p className="text-center py-8 text-muted-foreground">{t('No notes yet.')}</p>
               ) : (
                 filteredItems.map((item) => {
                   const isActive =
@@ -681,7 +684,7 @@ export default function Notes() {
                         <div className="flex items-center gap-1.5 shrink-0">
                           {typeBadge(item.type, item.platform)}
                           <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            {item.date ? format(new Date(item.date), 'MMM d') : ''}
+                            {item.date ? format(new Date(item.date), 'MMM d', { locale: currentDateLocale() }) : ''}
                           </span>
                         </div>
                       </div>
@@ -703,7 +706,7 @@ export default function Notes() {
           {/* List */}
           <div className="w-[35%] shrink-0 overflow-y-auto space-y-2 pr-1 h-full">
             {filteredItems.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">No notes yet.</p>
+              <p className="text-center py-8 text-muted-foreground">{t('No notes yet.')}</p>
             ) : (
               filteredItems.map((item) => {
                 const isActive =
@@ -722,7 +725,7 @@ export default function Notes() {
                       <div className="flex items-center gap-1.5 shrink-0">
                         {typeBadge(item.type, item.platform)}
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {item.date ? format(new Date(item.date), 'MMM d') : ''}
+                          {item.date ? format(new Date(item.date), 'MMM d', { locale: currentDateLocale() }) : ''}
                         </span>
                       </div>
                     </div>
@@ -745,32 +748,32 @@ export default function Notes() {
         <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/70 p-6">
           <div className="flex items-center gap-3 mb-4">
             <span className="w-4 h-4 rounded-full bg-destructive animate-pulse" />
-            <span className="text-white font-bold text-lg">Recording... speak now</span>
+            <span className="text-white font-bold text-lg">{t('Recording... speak now')}</span>
           </div>
-          <p className="text-white/80 text-center max-w-md mb-6 min-h-[60px]">{liveTranscript || 'Listening...'}</p>
+          <p className="text-white/80 text-center max-w-md mb-6 min-h-[60px]">{liveTranscript || t('Listening...')}</p>
           <Button onClick={stopVoiceNote} variant="destructive" className="font-bold gap-1.5 h-12 px-8">
-            ⏹ Stop Recording
+            ⏹ {t('Stop Recording')}
           </Button>
         </div>
       )}
 
       {/* New note modal */}
-      <ModalShell isOpen={showNewModal} onClose={() => { setShowNewModal(false); stopModalRecording(); }} title="New Note">
+      <ModalShell isOpen={showNewModal} onClose={() => { setShowNewModal(false); stopModalRecording(); }} title={t('New Note')}>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-bold text-card-foreground mb-1 block">Title</label>
-            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Note title" required />
+            <label className="text-sm font-bold text-card-foreground mb-1 block">{t('Title')}</label>
+            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder={t('Note title')} required />
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-bold text-card-foreground">Transcript</label>
+              <label className="text-sm font-bold text-card-foreground">{t('Transcript')}</label>
               <button
                 onClick={toggleModalRecording}
                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
                   isModalRecording ? 'bg-destructive text-white' : 'text-muted-foreground hover:text-card-foreground'
                 }`}
                 style={isModalRecording ? { boxShadow: '0 0 10px rgba(239,68,68,0.5)' } : undefined}
-                title={isModalRecording ? 'Stop recording' : 'Record voice'}
+                title={isModalRecording ? t('Stop recording') : t('Record voice')}
               >
                 <Mic size={16} />
               </button>
@@ -778,26 +781,26 @@ export default function Notes() {
             {isModalRecording && (
               <div className="flex items-center gap-2 mb-2 px-2 py-1 rounded-lg bg-muted/50">
                 <ModalWaveform />
-                <span className="text-xs text-muted-foreground font-bold">Listening...</span>
+                <span className="text-xs text-muted-foreground font-bold">{t('Listening...')}</span>
               </div>
             )}
-            <Textarea value={newTranscript} onChange={(e) => setNewTranscript(e.target.value)} rows={5} placeholder="Write your note..." />
+            <Textarea value={newTranscript} onChange={(e) => setNewTranscript(e.target.value)} rows={5} placeholder={t('Write your note...')} />
           </div>
           <Button onClick={createNote} disabled={!newTitle.trim()} className="w-full h-12 font-bold">
-            Save Note
+            {t('Save Note')}
           </Button>
         </div>
       </ModalShell>
 
       {/* Delete confirmation */}
-      <ModalShell isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Confirm Delete">
-        <p className="text-card-foreground font-bold mb-4">Are you sure you want to delete this item? This cannot be undone.</p>
+      <ModalShell isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t('Confirm Delete')}>
+        <p className="text-card-foreground font-bold mb-4">{t('Are you sure you want to delete this item? This cannot be undone.')}</p>
         <div className="flex gap-3">
           <Button variant="destructive" onClick={handleDelete} className="flex-1 font-bold">
-            Delete
+            {t('Delete')}
           </Button>
           <Button variant="outline" onClick={() => setDeleteTarget(null)} className="flex-1 font-bold">
-            Cancel
+            {t('Cancel')}
           </Button>
         </div>
       </ModalShell>

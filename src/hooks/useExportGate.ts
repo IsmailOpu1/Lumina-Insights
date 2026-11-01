@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { tr } from '@/i18n';
 import { useSubscription } from '@/context/SubscriptionContext';
 
 /**
@@ -14,10 +15,10 @@ export function useExportGate() {
   return useCallback(() => {
     if (features.dataExport) return true;
     const isOwner = subscription?.is_owner ?? false;
-    const reason = canWrite ? 'Excel export is a Pro feature.' : 'Your plan has expired.';
+    const reason = canWrite ? tr('Excel export is a Pro feature.') : tr('Your plan has expired.');
     toast.error(reason, {
-      description: isOwner ? undefined : 'Ask the workspace owner to upgrade.',
-      action: isOwner ? { label: 'See plans', onClick: () => navigate('/billing') } : undefined,
+      description: isOwner ? undefined : tr('Ask the workspace owner to upgrade.'),
+      action: isOwner ? { label: tr('See plans'), onClick: () => navigate('/billing') } : undefined,
     });
     return false;
   }, [features.dataExport, canWrite, subscription?.is_owner, navigate]);

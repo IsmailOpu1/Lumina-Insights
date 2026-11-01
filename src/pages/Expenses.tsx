@@ -308,7 +308,36 @@ export default function Expenses() {
           />
         ) : (
           <>
-            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Phones get cards; the table would need sideways scrolling. */}
+            <ul className="divide-y divide-border md:hidden">
+              {paged.map(e => (
+                <li key={e.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className={cn('inline-flex rounded-md border px-2 py-0.5 text-xs font-medium', (TYPE_STYLE[e.type] || TYPE_STYLE['Miscellaneous']).badge)}>
+                        {t(e.type)}
+                      </span>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {[fnsFormat(parseDay(e.date), 'dd MMM yyyy', { locale: currentDateLocale() }), e.platform].filter(Boolean).join(' · ')}
+                      </p>
+                    </div>
+                    <p className="shrink-0 font-semibold tabular-nums">{formatCurrency(e.amount)}</p>
+                  </div>
+                  {e.notes && <p className="mt-1.5 break-words text-sm text-muted-foreground">{e.notes}</p>}
+                  {!readOnly && (
+                    <div className="mt-1 flex justify-end gap-1">
+                      <button onClick={() => openEdit(e)} className="icon-btn" aria-label={t('Edit expense')}>
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => setDeleteId(e.id)} className="icon-btn-danger" aria-label={t('Delete expense')}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
               <table className="data-table min-w-[720px]">
                 <thead>
                   <tr>

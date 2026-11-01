@@ -20,11 +20,11 @@ export default function DateFilterBar() {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {dateFilter === 'custom' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 max-sm:w-full">
           <Input
             type="date"
             aria-label={t('From date')}
-            className="h-8 w-[150px] text-xs"
+            className="h-8 w-[150px] text-xs max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
             value={toInput(customRange.from)}
             onChange={(e) => setCustomRange({ ...customRange, from: e.target.value ? new Date(e.target.value) : null })}
           />
@@ -32,7 +32,7 @@ export default function DateFilterBar() {
           <Input
             type="date"
             aria-label={t('To date')}
-            className="h-8 w-[150px] text-xs"
+            className="h-8 w-[150px] text-xs max-sm:w-auto max-sm:min-w-0 max-sm:flex-1"
             value={toInput(customRange.to)}
             onChange={(e) => setCustomRange({ ...customRange, to: e.target.value ? new Date(e.target.value) : null })}
           />

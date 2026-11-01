@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import OrderCard from '@/components/OrderCard';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { format } from 'date-fns';
 import { parseDay } from '@/lib/dates';
@@ -93,7 +94,25 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
         </button>
       }
     >
-      <div className="-mx-5 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Phones get cards; the table would need sideways scrolling. */}
+      <ul className="-mx-5 divide-y divide-border border-t border-border md:hidden">
+        {recent.map((o) =>
+        <OrderCard
+          key={o.id}
+          orderNumber={o.order_number}
+          customer={o.customer_name}
+          product={(o.product_id && invMap.get(o.product_id)) || o.product_name || ''}
+          source={o.source}
+          status={o.status}
+          quantity={o.quantity}
+          price={o.selling_price}
+          shipping={o.shipping_cost}
+          profit={o.profit_per_order}
+          date={o.date} />
+        )}
+        {recent.length === 0 && <li className="px-5 py-10 text-center text-sm text-muted-foreground">{t('No orders yet')}</li>}
+      </ul>
+      <div className="-mx-5 hidden overflow-x-auto md:block">
         <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr className="border-y border-border bg-muted/40">

@@ -8,6 +8,6 @@ export const LEGAL = {
   contactEmail: '[support@yourdomain.com]',
   // WhatsApp support number with country code, digits only (e.g. '8801712345678').
   // The support buttons stay hidden while this is empty.
-  supportWhatsApp: '',
+  supportWhatsApp: '8801683254790',
   lastUpdated: '26 October 2026',
 } as const;

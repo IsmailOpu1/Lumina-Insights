@@ -913,6 +913,20 @@ const bn: Record<string, string> = {
   '{rows} with problems will be skipped.': 'সমস্যাযুক্ত {rows} বাদ যাবে।',
   '{used} / {limit} used this month': 'এই মাসে {limit}টির মধ্যে {used}টি ব্যবহার হয়েছে',
   '{value} is not a date': '{value} কোনো তারিখ নয়',
+
+  // Password reset by code
+  'A new code is on its way': 'নতুন কোড পাঠানো হয়েছে',
+  'Ask for a reset code instead. It works even when your email app opens links by itself.': 'এর বদলে একটি রিসেট কোড নিন। আপনার ইমেইল অ্যাপ নিজে থেকে লিংক খুলে ফেললেও কোড কাজ করে।',
+  'Choose a new password for {email}': '{email}-এর জন্য নতুন পাসওয়ার্ড দিন',
+  'Enter your email and we will send you a reset code': 'আপনার ইমেইল দিন, আমরা একটি রিসেট কোড পাঠাব',
+  'Failed to send reset code': 'রিসেট কোড পাঠানো যায়নি',
+  'Get a reset code': 'রিসেট কোড নিন',
+  'Password updated! Sign in with your new password.': 'পাসওয়ার্ড বদলানো হয়েছে! নতুন পাসওয়ার্ড দিয়ে সাইন ইন করুন।',
+  'Send reset code': 'রিসেট কোড পাঠান',
+  'The new password must be different from the old one.': 'নতুন পাসওয়ার্ড আগেরটির থেকে আলাদা হতে হবে।',
+  'This reset link has expired or was already used': 'এই রিসেট লিংকের মেয়াদ শেষ বা এটি আগেই ব্যবহার হয়েছে',
+  'Use a different email': 'অন্য ইমেইল ব্যবহার করুন',
+  'We sent a {n}-digit code to {email}': '{email}-এ {n} সংখ্যার একটি কোড পাঠানো হয়েছে',
 };
 
 export default bn;

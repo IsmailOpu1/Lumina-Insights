@@ -56,7 +56,7 @@ subject = "Confirm your new email address for Lumina"
 content_path = "./supabase/templates/change_email.html"
 
 [auth.email.template.recovery]
-subject = "Reset your Lumina password"
+subject = "{{ .Token }} is your Lumina password reset code"
 content_path = "./supabase/templates/reset_password.html"
 
 [auth.email.template.reauthentication]

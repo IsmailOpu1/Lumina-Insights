@@ -25,7 +25,7 @@ the subject and paste the whole HTML file into the body.
 | Invite user         | You've been invited to Lumina Insights          | `invite.html`             |
 | Magic link          | Your Lumina sign-in link                        | `magic_link.html`         |
 | Change email address| Confirm your new email address for Lumina       | `change_email.html`       |
-| Reset password      | Reset your Lumina password                      | `reset_password.html`     |
+| Reset password      | `{{ .Token }} is your Lumina password reset code` | `reset_password.html`     |
 | Reauthentication    | Your Lumina verification code                   | `reauthentication.html`   |
 
 Team invites from Settings are sent by the `send-invite-email` function,

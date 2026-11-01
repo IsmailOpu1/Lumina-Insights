@@ -364,7 +364,56 @@ export default function Inventory() {
         <EmptyState icon={Search} title={t('Nothing matches')} message={t('Try a different search or stock filter.')} /> :
 
         <>
-            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Phones get cards; the table would need sideways scrolling. */}
+            <ul className="divide-y divide-border md:hidden">
+              {paged.map((i) => {
+              const isOut = i.stock_quantity === 0;
+              const isLow = !isOut && i.stock_quantity < i.low_stock_threshold;
+              const fill = Math.min(100, i.stock_quantity / Math.max(1, i.low_stock_threshold * 2) * 100);
+              const margin = i.selling_price > 0 ? (i.selling_price - i.cost_price) / i.selling_price * 100 : 0;
+              return (
+                <li key={i.id} className="px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{i.product_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{[i.sku, i.supplier].filter(Boolean).join(' · ') || '—'}</p>
+                      </div>
+                      {!readOnly &&
+                    <div className="-mr-2 -mt-1 flex shrink-0 gap-1">
+                          <button onClick={() => handleEdit(i)} className="icon-btn" aria-label={t('Edit {name}', { name: i.product_name })}>
+                            <Pencil size={16} />
+                          </button>
+                          <button onClick={() => setDeleteId(i.id)} className="icon-btn-danger" aria-label={t('Delete {name}', { name: i.product_name })}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                    }
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{t('Stock')}</span>
+                      <span className={cn('tabular-nums font-medium', isOut ? 'text-destructive' : isLow ? 'text-warning' : '')}>{i.stock_quantity}</span>
+                      <div className="h-1.5 w-16 rounded-full bg-muted">
+                        <div className={cn('h-full rounded-full', isOut ? 'bg-destructive' : isLow ? 'bg-warning' : 'bg-primary')} style={{ width: `${fill}%` }} />
+                      </div>
+                      {(isOut || isLow) &&
+                    <span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-medium', isOut ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning')}>
+                          {isOut ? t('Out') : t('Low')}
+                        </span>
+                    }
+                    </div>
+                    <dl className="mt-2 grid grid-cols-4 gap-2 text-xs">
+                      <div><dt className="text-muted-foreground">{t('Cost')}</dt><dd className="tabular-nums">{formatCurrency(i.cost_price)}</dd></div>
+                      <div><dt className="text-muted-foreground">{t('Price')}</dt><dd className="tabular-nums">{formatCurrency(i.selling_price)}</dd></div>
+                      <div>
+                        <dt className="text-muted-foreground">{t('Margin')}</dt>
+                        <dd className={cn('tabular-nums', margin < 0 ? 'text-destructive' : margin < 20 ? 'text-warning' : 'text-success')}>{i.selling_price > 0 ? `${margin.toFixed(0)}%` : '—'}</dd>
+                      </div>
+                      <div><dt className="text-muted-foreground">{t('Value')}</dt><dd className="tabular-nums">{formatCurrency(i.stock_quantity * i.cost_price)}</dd></div>
+                    </dl>
+                  </li>);
+            })}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
               <table className="data-table min-w-[980px]">
                 <thead>
                   <tr>

@@ -222,7 +222,24 @@ export default function Billing() {
       {subscription.is_owner && payments.length > 0 && (
         <section className={sectionClass}>
           <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-foreground"><Receipt size={18} /> {t('Payment history')}</h2>
-          <div className="overflow-x-auto">
+          {/* Phones get a list; the table would need sideways scrolling. */}
+          <ul className="divide-y divide-border text-sm sm:hidden">
+            {payments.map((p) => (
+              <li key={p.id} className="flex items-start justify-between gap-3 py-2.5 text-foreground">
+                <div className="min-w-0">
+                  <p className="capitalize">{p.plan} · {p.billing_period === 'yearly' ? t('Yearly') : t('Monthly')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[format(new Date(p.created_at), 'd MMM yyyy', { locale: currentDateLocale() }), p.card_type].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="tabular-nums">{taka(p.amount)}</p>
+                  <p className="text-xs text-muted-foreground">{t(paymentStatusLabel(p.status, p.created_at))}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground">

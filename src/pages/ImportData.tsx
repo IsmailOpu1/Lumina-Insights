@@ -391,18 +391,18 @@ export default function ImportData() {
 
                         {b.issues.length > 0 && (
                           <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-                            <table className="w-full min-w-[520px] text-sm">
-                              <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
+                            <table className="w-full text-sm md:min-w-[520px]">
+                              <thead className="bg-muted/40 text-left text-xs text-muted-foreground max-md:hidden">
                                 <tr><th className="px-3 py-2 font-medium">{t('Row')}</th><th className="px-3 py-2 font-medium">{t('Problem')}</th><th className="px-3 py-2 font-medium">{t('Fix it here')}</th></tr>
                               </thead>
                               <tbody className="divide-y divide-border">
                                 {b.issues.slice(0, MAX_ISSUES_SHOWN).map((issue) => {
                                   const key = `${issue.index}:${issue.column}`;
                                   return (
-                                    <tr key={key + issue.field}>
-                                      <td className="px-3 py-2 tabular-nums text-muted-foreground">{issue.row}</td>
+                                    <tr key={key + issue.field} className="max-md:grid max-md:grid-cols-[auto_1fr] max-md:py-1">
+                                      <td className="px-3 py-2 tabular-nums text-muted-foreground"><span className="md:hidden">{t('Row')} </span>{issue.row}</td>
                                       <td className="px-3 py-2"><span className="font-medium">{t(issue.label)}</span> {issue.message}</td>
-                                      <td className="px-3 py-2">
+                                      <td className="px-3 py-2 max-md:col-span-2 max-md:pt-0">
                                         {issue.column >= 0 ? (
                                           <Input
                                             className="h-8 text-xs"

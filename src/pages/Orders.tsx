@@ -5,6 +5,7 @@ import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useReadOnly } from '@/hooks/useReadOnly';
 import { ORDER_STATUSES, countsForProfit, isSale } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
+import OrderCard from '@/components/OrderCard';
 import AddOrderModal, { OrderToEdit } from '@/components/AddOrderModal';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import EmptyState from '@/components/EmptyState';
@@ -274,7 +275,34 @@ export default function Orders() {
         <EmptyState icon={Search} title={t('No matching orders')} message={t('Try a different search, status or date range.')} /> :
 
         <>
-            <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Phones get cards; the table would need sideways scrolling. */}
+            <ul className="divide-y divide-border md:hidden">
+              {paged.map((o) =>
+              <OrderCard
+                key={o.id}
+                orderNumber={o.order_number}
+                customer={o.customer_name}
+                product={(o.inventory?.product_name ?? o.product_name) || ''}
+                source={o.source}
+                status={o.status}
+                quantity={o.quantity}
+                price={o.selling_price}
+                shipping={o.shipping_cost}
+                profit={o.profit_per_order ?? 0}
+                date={o.date}
+                actions={!readOnly &&
+                <>
+                      <button onClick={() => handleEdit(o)} className="icon-btn" aria-label={t('Edit order {n}', { n: o.order_number })}>
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => setDeleteId(o.id)} className="icon-btn-danger" aria-label={t('Delete order {n}', { n: o.order_number })}>
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                } />
+              )}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
               <table className="data-table min-w-[960px]">
                 <thead>
                   <tr>

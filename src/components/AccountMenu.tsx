@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, LogOut, MessageCircle, Settings, UserRound } from 'lucide-react';
+import { CreditCard, LogOut, MessageCircle, Settings, Smartphone, UserRound } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { planLabel } from '@/lib/subscription';
 import { whatsAppSupportLink } from '@/lib/support';
+import { useInstallApp } from '@/lib/pwa';
 import UserAvatar from './UserAvatar';
 
 /** Avatar in the top bar; opens the signed-in person's account menu. */
@@ -18,6 +19,7 @@ export default function AccountMenu() {
   const role = isOwner ? 'Owner' : isManager ? 'Manager' : isViewer ? 'Viewer' : null;
   const name = userSettings?.full_name || user?.email?.split('@')[0] || 'Account';
   const supportLink = whatsAppSupportLink();
+  const installApp = useInstallApp();
 
   async function handleSignOut() {
     await signOut();
@@ -57,6 +59,11 @@ export default function AccountMenu() {
         {isOwner && (
           <DropdownMenuItem onSelect={() => navigate('/billing')} className="gap-2.5 py-2">
             <CreditCard size={16} className="text-muted-foreground" /> Billing
+          </DropdownMenuItem>
+        )}
+        {installApp.available && (
+          <DropdownMenuItem onSelect={installApp.install} className="gap-2.5 py-2">
+            <Smartphone size={16} className="text-muted-foreground" /> Install app
           </DropdownMenuItem>
         )}
         {supportLink && (

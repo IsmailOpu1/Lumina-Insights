@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/hooks/useCurrency';
 import { LEGAL } from '@/lib/legal';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import { useInstallApp } from '@/lib/pwa';
 import type { BillingPeriod, Plan } from '@/lib/subscription';
 import { cn } from '@/lib/utils';
 
@@ -177,6 +178,7 @@ function TiltCard({ className, children, max = 6 }: { className?: string; childr
 export default function Landing() {
   const heroRef = useTilt<HTMLElement>({ global: true });
   const [plans, setPlans] = useState<Plan[]>([]);
+  const installApp = useInstallApp();
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
 
   useEffect(() => {
@@ -368,9 +370,12 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 pb-24 pt-8 text-sm text-muted-foreground sm:flex-row sm:pb-8">
           <p>© {new Date().getFullYear()} {LEGAL.businessName}</p>
-          <nav className="flex gap-5">
+          <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            {installApp.available && (
+              <button type="button" onClick={installApp.install} className="hover:text-foreground">Install the app</button>
+            )}
             <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
             <Link to="/login" className="hover:text-foreground">Sign in</Link>

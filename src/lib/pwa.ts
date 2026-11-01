@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
+import { tr } from '@/i18n';
 
 /** Chrome's install event; not in the DOM types yet. */
 interface InstallPromptEvent extends Event {
@@ -65,12 +66,12 @@ export function useInstallApp() {
       changed();
       await event.prompt();
       const { outcome } = await event.userChoice;
-      if (outcome === 'accepted') toast.success('Lumina is on your home screen');
+      if (outcome === 'accepted') toast.success(tr('Lumina is on your home screen'));
       return;
     }
     if (ios) {
-      toast('Add Lumina to your home screen', {
-        description: 'In Safari, tap the Share button, then "Add to Home Screen".',
+      toast(tr('Add Lumina to your home screen'), {
+        description: tr('In Safari, tap the Share button, then "Add to Home Screen".'),
         duration: 10000,
       });
     }

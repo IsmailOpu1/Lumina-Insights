@@ -2,6 +2,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import ChartCard from './ChartCard';
 import DonutChart from './DonutChart';
+import { useT } from '@/i18n';
 
 const SOURCE_COLORS: Record<string, string> = {
   Instagram: '#F472B6',
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function SalesBySourcePie({ data, loading }: Props) {
+  const { t } = useT();
   const { formatCurrency } = useCurrency();
   if (loading) return <SkeletonLoader variant="chart" />;
 
@@ -26,7 +28,7 @@ export default function SalesBySourcePie({ data, loading }: Props) {
     .map((d) => ({ ...d, color: SOURCE_COLORS[d.name] || '#94A3B8' }));
 
   return (
-    <ChartCard title="Sales by channel" subtitle="Revenue per order source">
+    <ChartCard title={t('Sales by channel')} subtitle={t('Revenue per order source')}>
       <DonutChart
         data={slices}
         centerValue={slices.length ? `${Math.round((slices[0].value / (total || 1)) * 100)}%` : '—'}

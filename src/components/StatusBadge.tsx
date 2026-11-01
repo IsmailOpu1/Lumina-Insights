@@ -1,10 +1,12 @@
 import { STATUS_COLORS } from '@/lib/constants';
+import { useT } from '@/i18n';
 
 interface StatusBadgeProps {
   status: string;
 }
 
 export default function StatusBadge({ status }: StatusBadgeProps) {
+  const { t } = useT();
   const color = STATUS_COLORS[status] || '#94A3B8';
 
   return (
@@ -13,7 +15,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
       style={{ backgroundColor: `${color}14`, borderColor: `${color}33`, color }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-      {status}
+      {t(status)}
     </span>
   );
 }

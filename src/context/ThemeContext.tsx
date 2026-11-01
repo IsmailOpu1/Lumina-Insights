@@ -2,13 +2,16 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export type FontStyle = 'inter' | 'poppins' | 'roboto' | 'playfair' | 'nunito' | 'dmsans';
 
+// Bangla letters fall back to Hind Siliguri, loaded with the Bangla interface.
+const BANGLA = "'Hind Siliguri'";
+
 export const FONT_FAMILIES: Record<FontStyle, string> = {
-  inter: "'Inter', sans-serif",
-  poppins: "'Poppins', sans-serif",
-  roboto: "'Roboto', sans-serif",
-  playfair: "'Playfair Display', serif",
-  nunito: "'Nunito', sans-serif",
-  dmsans: "'DM Sans', sans-serif",
+  inter: `'Inter', ${BANGLA}, sans-serif`,
+  poppins: `'Poppins', ${BANGLA}, sans-serif`,
+  roboto: `'Roboto', ${BANGLA}, sans-serif`,
+  playfair: `'Playfair Display', ${BANGLA}, serif`,
+  nunito: `'Nunito', ${BANGLA}, sans-serif`,
+  dmsans: `'DM Sans', ${BANGLA}, sans-serif`,
 };
 
 export const FONT_LABELS: Record<FontStyle, string> = {

@@ -23,6 +23,7 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll as fetchAllRows } from '@/lib/fetchAll';
 import { useReadOnly } from '@/hooks/useReadOnly';
+import { msg, useT } from '@/i18n';
 
 interface InvRow {
   id: string;
@@ -48,6 +49,7 @@ type StockFilter = 'all' | 'low' | 'out';
 const PAGE_SIZE = 20;
 
 export default function Inventory() {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const { getDateRange } = useFilter();
@@ -173,8 +175,8 @@ export default function Inventory() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from('inventory').delete().eq('id', deleteId);
-    if (error) toast.error('Failed to delete product', { description: dbErrorMessage(error.message) });else
-    {toast.success('Product deleted');fetchAll();}
+    if (error) toast.error(t('Failed to delete product'), { description: dbErrorMessage(error.message) });else
+    {toast.success(t('Product deleted'));fetchAll();}
     setDeleteId(null);
   }
 
@@ -196,8 +198,8 @@ export default function Inventory() {
       const totalValue = filtered.reduce((s, i) => s + i.stock_quantity * i.cost_price, 0);
       const totals = ['TOTALS', '', '', '', '', '', totalValue, ''];
       await exportXLSX({ headers, rows, totalsRow: totals, filename: `Inventory_Export_${todaySuffix()}.xlsx` });
-      toast.success('Export complete ✓');
-    } catch {toast.error('Export failed');}
+      toast.success(t('Export complete ✓'));
+    } catch {toast.error(t('Export failed'));}
     setExporting(false);
   }
 
@@ -225,7 +227,7 @@ export default function Inventory() {
     if (totalRev === 0) return { topProduct: '', topPct: 0, top3Pct: 0 };
     const sorted = [...orderAggs].sort((a, b) => b.total_revenue - a.total_revenue);
     const topId = sorted[0]?.product_id;
-    const topName = items.find((i) => i.id === topId)?.product_name || 'Unknown';
+    const topName = items.find((i) => i.id === topId)?.product_name || t('Unknown');
     const topPct = sorted[0]?.total_revenue / totalRev * 100;
     const top3Rev = sorted.slice(0, 3).reduce((s, a) => s + a.total_revenue, 0);
     const top3Pct = top3Rev / totalRev * 100;
@@ -254,18 +256,18 @@ export default function Inventory() {
   return (
     <div className="mx-auto max-w-[1400px]">
       <PageHeader
-        title="Inventory"
-        subtitle="Your products, what they cost, what they sell for and how much is left."
+        title={t('Inventory')}
+        subtitle={t('Your products, what they cost, what they sell for and how much is left.')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} disabled={exporting || filtered.length === 0} className="max-sm:flex-1">
               {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              {exporting ? 'Exporting...' : 'Export'}
+              {exporting ? t('Exporting...') : t('Export')}
             </Button>
             {!readOnly && (
               <Button onClick={() => {setEditProduct(null);setEditOpen(true);}} className="gap-1.5 shadow-glow max-sm:flex-1">
                 <Plus size={16} />
-                Add product
+                {t('Add product')}
               </Button>
             )}
           </>
@@ -274,10 +276,10 @@ export default function Inventory() {
 
       <StatStrip
         stats={[
-          { label: 'Products', value: totalProducts, icon: Boxes },
-          { label: 'Stock value', value: formatCurrency(totalInvValue), icon: Package, hint: 'At cost price' },
-          { label: 'Low stock', value: lowStockCount, icon: AlertTriangle, tone: lowStockCount ? 'warning' : undefined, hint: 'Below their threshold' },
-          { label: 'Out of stock', value: outCount, icon: PackageX, tone: outCount ? 'negative' : undefined },
+          { label: t('Products'), value: totalProducts, icon: Boxes },
+          { label: t('Stock value'), value: formatCurrency(totalInvValue), icon: Package, hint: t('At cost price') },
+          { label: t('Low stock'), value: lowStockCount, icon: AlertTriangle, tone: lowStockCount ? 'warning' : undefined, hint: t('Below their threshold') },
+          { label: t('Out of stock'), value: outCount, icon: PackageX, tone: outCount ? 'negative' : undefined },
         ]}
       />
 
@@ -285,40 +287,40 @@ export default function Inventory() {
       {!loading && items.length > 0 &&
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="surface p-5">
-            <p className={insightTitle}><RefreshCw size={15} className="text-primary" />Turnover</p>
+            <p className={insightTitle}><RefreshCw size={15} className="text-primary" />{t('Turnover')}</p>
             <p className="mt-3 text-3xl font-semibold tabular-nums">{turnover.toFixed(1)}<span className="ml-1 text-base text-muted-foreground">x</span></p>
-            <p className="mt-1 text-xs text-muted-foreground">Units sold for each unit you hold, over the Dashboard's date range</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("Units sold for each unit you hold, over the Dashboard's date range")}</p>
           </div>
 
           <div className="surface p-5">
-            <p className={insightTitle}><Moon size={15} className="text-warning" />Not selling <span className="font-normal text-muted-foreground">· no sales in {deadDays} days</span></p>
+            <p className={insightTitle}><Moon size={15} className="text-warning" />{t('Not selling')} <span className="font-normal text-muted-foreground">· {t('no sales in {n} days', { n: deadDays })}</span></p>
             {deadProducts.length === 0 ?
-            <p className="mt-3 text-sm text-success">Every product sold recently</p> :
+            <p className="mt-3 text-sm text-success">{t('Every product sold recently')}</p> :
             <div className="mt-3 flex flex-wrap gap-1.5">
                 {deadProducts.slice(0, 8).map((dp) =>
               <button key={dp.id} onClick={() => handleEdit(dp)} disabled={readOnly} className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-xs text-warning transition-colors hover:bg-warning/20 disabled:pointer-events-none">
                     {dp.product_name}
                   </button>
               )}
-                {deadProducts.length > 8 && <span className="self-center text-xs text-muted-foreground">+{deadProducts.length - 8} more</span>}
+                {deadProducts.length > 8 && <span className="self-center text-xs text-muted-foreground">{t('+{n} more', { n: deadProducts.length - 8 })}</span>}
               </div>
             }
           </div>
 
           <div className="surface p-5">
             <p className={insightTitle}>
-              <PieChart size={15} className="text-highlight" />Dependency risk
+              <PieChart size={15} className="text-highlight" />{t('Dependency risk')}
               <Tooltip>
                 <TooltipTrigger asChild><Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" /></TooltipTrigger>
-                <TooltipContent className="max-w-[240px] text-xs">Relying on a few products is risky. Aim for less than 40% of revenue from your top product.</TooltipContent>
+                <TooltipContent className="max-w-[240px] text-xs">{t('Relying on a few products is risky. Aim for less than 40% of revenue from your top product.')}</TooltipContent>
               </Tooltip>
             </p>
             {orderAggs.length === 0 ?
-            <p className="mt-3 text-sm text-muted-foreground">No sales in this period</p> :
+            <p className="mt-3 text-sm text-muted-foreground">{t('No sales in this period')}</p> :
             <div className="mt-3 space-y-3">
                 {[
-              { label: <>Top product <span className="text-foreground">{topProduct}</span></>, pct: topPct },
-              { label: 'Top 3 products', pct: top3Pct }].
+              { label: <>{t('Top product')} <span className="text-foreground">{topProduct}</span></>, pct: topPct },
+              { label: t('Top 3 products'), pct: top3Pct }].
               map((r, idx) =>
               <div key={idx}>
                     <div className="flex items-baseline justify-between gap-2 text-xs text-muted-foreground">
@@ -340,17 +342,17 @@ export default function Inventory() {
         <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
           <div className="relative w-[280px] max-md:w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-9 pl-9" placeholder="Search product or SKU..." value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
+            <Input className="h-9 pl-9" placeholder={t('Search product or SKU...')} value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
           </div>
           <div className="flex-1" />
           <Segmented<StockFilter>
-            label="Stock level"
+            label={msg('Stock level')}
             value={stockFilter}
             onChange={(v) => {setStockFilter(v);setPage(1);}}
             options={[
-            { label: 'All', value: 'all' },
-            { label: `Low${lowStockCount ? ` (${lowStockCount})` : ''}`, value: 'low' },
-            { label: `Out${outCount ? ` (${outCount})` : ''}`, value: 'out' }]
+            { label: msg('All'), value: 'all' },
+            { label: lowStockCount ? t('Low ({n})', { n: lowStockCount }) : t('Low'), value: 'low' },
+            { label: outCount ? t('Out ({n})', { n: outCount }) : t('Out'), value: 'out' }]
             } />
         </div>
 
@@ -358,22 +360,22 @@ export default function Inventory() {
         <div className="p-4"><SkeletonLoader variant="row" count={8} /></div> :
         filtered.length === 0 ?
         items.length === 0 ?
-        <EmptyState icon={Package} title="No products yet" message="Add a product so orders can track stock and profit." actionLabel={readOnly ? undefined : 'Add product'} onAction={() => {setEditProduct(null);setEditOpen(true);}} /> :
-        <EmptyState icon={Search} title="Nothing matches" message="Try a different search or stock filter." /> :
+        <EmptyState icon={Package} title={t('No products yet')} message={t('Add a product so orders can track stock and profit.')} actionLabel={readOnly ? undefined : t('Add product')} onAction={() => {setEditProduct(null);setEditOpen(true);}} /> :
+        <EmptyState icon={Search} title={t('Nothing matches')} message={t('Try a different search or stock filter.')} /> :
 
         <>
             <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               <table className="data-table min-w-[980px]">
                 <thead>
                   <tr>
-                    {th('product_name', 'Product')}
-                    {th('stock_quantity', 'Stock')}
-                    {th('cost_price', `Cost ${symbol}`)}
-                    {th('selling_price', `Price ${symbol}`)}
-                    <th>Margin</th>
-                    {th('inv_value', `Value ${symbol}`)}
-                    {th('supplier', 'Supplier')}
-                    {!readOnly && <th className="text-right">Actions</th>}
+                    {th('product_name', t('Product'))}
+                    {th('stock_quantity', t('Stock'))}
+                    {th('cost_price', `${t('Cost')} ${symbol}`)}
+                    {th('selling_price', `${t('Price')} ${symbol}`)}
+                    <th>{t('Margin')}</th>
+                    {th('inv_value', `${t('Value')} ${symbol}`)}
+                    {th('supplier', t('Supplier'))}
+                    {!readOnly && <th className="text-right">{t('Actions')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -391,12 +393,12 @@ export default function Inventory() {
                         <td className="min-w-[170px]">
                           <div className="flex items-center gap-2">
                             <span className={cn('w-8 tabular-nums font-medium', isOut ? 'text-destructive' : isLow ? 'text-warning' : '')}>{i.stock_quantity}</span>
-                            <div className="h-1.5 w-16 rounded-full bg-muted" title={`Alert below ${i.low_stock_threshold}`}>
+                            <div className="h-1.5 w-16 rounded-full bg-muted" title={t('Alert below {n}', { n: i.low_stock_threshold })}>
                               <div className={cn('h-full rounded-full', isOut ? 'bg-destructive' : isLow ? 'bg-warning' : 'bg-primary')} style={{ width: `${fill}%` }} />
                             </div>
                             {(isOut || isLow) &&
                           <span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-medium', isOut ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning')}>
-                                {isOut ? 'Out' : 'Low'}
+                                {isOut ? t('Out') : t('Low')}
                               </span>
                           }
                           </div>
@@ -411,10 +413,10 @@ export default function Inventory() {
                         {!readOnly && (
                           <td>
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => handleEdit(i)} className="icon-btn" aria-label={`Edit ${i.product_name}`}>
+                              <button onClick={() => handleEdit(i)} className="icon-btn" aria-label={t('Edit {name}', { name: i.product_name })}>
                                 <Pencil size={16} />
                               </button>
-                              <button onClick={() => setDeleteId(i.id)} className="icon-btn-danger" aria-label={`Delete ${i.product_name}`}>
+                              <button onClick={() => setDeleteId(i.id)} className="icon-btn-danger" aria-label={t('Delete {name}', { name: i.product_name })}>
                                 <Trash2 size={16} />
                               </button>
                             </div>
@@ -444,12 +446,12 @@ export default function Inventory() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => {if (!open) setDeleteId(null);}}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this product?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone. Orders referencing this product may be affected.</AlertDialogDescription>
+            <AlertDialogTitle>{t('Delete this product?')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('This cannot be undone. Orders referencing this product may be affected.')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('Delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { rich, useT } from '@/i18n';
 
 interface PagerProps {
   page: number;
@@ -11,6 +12,7 @@ interface PagerProps {
 
 /** "Showing 21–40 of 132" with previous/next and nearby page numbers. */
 export default function Pager({ page, totalPages, total, pageSize, onChange }: PagerProps) {
+  const { t } = useT();
   if (total === 0) return null;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
@@ -22,11 +24,14 @@ export default function Pager({ page, totalPages, total, pageSize, onChange }: P
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
       <p className="text-xs text-muted-foreground">
-        Showing <span className="tabular-nums text-foreground">{from}–{to}</span> of <span className="tabular-nums text-foreground">{total}</span>
+        {rich(t('Showing {range} of {total}'), {
+          range: <span className="tabular-nums text-foreground">{from}–{to}</span>,
+          total: <span className="tabular-nums text-foreground">{total}</span>,
+        })}
       </p>
       {totalPages > 1 && (
-        <nav aria-label="Pages" className="flex items-center gap-1">
-          <button aria-label="Previous page" className={cn(btn, 'text-muted-foreground hover:bg-secondary hover:text-foreground')} disabled={page <= 1} onClick={() => onChange(page - 1)}>
+        <nav aria-label={t('Pages')} className="flex items-center gap-1">
+          <button aria-label={t('Previous page')} className={cn(btn, 'text-muted-foreground hover:bg-secondary hover:text-foreground')} disabled={page <= 1} onClick={() => onChange(page - 1)}>
             <ChevronLeft size={15} />
           </button>
           {pages.map((p, i) => (
@@ -41,7 +46,7 @@ export default function Pager({ page, totalPages, total, pageSize, onChange }: P
               </button>
             </span>
           ))}
-          <button aria-label="Next page" className={cn(btn, 'text-muted-foreground hover:bg-secondary hover:text-foreground')} disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
+          <button aria-label={t('Next page')} className={cn(btn, 'text-muted-foreground hover:bg-secondary hover:text-foreground')} disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
             <ChevronRight size={15} />
           </button>
         </nav>

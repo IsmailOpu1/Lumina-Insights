@@ -1,6 +1,7 @@
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import ChartCard from './ChartCard';
+import { useT } from '@/i18n';
 
 interface ProductData {
   name: string;
@@ -15,6 +16,7 @@ interface Props {
 
 /** Ranked list with bars sized against the best seller. */
 export default function TopSellingProductsBar({ data, loading }: Props) {
+  const { t } = useT();
   const { formatCurrency } = useCurrency();
   if (loading) return <SkeletonLoader variant="chart" />;
 
@@ -22,9 +24,9 @@ export default function TopSellingProductsBar({ data, loading }: Props) {
   const max = Math.max(1, ...top.map((d) => d.qty));
 
   return (
-    <ChartCard title="Top products" subtitle="By units sold">
+    <ChartCard title={t('Top products')} subtitle={t('By units sold')}>
       {top.length === 0 ? (
-        <p className="py-16 text-center text-sm text-muted-foreground">No sales in this period yet</p>
+        <p className="py-16 text-center text-sm text-muted-foreground">{t('No sales in this period yet')}</p>
       ) : (
         <ol className="space-y-3.5">
           {top.map((p, i) => (

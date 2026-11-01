@@ -15,7 +15,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Hind Siliguri', 'system-ui', 'sans-serif'],
         roboto: ['Roboto', 'sans-serif'],
       },
       colors: {

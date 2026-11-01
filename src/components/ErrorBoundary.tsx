@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { tr } from '@/i18n';
 import { reportError } from '@/lib/monitoring';
 import { whatsAppSupportLink } from '@/lib/support';
 
@@ -45,20 +46,20 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/15">
             <AlertTriangle className="text-destructive" size={28} />
           </div>
-          <h1 className="text-xl font-semibold">Something went wrong</h1>
+          <h1 className="text-xl font-semibold">{tr('Something went wrong')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your data is safe. Reloading the page usually fixes this. We've been told about the problem.
+            {tr("Your data is safe. Reloading the page usually fixes this. We've been told about the problem.")}
           </p>
           <button
             onClick={() => window.location.reload()}
             className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/90"
           >
-            <RefreshCw size={16} /> Reload the page
+            <RefreshCw size={16} /> {tr('Reload the page')}
           </button>
           {support && (
             <p className="mt-4 text-sm">
               <a href={support} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                Still stuck? Message us on WhatsApp
+                {tr('Still stuck? Message us on WhatsApp')}
               </a>
             </p>
           )}

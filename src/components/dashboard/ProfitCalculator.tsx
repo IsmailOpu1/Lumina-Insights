@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import ChartCard from './ChartCard';
+import { useT } from '@/i18n';
 
 /** Quick "what if" for pricing a single unit. */
 export default function ProfitCalculator() {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const [cost, setCost] = useState(0);
   const [shipping, setShipping] = useState(0);
@@ -21,16 +23,16 @@ export default function ProfitCalculator() {
   const tone = !hasPrice ? 'text-foreground' : profit >= 0 ? 'text-success' : 'text-destructive';
 
   const fields = [
-    { id: 'calc-selling', label: `Selling price ${symbol}`, value: selling, set: setSelling },
-    { id: 'calc-cost', label: `Product cost ${symbol}`, value: cost, set: setCost },
-    { id: 'calc-shipping', label: `Shipping ${symbol}`, value: shipping, set: setShipping },
-    { id: 'calc-ad', label: `Ad cost ${symbol}`, value: ad, set: setAd },
+    { id: 'calc-selling', label: `${t('Selling price')} ${symbol}`, value: selling, set: setSelling },
+    { id: 'calc-cost', label: `${t('Product cost')} ${symbol}`, value: cost, set: setCost },
+    { id: 'calc-shipping', label: `${t('Shipping')} ${symbol}`, value: shipping, set: setShipping },
+    { id: 'calc-ad', label: `${t('Ad cost')} ${symbol}`, value: ad, set: setAd },
   ];
 
   return (
     <ChartCard
-      title="Profit calculator"
-      subtitle="Check a price before you list it"
+      title={t('Profit calculator')}
+      subtitle={t('Check a price before you list it')}
       className="mb-6"
       action={<Calculator size={16} className="text-muted-foreground" />}
     >
@@ -52,15 +54,15 @@ export default function ProfitCalculator() {
         </div>
 
         <div className="rounded-xl border border-border bg-muted/40 p-4">
-          <p className="eyebrow">Profit per unit</p>
+          <p className="eyebrow">{t('Profit per unit')}</p>
           <p className={cn('mt-1 text-3xl font-semibold tabular-nums', tone)}>{hasPrice ? formatCurrency(profit) : '—'}</p>
           <div className="mt-4 space-y-2 border-t border-border pt-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Margin</span>
+              <span className="text-muted-foreground">{t('Margin')}</span>
               <span className={cn('font-medium tabular-nums', tone)}>{hasPrice ? `${margin.toFixed(1)}%` : '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Most you can spend on ads</span>
+              <span className="text-muted-foreground">{t('Most you can spend on ads')}</span>
               <span className="font-medium tabular-nums text-foreground">{hasPrice ? formatCurrency(breakeven) : '—'}</span>
             </div>
           </div>

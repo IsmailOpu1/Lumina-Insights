@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { notificationText } from '@/i18n/notifications';
 import { useAuth } from '@/context/AuthContext';
 
 interface Notification {
@@ -106,8 +107,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           setUnreadCount((c) => c + 1);
 
           const borderColor = TYPE_COLORS[newNotif.type] || '#6366F1';
-          toast(newNotif.title, {
-            description: newNotif.message,
+          const text = notificationText(newNotif);
+          toast(text.title, {
+            description: text.message,
             duration: 4000,
             style: {
               borderLeft: `4px solid ${borderColor}`,

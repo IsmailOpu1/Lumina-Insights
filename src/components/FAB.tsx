@@ -4,16 +4,18 @@ import { useFAB } from '@/context/FABContext';
 import { useReadOnly } from '@/hooks/useReadOnly';
 import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { msg, useT } from '@/i18n';
 
 const FAB_OPTIONS = [
-  { type: 'order' as const, label: 'Add order', icon: ShoppingBag },
-  { type: 'expense' as const, label: 'Add expense', icon: Receipt },
-  { type: 'product' as const, label: 'Add product', icon: Package },
+  { type: 'order' as const, label: msg('Add order'), icon: ShoppingBag },
+  { type: 'expense' as const, label: msg('Add expense'), icon: Receipt },
+  { type: 'product' as const, label: msg('Add product'), icon: Package },
 ];
 
 const hideFABRoutes = ['/ai-assistant', '/notes', '/settings', '/notifications'];
 
 export default function FAB() {
+  const { t } = useT();
   const [expanded, setExpanded] = useState(false);
   const { openModal } = useFAB();
   const readOnly = useReadOnly();
@@ -36,7 +38,7 @@ export default function FAB() {
     <div ref={fabRef} className="fixed right-6 z-50 flex flex-col-reverse items-end gap-2" style={{ bottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}>
       <button
         onClick={() => setExpanded((p) => !p)}
-        aria-label={expanded ? 'Close quick add' : 'Quick add'}
+        aria-label={expanded ? t('Close quick add') : t('Quick add')}
         aria-expanded={expanded}
         className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-glow transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"
       >
@@ -59,7 +61,7 @@ export default function FAB() {
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary">
                 <Icon size={15} />
               </span>
-              {opt.label}
+              {t(opt.label)}
             </button>
           );
         })}

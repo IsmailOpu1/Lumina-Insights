@@ -272,9 +272,11 @@ export default function AIAssistant() {
         conversation_history: { role: string; content: string }[];
         image_base64?: string;
         image_type?: string;
+        language: string;
       } = {
         message: msg,
         conversation_history: history,
+        language: lang,
       };
 
       if (imageFile && imagePreview) {

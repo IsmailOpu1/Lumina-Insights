@@ -16,6 +16,10 @@ const PLATFORM_GUIDES: Record<string, string> = {
 - script: a 30-60 second video. The first 3 seconds must stop the scroll.`,
 };
 
+// The owner picks the interface language; the copy follows it.
+const WRITE_ENGLISH = "Write in natural, simple English that Bangladeshi customers read easily.";
+const WRITE_BANGLA = "Write everything (hook, value proposition, CTA, caption and the script's spoken lines) in natural, friendly Bangla (বাংলা script) the way popular Bangladeshi Facebook shops write, not stiff textbook Bangla. Keep brand names, product names and words buyers already use in English (for example COD, inbox, size) in English. Hashtags may mix Bangla and English, whichever people actually search. In the script you may write the markers as \"দৃশ্য:\" and \"বলুন:\" instead of \"Visual:\" and \"Say:\".";
+
 const RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
@@ -30,7 +34,7 @@ const RESPONSE_SCHEMA = {
   propertyOrdering: ["hook", "value_proposition", "cta", "caption", "script", "hashtags"],
 };
 
-const SYSTEM_PROMPT = `You are a senior social media copywriter who has run marketing for hundreds of small online shops in Bangladesh. You write content that sells, and you never mislead customers.
+const systemPrompt = (bangla: boolean) => `You are a senior social media copywriter who has run marketing for hundreds of small online shops in Bangladesh. You write content that sells, and you never mislead customers.
 
 TRUTH RULES (most important):
 1. Use only the facts given: product name, features, the shop's own price and stock, and the business profile. Never invent prices, discounts, offers, free delivery, warranties, certifications, ingredients, sizes, ratings, review counts or customer numbers.
@@ -43,7 +47,7 @@ WHAT GOOD LOOKS LIKE:
 - Be specific and concrete. Avoid empty words like "premium quality", "best", "amazing" or "unique" unless a real detail backs them up.
 - Write for Bangladeshi buyers: they trust real photos and clear prices, they like cash on delivery and bKash or Nagad, they care about delivery time inside and outside Dhaka, and they often order by Messenger, WhatsApp or by commenting. Mention a season or occasion (Eid, Pohela Boishakh, winter, weddings) only if it fits the product and today's date.
 - The CTA tells people exactly what to do: inbox, comment a keyword, WhatsApp, or tap the link. Keep it to one action.
-- Write in natural, simple English that Bangladeshi customers read easily.
+- ${bangla ? WRITE_BANGLA : WRITE_ENGLISH}
 
 VIDEO SCRIPT FORMAT:
 Write it as timed scenes, one per line, like:
@@ -115,7 +119,7 @@ ${PLATFORM_GUIDES[platform]}`;
 
     const result = await generate({
       apiKey: GEMINI_API_KEY,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt(body.language === "bn"),
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       temperature: 0.8,
       maxOutputTokens: 4096,

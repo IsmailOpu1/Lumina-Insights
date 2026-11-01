@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export type FontStyle = 'inter' | 'poppins' | 'roboto' | 'playfair' | 'nunito' | 'dmsans';
 
-// Bangla letters fall back to Hind Siliguri, loaded with the Bangla interface.
-const BANGLA = "'Hind Siliguri'";
+// Bangla letters fall back to Noto Sans Bengali, loaded with the Bangla interface.
+const BANGLA = "'Noto Sans Bengali'";
 
 export const FONT_FAMILIES: Record<FontStyle, string> = {
   inter: `'Inter', ${BANGLA}, sans-serif`,

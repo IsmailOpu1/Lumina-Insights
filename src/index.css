@@ -90,6 +90,18 @@
   }
 }
 
+/* Bangla strokes are thinner than Latin at the same weight, so the Bangla
+   interface sits one step heavier to stay easy to read. */
+html[lang='bn'] body {
+  font-weight: 500;
+  -webkit-font-smoothing: auto;
+}
+html[lang='bn'] :is(h1, h2, h3, h4, h5, h6, th, label, button) { font-weight: 600; }
+html[lang='bn'] .font-normal { font-weight: 500; }
+html[lang='bn'] .font-medium { font-weight: 600; }
+html[lang='bn'] .font-semibold { font-weight: 700; }
+html[lang='bn'] .font-bold { font-weight: 800; }
+
 @layer components {
   /* Standard card: dark surface, hairline border, soft top highlight */
   .surface {

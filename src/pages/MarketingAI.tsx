@@ -35,7 +35,7 @@ interface MarketingOutput {
 }
 
 export default function MarketingAI() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { ownerIdForQueries } = useAuth();
   const [productName, setProductName] = useState('');
   const [platform, setPlatform] = useState<Platform>('Instagram');
@@ -71,6 +71,7 @@ export default function MarketingAI() {
             platform,
             product_features: features,
             target_audience: audience,
+            language: lang,
           },
         }
       );

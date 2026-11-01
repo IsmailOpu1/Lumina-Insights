@@ -8,7 +8,11 @@ const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "imag
 // 5 MB of image once decoded, matching the limit on the page.
 const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 
-function systemPrompt(sym: string, data: string) {
+// The owner picks the interface language; replies follow it.
+const REPLY_ENGLISH = "Reply in English, unless the owner writes to you in Bangla, then reply in Bangla.";
+const replyBangla = (sym: string) => `Reply in natural, everyday Bangla (বাংলা script) that a shop owner in Bangladesh speaks, not stiff textbook Bangla. Keep product names, brand names and common business words people already say in English (for example profit, margin, ROAS, Facebook, courier) in English. Write numbers as digits with the ${sym} sign, for example ${sym}12,500. If the owner asks for English, reply in English.`;
+
+function systemPrompt(sym: string, data: string, bangla: boolean) {
   return `You are Lumina, the business advisor built into Lumina Insights. You work for the owner of a small online or retail business in Bangladesh, most likely selling through Facebook, Instagram, WhatsApp, a website or a shop. Today is ${todayInDhaka()}.
 
 Your job is to give the most accurate, logical and useful answer a sharp, experienced business consultant would give, then make it easy to act on.
@@ -44,7 +48,7 @@ HOW TO ANSWER:
 - Be honest and direct, even when the news is bad. Be warm, not flattering.
 - If an image is attached, describe what matters in it for the business (product photo quality, a receipt, an ad, a chart) and base your advice on it.
 - Use ${sym} for money with thousands separators, for example ${sym}12,500.
-- Reply in English.
+- ${bangla ? replyBangla(sym) : REPLY_ENGLISH}
 
 ${data}`;
 }
@@ -68,7 +72,7 @@ Deno.serve(async (req) => {
     const caller = await getCaller(req);
     if (!caller) return json({ error: "Unauthorized" }, 401);
 
-    const { message, conversation_history, image_base64, image_type } = await req.json();
+    const { message, conversation_history, image_base64, image_type, language } = await req.json();
     if (!message || typeof message !== "string") return json({ error: "message is required" }, 400);
     if (message.length > MAX_MESSAGE_CHARS) {
       return json({ error: `Please keep your message under ${MAX_MESSAGE_CHARS.toLocaleString("en-US")} characters.` }, 400);
@@ -108,7 +112,7 @@ Deno.serve(async (req) => {
 
     const result = await generate({
       apiKey: GEMINI_API_KEY,
-      system: systemPrompt(sym, data),
+      system: systemPrompt(sym, data, language === "bn"),
       contents,
       temperature: 0.4,
       maxOutputTokens: 2048,

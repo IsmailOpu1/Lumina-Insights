@@ -35,7 +35,7 @@ function loadBangla() {
       const link = document.createElement('link');
       link.id = 'font-bangla';
       link.rel = 'stylesheet';
-      link.href = 'https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap';
+      link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400..800&display=swap';
       document.head.appendChild(link);
     }
   });

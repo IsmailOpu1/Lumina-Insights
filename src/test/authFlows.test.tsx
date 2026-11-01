@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signUp: vi.fn(),
   resend: vi.fn(),
+  verifyOtp: vi.fn(),
   rpc: vi.fn(),
   invoke: vi.fn(),
   insert: vi.fn(),
@@ -22,7 +23,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    auth: { signInWithPassword: mocks.signIn, signUp: mocks.signUp, resend: mocks.resend },
+    auth: { signInWithPassword: mocks.signIn, signUp: mocks.signUp, resend: mocks.resend, verifyOtp: mocks.verifyOtp },
     rpc: mocks.rpc,
     functions: { invoke: mocks.invoke },
     from: () => ({
@@ -39,10 +40,11 @@ vi.mock('@/context/AuthContext', () => ({
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError, success: mocks.toastSuccess, warning: vi.fn() } }));
 
 beforeEach(() => {
-  for (const m of [mocks.signIn, mocks.signUp, mocks.resend, mocks.rpc, mocks.invoke, mocks.insert, mocks.refreshSettings, mocks.toastError, mocks.toastSuccess]) m.mockReset();
+  for (const m of [mocks.signIn, mocks.signUp, mocks.resend, mocks.verifyOtp, mocks.rpc, mocks.invoke, mocks.insert, mocks.refreshSettings, mocks.toastError, mocks.toastSuccess]) m.mockReset();
   mocks.signIn.mockResolvedValue({ error: null });
   mocks.signUp.mockResolvedValue({ data: { user: { id: 'u1', identities: [{ id: 'i1' }] } }, error: null });
   mocks.resend.mockResolvedValue({ error: null });
+  mocks.verifyOtp.mockResolvedValue({ data: {}, error: null });
   mocks.rpc.mockResolvedValue({ data: [], error: null });
   mocks.invoke.mockResolvedValue({ error: null });
   mocks.auth = { session: null, userSettings: null, loading: false };
@@ -110,7 +112,7 @@ describe('Login', () => {
     fillLogin();
     expect(await screen.findByText(/Please confirm your email first/)).toBeInTheDocument();
     expect(mocks.toastError).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Resend confirmation email' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send a new code' }));
     await waitFor(() => expect(mocks.resend).toHaveBeenCalledWith({
       type: 'signup',
       email: 'owner@example.com',
@@ -181,9 +183,31 @@ describe('Signup', () => {
     fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
     fillSignup();
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Resend confirmation email' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Send a new code' }));
     await waitFor(() => expect(mocks.resend).toHaveBeenCalledWith(expect.objectContaining({ type: 'signup', email: 'new@example.com' })));
-    expect(mocks.toastSuccess).toHaveBeenCalledWith('Confirmation email sent', expect.anything());
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('New code sent', expect.anything());
+  });
+
+  it('confirms the email with the code, straight from a paste', async () => {
+    renderAt('/signup', <Signup />, '/signup');
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
+    fillSignup();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    // Pasted with spaces, as people copy it from the email.
+    fireEvent.change(await screen.findByLabelText(/8-digit code/), { target: { value: '4829 1736' } });
+    await waitFor(() => expect(mocks.verifyOtp).toHaveBeenCalledWith({ email: 'new@example.com', token: '48291736', type: 'email' }));
+    expect(await screen.findByText('Dashboard page')).toBeInTheDocument();
+  });
+
+  it('explains a wrong or expired code', async () => {
+    mocks.verifyOtp.mockResolvedValue({ data: {}, error: { message: 'Token has expired or is invalid' } });
+    renderAt('/signup', <Signup />, '/signup');
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
+    fillSignup();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    fireEvent.change(await screen.findByLabelText(/8-digit code/), { target: { value: '11111111' } });
+    expect(await screen.findByText(/wrong or has expired/)).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard page')).not.toBeInTheDocument();
   });
 
   it('blocks mismatched passwords before calling Supabase', async () => {

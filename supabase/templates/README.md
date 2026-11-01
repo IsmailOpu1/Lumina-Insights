@@ -21,7 +21,7 @@ the subject and paste the whole HTML file into the body.
 
 | Supabase template   | Subject                                         | File                      |
 |---------------------|-------------------------------------------------|---------------------------|
-| Confirm sign up     | Confirm your email to start your Lumina trial   | `confirm_signup.html`     |
+| Confirm sign up     | `{{ .Token }} is your Lumina confirmation code` | `confirm_signup.html`     |
 | Invite user         | You've been invited to Lumina Insights          | `invite.html`             |
 | Magic link          | Your Lumina sign-in link                        | `magic_link.html`         |
 | Change email address| Confirm your new email address for Lumina       | `change_email.html`       |

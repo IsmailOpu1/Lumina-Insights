@@ -6,7 +6,7 @@ import { resendConfirmation } from '@/lib/authEmail';
 
 const COOLDOWN_SECONDS = 60;
 
-/** "Send it again" for the sign-up confirmation email, with a short cooldown. */
+/** Sends the confirmation email (new code and link) again, with a short cooldown. */
 export default function ResendConfirmation({ email }: { email: string }) {
   const [sending, setSending] = useState(false);
   const [wait, setWait] = useState(0);
@@ -25,13 +25,13 @@ export default function ResendConfirmation({ email }: { email: string }) {
       toast.error("Couldn't send the email", { description: error });
       return;
     }
-    toast.success('Confirmation email sent', { description: `Check ${email.trim()}, including the spam folder.` });
+    toast.success('New code sent', { description: `Check ${email.trim()}, including the spam folder. Only the newest code works.` });
     setWait(COOLDOWN_SECONDS);
   };
 
   return (
     <Button type="button" variant="outline" onClick={resend} disabled={sending || wait > 0 || !email.trim()} className="h-11 w-full">
-      {sending ? <Loader2 className="animate-spin" size={18} /> : wait > 0 ? `Send again in ${wait}s` : 'Resend confirmation email'}
+      {sending ? <Loader2 className="animate-spin" size={18} /> : wait > 0 ? `Send again in ${wait}s` : 'Send a new code'}
     </Button>
   );
 }

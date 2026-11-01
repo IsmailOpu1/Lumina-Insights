@@ -40,7 +40,7 @@ max_frequency = "1m0s"
 otp_length = 8
 
 [auth.email.template.confirmation]
-subject = "Confirm your email to start your Lumina trial"
+subject = "{{ .Token }} is your Lumina confirmation code"
 content_path = "./supabase/templates/confirm_signup.html"
 
 [auth.email.template.invite]

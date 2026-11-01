@@ -10,6 +10,7 @@ import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 import { acceptInvite } from '@/lib/invites';
 import { isUnconfirmed } from '@/lib/authEmail';
 import ResendConfirmation from '@/components/auth/ResendConfirmation';
+import ConfirmCode from '@/components/auth/ConfirmCode';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -53,8 +54,9 @@ export default function Login() {
     <div role="alert" className="mt-4 flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/10 p-4">
       <div className="flex gap-2 text-sm text-foreground">
         <MailWarning size={18} className="mt-0.5 shrink-0 text-primary" />
-        <span>Please confirm your email first. Click the link we sent to <strong>{email.trim()}</strong>, or get a new one below.</span>
+        <span>Please confirm your email first. Enter the code we sent to <strong>{email.trim()}</strong>, tap the button in that email, or get a new one below.</span>
       </div>
+      <ConfirmCode email={email} />
       <ResendConfirmation email={email} />
     </div>
   );

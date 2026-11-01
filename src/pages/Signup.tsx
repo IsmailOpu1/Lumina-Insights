@@ -11,6 +11,7 @@ import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 import { siteUrl } from '@/lib/siteUrl';
 import { authEmailErrorMessage } from '@/lib/authEmail';
 import ResendConfirmation from '@/components/auth/ResendConfirmation';
+import ConfirmCode from '@/components/auth/ConfirmCode';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -118,18 +119,16 @@ export default function Signup() {
                 Check your email
               </h1>
               <p className="text-muted-foreground text-sm">
-                We sent a confirmation link to <strong>{email}</strong>. Click the link to verify your account, then come back to sign in.
+                We sent a code to <strong>{email}</strong>. Type it below, or tap the button in the email.
               </p>
+              <ConfirmCode email={email} />
               <p className="text-muted-foreground text-xs">
                 Not there after a minute? Check your spam or promotions folder. If you already had an account with this email, just sign in.
               </p>
-              <Button
-                onClick={() => navigate('/login')}
-                className="mt-2 h-12 w-full bg-primary font-bold text-white"
-              >
-                Go to Login
-              </Button>
               <ResendConfirmation email={email} />
+              <Button variant="ghost" onClick={() => navigate('/login')} className="h-10 w-full text-sm text-muted-foreground">
+                Back to sign in
+              </Button>
             </div>
           ) : (
             <>

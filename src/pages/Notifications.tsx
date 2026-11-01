@@ -16,6 +16,8 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/context/NotificationContext';
+import { currentDateLocale, msg, useT } from '@/i18n';
+import { notificationText } from '@/i18n/notifications';
 
 interface NotifRow {
   id: string;
@@ -50,16 +52,17 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 
 type FilterTab = 'all' | 'unread' | 'orders' | 'stock' | 'finance';
 const TABS: { label: string; value: FilterTab }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Unread', value: 'unread' },
-  { label: 'Orders', value: 'orders' },
-  { label: 'Stock', value: 'stock' },
-  { label: 'Finance', value: 'finance' },
+  { label: msg('All'), value: 'all' },
+  { label: msg('Unread'), value: 'unread' },
+  { label: msg('Orders'), value: 'orders' },
+  { label: msg('Stock'), value: 'stock' },
+  { label: msg('Finance'), value: 'finance' },
 ];
 
 const PAGE_SIZE = 20;
 
 export default function Notifications() {
+  const { t } = useT();
   const navigate = useNavigate();
   const { markAllRead, markOneRead, dismiss } = useNotifications();
   const [notifs, setNotifs] = useState<NotifRow[]>([]);
@@ -111,14 +114,14 @@ export default function Notifications() {
   async function handleMarkAllRead() {
     await markAllRead();
     setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
-    toast.success('All marked as read');
+    toast.success(t('All marked as read'));
   }
 
   // Clearing hides notifications for this user only, not the whole team.
   async function handleClearAll() {
     await dismiss();
     setNotifs([]);
-    toast.success('Cleared ✓');
+    toast.success(t('Cleared ✓'));
     setClearOpen(false);
   }
 
@@ -154,7 +157,7 @@ export default function Notifications() {
         className="mb-5 text-[28px] font-bold"
         style={{ color: 'hsl(var(--foreground))' }}
       >
-        Notifications
+        {t('Notifications')}
       </h1>
 
       {/* FIX 2: Filter tabs + action buttons layout */}
@@ -162,23 +165,23 @@ export default function Notifications() {
 
         {/* Filter tabs row */}
         <div className="flex flex-wrap gap-2">
-          {TABS.map(t => (
+          {TABS.map(item => (
             <button
-              key={t.value}
-              onClick={() => { setTab(t.value); setPage(1); }}
+              key={item.value}
+              onClick={() => { setTab(item.value); setPage(1); }}
               className={cn(
                 'rounded-full px-4 py-1.5 text-sm transition-colors active:scale-[0.97]',
-                tab === t.value
+                tab === item.value
                   ? 'font-bold text-white'
                   : 'border border-border font-extrabold hover:border-primary'
               )}
               style={
-                tab === t.value
+                tab === item.value
                   ? { backgroundColor: 'hsl(var(--primary))', color: '#000' }
                   : { color: 'hsl(var(--muted-foreground))' }
               }
             >
-              {t.label}
+              {t(item.label)}
             </button>
           ))}
         </div>
@@ -195,7 +198,7 @@ export default function Notifications() {
             }}
             onClick={() => setClearOpen(true)}
           >
-            <Trash2 className="h-4 w-4" /> Clear All
+            <Trash2 className="h-4 w-4" /> {t('Clear all')}
           </Button>
           <Button
             variant="outline"
@@ -206,7 +209,7 @@ export default function Notifications() {
             }}
             onClick={handleMarkAllRead}
           >
-            Mark All Read
+            {t('Mark all read')}
           </Button>
         </div>
       </div>
@@ -220,19 +223,20 @@ export default function Notifications() {
             className="text-xl font-bold"
             style={{ color: 'hsl(var(--foreground))' }}
           >
-            You're all caught up 🎉
+            {t("You're all caught up")} 🎉
           </h2>
           <p
             className="mt-1 text-sm"
             style={{ color: 'hsl(var(--muted-foreground))' }}
           >
-            No notifications to show.
+            {t('No notifications to show.')}
           </p>
         </div>
       ) : (
         <>
           <div className="flex flex-col gap-2">
             {paged.map(n => {
+              const text = notificationText(n);
               const borderColor = TYPE_COLORS[n.type] || '#5EEAD4';
               const Icon = TYPE_ICONS[n.type] || Bell;
               return (
@@ -273,7 +277,7 @@ export default function Notifications() {
                         )}
                         style={{ color: 'hsl(var(--foreground))' }}
                       >
-                        {n.title}
+                        {text.title}
                         {!n.is_read && (
                           <span
                             className="ml-2 inline-block h-2 w-2 rounded-full"
@@ -289,7 +293,7 @@ export default function Notifications() {
                         >
                           {formatDistanceToNow(
                             new Date(n.created_at),
-                            { addSuffix: true }
+                            { addSuffix: true, locale: currentDateLocale() }
                           )}
                         </span>
                         <button
@@ -297,6 +301,7 @@ export default function Notifications() {
                             e.stopPropagation();
                             handleDelete(n.id);
                           }}
+                          aria-label={t('Delete notification')}
                           className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-destructive/15 active:scale-95"
                           style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
@@ -309,7 +314,7 @@ export default function Notifications() {
                       className="mt-0.5 text-sm font-bold break-words"
                       style={{ color: 'hsl(var(--muted-foreground))' }}
                     >
-                      {n.message}
+                      {text.message}
                     </p>
                   </div>
                 </div>
@@ -325,7 +330,7 @@ export default function Notifications() {
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
               >
-                Prev
+                {t('Prev')}
               </Button>
               <span
                 className="text-sm"
@@ -339,7 +344,7 @@ export default function Notifications() {
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => p + 1)}
               >
-                Next
+                {t('Next')}
               </Button>
             </div>
           )}
@@ -353,19 +358,19 @@ export default function Notifications() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Clear all notifications?
+              {t('Clear all notifications?')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete all notifications.
+              {t('This will permanently delete all notifications.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleClearAll}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Clear All
+              {t('Clear all')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

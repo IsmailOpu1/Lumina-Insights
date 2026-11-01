@@ -10,14 +10,16 @@ import { planLabel } from '@/lib/subscription';
 import { whatsAppSupportLink } from '@/lib/support';
 import { useInstallApp } from '@/lib/pwa';
 import UserAvatar from './UserAvatar';
+import { useT } from '@/i18n';
 
 /** Avatar in the top bar; opens the signed-in person's account menu. */
 export default function AccountMenu() {
   const navigate = useNavigate();
+  const { t } = useT();
   const { user, userSettings, isOwner, isManager, isViewer, signOut } = useAuth();
   const { subscription } = useSubscription();
-  const role = isOwner ? 'Owner' : isManager ? 'Manager' : isViewer ? 'Viewer' : null;
-  const name = userSettings?.full_name || user?.email?.split('@')[0] || 'Account';
+  const role = isOwner ? t('Owner') : isManager ? t('Manager') : isViewer ? t('Viewer') : null;
+  const name = userSettings?.full_name || user?.email?.split('@')[0] || t('Account');
   const supportLink = whatsAppSupportLink();
   const installApp = useInstallApp();
 
@@ -30,7 +32,7 @@ export default function AccountMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 outline-none transition-colors hover:bg-secondary data-[state=open]:bg-secondary"
-        aria-label="Open account menu"
+        aria-label={t('Open account menu')}
       >
         <UserAvatar className="h-7 w-7 text-[11px]" />
         {role && <span className="hidden text-xs text-muted-foreground sm:inline">{role}</span>}
@@ -49,33 +51,33 @@ export default function AccountMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navigate('/settings#profile')} className="gap-2.5 py-2">
-          <UserRound size={16} className="text-muted-foreground" /> My account
+          <UserRound size={16} className="text-muted-foreground" /> {t('My account')}
         </DropdownMenuItem>
         {!isViewer && (
           <DropdownMenuItem onSelect={() => navigate('/settings')} className="gap-2.5 py-2">
-            <Settings size={16} className="text-muted-foreground" /> Settings
+            <Settings size={16} className="text-muted-foreground" /> {t('Settings')}
           </DropdownMenuItem>
         )}
         {isOwner && (
           <DropdownMenuItem onSelect={() => navigate('/billing')} className="gap-2.5 py-2">
-            <CreditCard size={16} className="text-muted-foreground" /> Billing
+            <CreditCard size={16} className="text-muted-foreground" /> {t('Billing')}
           </DropdownMenuItem>
         )}
         {installApp.available && (
           <DropdownMenuItem onSelect={installApp.install} className="gap-2.5 py-2">
-            <Smartphone size={16} className="text-muted-foreground" /> Install app
+            <Smartphone size={16} className="text-muted-foreground" /> {t('Install app')}
           </DropdownMenuItem>
         )}
         {supportLink && (
           <DropdownMenuItem asChild className="gap-2.5 py-2">
             <a href={supportLink} target="_blank" rel="noopener noreferrer">
-              <MessageCircle size={16} className="text-muted-foreground" /> Help on WhatsApp
+              <MessageCircle size={16} className="text-muted-foreground" /> {t('Help on WhatsApp')}
             </a>
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleSignOut} className="gap-2.5 py-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
-          <LogOut size={16} /> Sign out
+          <LogOut size={16} /> {t('Sign out')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

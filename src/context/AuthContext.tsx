@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { tr } from '@/i18n';
 import { acceptInvite } from '@/lib/invites';
 import { setMonitoringUser } from '@/lib/monitoring';
 
@@ -96,8 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) return;
     const message = await acceptInvite(token);
     await supabase.auth.updateUser({ data: { invite_token: null } });
-    if (message) toast.error('Could not join the workspace', { description: message });
-    else toast.success('You have joined the workspace');
+    if (message) toast.error(tr('Could not join the workspace'), { description: message });
+    else toast.success(tr('You have joined the workspace'));
   }, []);
 
   const loadUser = useCallback(async (u: User) => {

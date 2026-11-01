@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { format } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useT } from '@/i18n';
 
 interface InventoryItem {
   id: string;
@@ -27,6 +28,7 @@ const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
 export default function GlobalOrderModal() {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const { activeModal, closeModal, notifySaved } = useFAB();
   const { ownerIdForQueries } = useAuth();
@@ -82,7 +84,7 @@ export default function GlobalOrderModal() {
   const margin = !returned && revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
 
   const stockError = selectedProduct && holdsStock(status) && qtyNum > selectedProduct.stock_quantity
-    ? `Only ${selectedProduct.stock_quantity} units available`
+    ? t('Only {n} units available', { n: selectedProduct.stock_quantity })
     : '';
 
   const isValid = customerName.trim() && productId && qtyNum >= 1 && !stockError && sp > 0 && source && status && date;
@@ -113,8 +115,8 @@ export default function GlobalOrderModal() {
       source, status, date,
       owner_id: ownerIdForQueries,
     });
-    if (error) { toast.error('Failed to create order', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
-    toast.success('Order added ✓');
+    if (error) { toast.error(t('Failed to create order'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+    toast.success(t('Order added ✓'));
     notifySaved('order');
     closeModal();
   }
@@ -122,26 +124,26 @@ export default function GlobalOrderModal() {
   if (!isOpen) return null;
 
   return (
-    <ModalShell isOpen={isOpen} onClose={closeModal} title="Add Order">
+    <ModalShell isOpen={isOpen} onClose={closeModal} title={t('Add order')}>
       <div className="flex flex-col gap-4">
         <div>
-          <Label className="text-xs text-muted-foreground">Order #</Label>
+          <Label className="text-xs text-muted-foreground">{t('Order #')}</Label>
           <p className="text-sm font-semibold text-foreground">{orderNumber}</p>
         </div>
         <div>
-          <Label>Customer Name *</Label>
-          <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Enter customer name" />
+          <Label>{t('Customer name')} *</Label>
+          <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t('Enter customer name')} />
         </div>
         <div>
-          <Label>Product *</Label>
+          <Label>{t('Product')} *</Label>
           <select value={productId} onChange={(e) => handleProductSelect(e.target.value)} required className={nativeSelectClass}>
             {products.length === 0 ? (
-              <option disabled value="">No products — add in Inventory first</option>
+              <option disabled value="">{t('No products — add in Inventory first')}</option>
             ) : (
               <>
-                <option value="">Select Product</option>
+                <option value="">{t('Select product')}</option>
                 {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.product_name} — {p.stock_quantity} in stock</option>
+                  <option key={p.id} value={p.id}>{p.product_name} — {t('{n} in stock', { n: p.stock_quantity })}</option>
                 ))}
               </>
             )}
@@ -151,56 +153,56 @@ export default function GlobalOrderModal() {
               selectedProduct.stock_quantity === 0 ? 'text-destructive' :
               selectedProduct.stock_quantity < selectedProduct.low_stock_threshold ? 'text-warning' :
               'text-muted-foreground'
-            )}>{selectedProduct.stock_quantity} units in stock</p>
+            )}>{t('{n} units in stock', { n: selectedProduct.stock_quantity })}</p>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Quantity *</Label>
+            <Label>{t('Quantity')} *</Label>
             <Input type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             {stockError && <p className="mt-1 text-xs font-medium text-destructive">{stockError}</p>}
           </div>
           <div>
-            <Label>Selling Price {symbol} *</Label>
+            <Label>{t('Selling price')} {symbol} *</Label>
             <Input type="number" min={0} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="0" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Shipping Cost {symbol}</Label>
+            <Label>{t('Shipping cost')} {symbol}</Label>
             <Input type="number" min={0} step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label>Ad Cost {symbol}</Label>
+            <Label>{t('Ad cost')} {symbol}</Label>
             <Input type="number" min={0} step="0.01" value={adCost} onChange={(e) => setAdCost(e.target.value)} placeholder="0" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Source *</Label>
+            <Label>{t('Source')} *</Label>
             <select value={source} onChange={(e) => setSource(e.target.value)} required className={nativeSelectClass}>
-              <option value="">Select Source</option>
+              <option value="">{t('Select Source')}</option>
               {SOURCES.map((s) => (<option key={s} value={s}>{s}</option>))}
             </select>
           </div>
           <div>
-            <Label>Status *</Label>
+            <Label>{t('Status')} *</Label>
             <select value={status} onChange={(e) => setStatus(e.target.value)} required className={nativeSelectClass}>
-              {ORDER_STATUSES.map((s) => (<option key={s} value={s}>{s}</option>))}
+              {ORDER_STATUSES.map((s) => (<option key={s} value={s}>{t(s)}</option>))}
             </select>
           </div>
         </div>
         <div>
-          <Label>Date *</Label>
+          <Label>{t('Date')} *</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         {selectedProduct && (
           <div className={cn('rounded-lg border p-4', profit > 0 ? 'border-primary/30 bg-primary/5' : 'border-destructive/30 bg-destructive/5')}>
             <div className="space-y-1 text-sm text-muted-foreground">
-              <div className="flex justify-between"><span>Revenue {symbol}</span><span>{formatCurrency(revenue)}</span></div>
-              <div className="flex justify-between"><span>COGS {symbol}</span><span>{formatCurrency(cogs)}</span></div>
-              <div className="flex justify-between"><span>Shipping {symbol}</span><span>{formatCurrency(sc)}</span></div>
-              <div className="flex justify-between"><span>Ad Cost {symbol}</span><span>{formatCurrency(ac)}</span></div>
+              <div className="flex justify-between"><span>{t('Revenue')} {symbol}</span><span>{formatCurrency(revenue)}</span></div>
+              <div className="flex justify-between"><span>{t('COGS')} {symbol}</span><span>{formatCurrency(cogs)}</span></div>
+              <div className="flex justify-between"><span>{t('Shipping')} {symbol}</span><span>{formatCurrency(sc)}</span></div>
+              <div className="flex justify-between"><span>{t('Ad cost')} {symbol}</span><span>{formatCurrency(ac)}</span></div>
             </div>
             <div className="mt-2 border-t border-border pt-2">
               <div className="flex items-center justify-between">
@@ -211,7 +213,7 @@ export default function GlobalOrderModal() {
           </div>
         )}
         <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full font-bold text-base">
-          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Order'}
+          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> : t('Save order')}
         </Button>
       </div>
     </ModalShell>

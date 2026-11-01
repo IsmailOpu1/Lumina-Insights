@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
+import { useT } from '@/i18n';
 
 export interface ProductToEdit {
   id: string;
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export default function AddProductModal({ editProduct, onClose, onSaved, externalOpen }: Props) {
+  const { t } = useT();
   const { symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
@@ -60,11 +62,11 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
   }, [isOpen, editProduct]);
 
   const errors = {
-    name: !name.trim() ? 'Product name is required' : '',
-    costPrice: !costPrice || parseFloat(costPrice) <= 0 ? 'Cost price must be > 0' : '',
-    sellingPrice: !sellingPrice || parseFloat(sellingPrice) <= 0 ? 'Selling price must be > 0' : '',
-    stockQty: stockQty === '' || parseInt(stockQty) < 0 ? 'Stock must be ≥ 0' : '',
-    threshold: threshold === '' || parseInt(threshold) < 0 ? 'Threshold must be ≥ 0' : '',
+    name: !name.trim() ? t('Product name is required') : '',
+    costPrice: !costPrice || parseFloat(costPrice) <= 0 ? t('Cost price must be more than 0') : '',
+    sellingPrice: !sellingPrice || parseFloat(sellingPrice) <= 0 ? t('Selling price must be more than 0') : '',
+    stockQty: stockQty === '' || parseInt(stockQty) < 0 ? t('Stock cannot be negative') : '',
+    threshold: threshold === '' || parseInt(threshold) < 0 ? t('Threshold cannot be negative') : '',
   };
 
   const isValid = Object.values(errors).every((e) => !e);
@@ -98,39 +100,39 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
 
     if (isEdit && editProduct) {
       const { error } = await supabase.from('inventory').update(payload).eq('id', editProduct.id);
-      if (error) { toast.error('Failed to update product', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
-      toast.success('Product updated ✓');
+      if (error) { toast.error(t('Failed to update product'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+      toast.success(t('Product updated ✓'));
     } else {
       const { error } = await supabase.from('inventory').insert({ ...payload, owner_id: ownerIdForQueries });
-      if (error) { toast.error('Failed to add product', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
-      toast.success('Product saved ✓');
+      if (error) { toast.error(t('Failed to add product'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+      toast.success(t('Product saved ✓'));
     }
     handleClose();
     onSaved?.();
   }
 
   return (
-    <ModalShell isOpen={isOpen} onClose={handleClose} title={isEdit ? 'Edit Product' : 'Add Product'}>
+    <ModalShell isOpen={isOpen} onClose={handleClose} title={isEdit ? t('Edit product') : t('Add product')}>
       <div className="flex flex-col gap-4">
         <div>
-          <Label htmlFor="pname">Product Name *</Label>
-          <Input id="pname" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => touch('name')} placeholder="e.g. Premium T-Shirt" />
+          <Label htmlFor="pname">{t('Product name')} *</Label>
+          <Input id="pname" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => touch('name')} placeholder={t('e.g. Premium T-Shirt')} />
           {touched.name && errors.name && <p className="mt-1 text-xs font-medium text-destructive">{errors.name}</p>}
         </div>
 
         <div>
-          <Label htmlFor="sku">SKU</Label>
-          <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="e.g. PANJ-001" />
+          <Label htmlFor="sku">{t('SKU')}</Label>
+          <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder={t('e.g. PANJ-001')} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="costPrice">Cost Price {symbol} *</Label>
+            <Label htmlFor="costPrice">{t('Cost price')} {symbol} *</Label>
             <Input id="costPrice" type="number" min={0.01} step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} onBlur={() => touch('costPrice')} placeholder="0" />
             {touched.costPrice && errors.costPrice && <p className="mt-1 text-xs font-medium text-destructive">{errors.costPrice}</p>}
           </div>
           <div>
-            <Label htmlFor="sprice">Selling Price {symbol} *</Label>
+            <Label htmlFor="sprice">{t('Selling price')} {symbol} *</Label>
             <Input id="sprice" type="number" min={0.01} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} onBlur={() => touch('sellingPrice')} placeholder="0" />
             {touched.sellingPrice && errors.sellingPrice && <p className="mt-1 text-xs font-medium text-destructive">{errors.sellingPrice}</p>}
           </div>
@@ -138,25 +140,25 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="stockQty">Stock Quantity *</Label>
+            <Label htmlFor="stockQty">{t('Stock quantity')} *</Label>
             <Input id="stockQty" type="number" min={0} value={stockQty} onChange={(e) => setStockQty(e.target.value)} onBlur={() => touch('stockQty')} />
             {touched.stockQty && errors.stockQty && <p className="mt-1 text-xs font-medium text-destructive">{errors.stockQty}</p>}
           </div>
           <div>
-            <Label htmlFor="threshold">Low Stock Threshold *</Label>
+            <Label htmlFor="threshold">{t('Low stock alert at')} *</Label>
             <Input id="threshold" type="number" min={0} value={threshold} onChange={(e) => setThreshold(e.target.value)} onBlur={() => touch('threshold')} />
-            <p className="mt-1 text-xs text-muted-foreground">Alert when stock falls below this number</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('Alert when stock falls below this number')}</p>
             {touched.threshold && errors.threshold && <p className="mt-1 text-xs font-medium text-destructive">{errors.threshold}</p>}
           </div>
         </div>
 
         <div>
-          <Label htmlFor="supplier">Supplier</Label>
-          <Input id="supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Optional" />
+          <Label htmlFor="supplier">{t('Supplier')}</Label>
+          <Input id="supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder={t('Optional')} />
         </div>
 
         <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full bg-primary font-bold text-base">
-          {submitting ? 'Saving...' : isEdit ? 'Update Product' : 'Save Product'}
+          {submitting ? t('Saving...') : isEdit ? t('Update product') : t('Save product')}
         </Button>
       </div>
     </ModalShell>

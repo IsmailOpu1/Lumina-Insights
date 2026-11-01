@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Bell, ChevronRight } from 'lucide-react';
+import { Menu, Bell, ChevronRight, Languages } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import { currentDateLocale, useT } from '@/i18n';
 import AccountMenu from './AccountMenu';
+import { notificationText } from '@/i18n/notifications';
 
-const ROUTE_TITLES: Record<string, string> = {
+export const ROUTE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/orders': 'Orders',
   '/inventory': 'Inventory',
@@ -43,8 +45,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const { t, lang, setLang } = useT();
   const pageTitle =
-    ROUTE_TITLES[location.pathname] || 'Lumina Insights';
+    t(ROUTE_TITLES[location.pathname] || 'Lumina Insights');
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -91,7 +94,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       <div className="flex min-w-0 items-center gap-2">
         <button
           onClick={onMenuClick}
-          aria-label="Open menu"
+          aria-label={t('Open menu')}
           className="-ml-2 flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
         >
           <Menu size={20} />
@@ -105,8 +108,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="relative flex items-center gap-1.5" ref={dropdownRef}>
         <button
+          onClick={() => setLang(lang === 'bn' ? 'en' : 'bn')}
+          aria-label={lang === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন'}
+          title={lang === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন'}
+          className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Languages size={16} />
+          <span className="font-medium">{lang === 'bn' ? 'EN' : 'বাংলা'}</span>
+        </button>
+        <button
           onClick={() => setDropdownOpen((p) => !p)}
-          aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          aria-label={unreadCount ? t('Notifications, {n} unread', { n: unreadCount }) : t('Notifications')}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <Bell size={18} />
@@ -122,19 +134,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {dropdownOpen && (
           <div className="absolute right-0 top-full z-[100] mt-2 w-[360px] overflow-hidden rounded-xl border border-border bg-popover shadow-2xl shadow-black/50 max-md:fixed max-md:inset-x-2 max-md:top-14 max-md:w-auto">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <span className="text-sm font-semibold text-foreground">Notifications</span>
+              <span className="text-sm font-semibold text-foreground">{t('Notifications')}</span>
               {unreadCount > 0 && (
                 <button onClick={markAllRead} className="text-xs font-medium text-primary hover:underline">
-                  Mark all read
+                  {t('Mark all read')}
                 </button>
               )}
             </div>
 
             <div className="max-h-[420px] overflow-y-auto">
               {notifications.length === 0 ? (
-                <p className="px-4 py-10 text-center text-sm text-muted-foreground">You're all caught up</p>
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">{t("You're all caught up")}</p>
               ) : (
-                notifications.map((n) => (
+                notifications.map((n) => { const text = notificationText(n); return (
                   <button
                     key={n.id}
                     onClick={() => handleNotifClick(n)}
@@ -145,14 +157,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                       style={{ backgroundColor: n.is_read ? 'transparent' : TYPE_COLORS[n.type] || '#10B981' }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-sm ${n.is_read ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>{n.title}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
+                      <p className={`truncate text-sm ${n.is_read ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>{text.title}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{text.message}</p>
                     </div>
                     <span className="shrink-0 text-[11px] text-muted-foreground/80">
-                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: currentDateLocale() })}
                     </span>
                   </button>
-                ))
+                ); })
               )}
             </div>
 
@@ -160,7 +172,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               onClick={() => { setDropdownOpen(false); navigate('/notifications'); }}
               className="w-full border-t border-border px-4 py-2.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              View all notifications
+              {t('View all notifications')}
             </button>
           </div>
         )}

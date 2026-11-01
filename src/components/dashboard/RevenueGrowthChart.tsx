@@ -6,6 +6,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import ChartCard from './ChartCard';
 import Segmented from './Segmented';
+import { msg, useT } from '@/i18n';
 
 type Granularity = 'daily' | 'weekly' | 'monthly';
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function RevenueGrowthChart({ orders, loading, className }: Props) {
+  const { t } = useT();
   const { formatCurrency } = useCurrency();
   const [granularity, setGranularity] = useState<Granularity>('daily');
   const data = getRevenueOverTime(orders, granularity);
@@ -24,24 +26,24 @@ export default function RevenueGrowthChart({ orders, loading, className }: Props
 
   return (
     <ChartCard
-      title="Revenue"
-      subtitle="Sales over the selected period, cancelled orders excluded"
+      title={t('Revenue')}
+      subtitle={t('Sales over the selected period, cancelled orders excluded')}
       className={className}
       action={
         <Segmented<Granularity>
-          label="Chart granularity"
+          label={msg('Chart granularity')}
           value={granularity}
           onChange={setGranularity}
           options={[
-            { label: 'Day', value: 'daily' },
-            { label: 'Week', value: 'weekly' },
-            { label: 'Month', value: 'monthly' },
+            { label: msg('Day'), value: 'daily' },
+            { label: msg('Week'), value: 'weekly' },
+            { label: msg('Month'), value: 'monthly' },
           ]}
         />
       }
     >
       {data.length === 0 ? (
-        <p className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">No sales in this period yet</p>
+        <p className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">{t('No sales in this period yet')}</p>
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -57,7 +59,7 @@ export default function RevenueGrowthChart({ orders, loading, className }: Props
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ stroke: chartTheme.axisColor }}
-              formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+              formatter={(value: number) => [formatCurrency(value), t('Revenue')]}
             />
             <Area
               type="monotone"

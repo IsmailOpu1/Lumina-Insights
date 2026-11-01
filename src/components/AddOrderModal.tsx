@@ -14,6 +14,7 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 import { format } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useT } from '@/i18n';
 
 interface InventoryItem {
   id: string;
@@ -53,6 +54,7 @@ const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
 export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpen }: Props) {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
   const { ownerIdForQueries } = useAuth();
@@ -135,19 +137,19 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   const heldByOrder = keepsOriginalProduct && editOrder && holdsStock(editOrder.status) ? editOrder.quantity : 0;
   const maxStock = selectedProduct ? selectedProduct.stock_quantity + heldByOrder : 0;
   const stockError = selectedProduct && holdsStock(status) && qtyNum > maxStock
-    ? `Only ${maxStock} units available`
+    ? t('Only {n} units available', { n: maxStock })
     : '';
   // An order whose product was deleted can still be edited without one.
   const productDeleted = isEdit && !editOrder?.product_id;
 
   const errors = {
-    customerName: !customerName.trim() ? 'Customer name is required' : '',
-    productId: !productId && !(productDeleted && keepsOriginalProduct) ? 'Please select a product' : '',
-    quantity: !quantity || qtyNum < 1 ? 'Minimum quantity is 1' : stockError,
-    sellingPrice: !sellingPrice || parseFloat(sellingPrice) <= 0 ? 'Selling price is required' : '',
-    source: !source ? 'Please select a source' : '',
-    status: !status ? 'Please select a status' : '',
-    date: !date ? 'Date is required' : '',
+    customerName: !customerName.trim() ? t('Customer name is required') : '',
+    productId: !productId && !(productDeleted && keepsOriginalProduct) ? t('Please select a product') : '',
+    quantity: !quantity || qtyNum < 1 ? t('Minimum quantity is 1') : stockError,
+    sellingPrice: !sellingPrice || parseFloat(sellingPrice) <= 0 ? t('Selling price is required') : '',
+    source: !source ? t('Please select a source') : '',
+    status: !status ? t('Please select a status') : '',
+    date: !date ? t('Date is required') : '',
   };
 
   const isValid = Object.values(errors).every((e) => !e);
@@ -218,19 +220,19 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
     if (isEdit && editOrder) {
       const { error } = await supabase.from('orders').update(payload).eq('id', editOrder.id);
       if (error) {
-        toast.error('Update failed', { description: dbErrorMessage(error.message) });
+        toast.error(t('Update failed'), { description: dbErrorMessage(error.message) });
         setSubmitting(false);
         return;
       }
-      toast.success('Order updated ✓');
+      toast.success(t('Order updated ✓'));
     } else {
       const { error } = await supabase.from('orders').insert({ ...payload, order_number: orderNumber, owner_id: ownerIdForQueries });
       if (error) {
-        toast.error('Failed to create order', { description: dbErrorMessage(error.message) });
+        toast.error(t('Failed to create order'), { description: dbErrorMessage(error.message) });
         setSubmitting(false);
         return;
       }
-      toast.success('Order saved ✓');
+      toast.success(t('Order saved ✓'));
     }
 
     handleClose();
@@ -238,26 +240,26 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   }
 
   return (
-    <ModalShell isOpen={isOpen} onClose={handleClose} title={isEdit ? 'Edit Order' : 'Add Order'}>
+    <ModalShell isOpen={isOpen} onClose={handleClose} title={isEdit ? t('Edit order') : t('Add order')}>
       <div className="flex flex-col gap-4">
         <div>
-          <Label className="text-xs text-muted-foreground">Order #</Label>
+          <Label className="text-xs text-muted-foreground">{t('Order #')}</Label>
           <p className="text-sm font-semibold text-foreground">{orderNumber}</p>
         </div>
 
         <div>
-          <Label htmlFor="customerName">Customer Name *</Label>
-          <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} onBlur={() => touch('customerName')} placeholder="Enter customer name" />
+          <Label htmlFor="customerName">{t('Customer name')} *</Label>
+          <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} onBlur={() => touch('customerName')} placeholder={t('Enter customer name')} />
           {touched.customerName && errors.customerName && <p className="mt-1 text-xs font-medium text-destructive">{errors.customerName}</p>}
         </div>
 
         {/* Product — native select */}
         <div>
-          <Label>Product *</Label>
+          <Label>{t('Product')} *</Label>
           {productsLoading ? (
             <SkeletonLoader variant="row" count={1} />
           ) : productsError ? (
-            <p className="mt-1 text-xs font-medium text-destructive">Failed to load products. Refresh.</p>
+            <p className="mt-1 text-xs font-medium text-destructive">{t('Failed to load products. Refresh.')}</p>
           ) : (
             <select
               value={productId}
@@ -267,15 +269,15 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               className={nativeSelectClass}
             >
               {products.length === 0 ? (
-                <option disabled value="">No products — add in Inventory first</option>
+                <option disabled value="">{t('No products — add in Inventory first')}</option>
               ) : (
                 <>
                   <option value="">
-                    {productDeleted ? `${editOrder?.product_name || 'Product'} (deleted)` : 'Select Product'}
+                    {productDeleted ? t('{name} (deleted)', { name: editOrder?.product_name || t('Product') }) : t('Select product')}
                   </option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.product_name} — {p.stock_quantity} in stock
+                      {p.product_name} — {t('{n} in stock', { n: p.stock_quantity })}
                     </option>
                   ))}
                 </>
@@ -289,8 +291,8 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               'text-muted-foreground'
             )}>
               {heldByOrder > 0
-                ? `${maxStock} units available (${selectedProduct.stock_quantity} in stock + ${heldByOrder} held by this order)`
-                : `${selectedProduct.stock_quantity} units in stock`}
+                ? t('{n} units available ({stock} in stock + {held} held by this order)', { n: maxStock, stock: selectedProduct.stock_quantity, held: heldByOrder })
+                : t('{n} units in stock', { n: selectedProduct.stock_quantity })}
             </p>
           )}
           {touched.productId && errors.productId && <p className="mt-1 text-xs font-medium text-destructive">{errors.productId}</p>}
@@ -298,12 +300,12 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="quantity">Quantity *</Label>
+            <Label htmlFor="quantity">{t('Quantity')} *</Label>
             <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} onBlur={() => touch('quantity')} />
             {touched.quantity && errors.quantity && <p className="mt-1 text-xs font-medium text-destructive">{errors.quantity}</p>}
           </div>
           <div>
-            <Label htmlFor="sellingPrice">Selling Price {symbol} *</Label>
+            <Label htmlFor="sellingPrice">{t('Selling price')} {symbol} *</Label>
             <Input id="sellingPrice" type="number" min={0} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} onBlur={() => touch('sellingPrice')} placeholder="0" />
             {touched.sellingPrice && errors.sellingPrice && <p className="mt-1 text-xs font-medium text-destructive">{errors.sellingPrice}</p>}
           </div>
@@ -311,20 +313,20 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="shippingCost">Shipping Cost {symbol}</Label>
+            <Label htmlFor="shippingCost">{t('Shipping cost')} {symbol}</Label>
             <Input id="shippingCost" type="number" min={0} step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label htmlFor="adCost">Ad Cost {symbol}</Label>
+            <Label htmlFor="adCost">{t('Ad cost')} {symbol}</Label>
             <Input id="adCost" type="number" min={0} step="0.01" value={adCost} onChange={(e) => setAdCost(e.target.value)} placeholder="0" />
-            <p className="mt-1 text-xs text-muted-foreground">Ad spend for this specific order</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('Ad spend for this specific order')}</p>
           </div>
         </div>
 
         {/* Source — native select */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Source *</Label>
+            <Label>{t('Source')} *</Label>
             <select
               value={source}
               onChange={(e) => { setSource(e.target.value); touch('source'); }}
@@ -332,7 +334,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               required
               className={nativeSelectClass}
             >
-              <option value="">Select Source</option>
+              <option value="">{t('Select Source')}</option>
               {SOURCES.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -342,7 +344,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
           {/* Status — native select */}
           <div>
-            <Label>Status *</Label>
+            <Label>{t('Status')} *</Label>
             <select
               value={status}
               onChange={(e) => { setStatus(e.target.value); touch('status'); }}
@@ -351,7 +353,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               className={nativeSelectClass}
             >
               {ORDER_STATUSES.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>{t(s)}</option>
               ))}
             </select>
             {touched.status && errors.status && <p className="mt-1 text-xs font-medium text-destructive">{errors.status}</p>}
@@ -359,7 +361,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
         </div>
 
         <div>
-          <Label htmlFor="orderDate">Date *</Label>
+          <Label htmlFor="orderDate">{t('Date')} *</Label>
           <Input id="orderDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} onBlur={() => touch('date')} />
           {touched.date && errors.date && <p className="mt-1 text-xs font-medium text-destructive">{errors.date}</p>}
         </div>
@@ -368,10 +370,10 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
         {selectedProduct && (
           <div className={cn('rounded-lg border p-4', profit > 0 ? 'border-primary/30 bg-primary/5' : 'border-destructive/30 bg-destructive/5')}>
             <div className="space-y-1 text-sm text-muted-foreground">
-              <div className="flex justify-between"><span>Revenue {symbol}</span><span>{formatCurrency(revenue)}</span></div>
-              <div className="flex justify-between"><span>COGS {symbol}</span><span>{formatCurrency(cogs)}</span></div>
-              <div className="flex justify-between"><span>Shipping {symbol}</span><span>{formatCurrency(sc)}</span></div>
-              <div className="flex justify-between"><span>Ad Cost {symbol}</span><span>{formatCurrency(ac)}</span></div>
+              <div className="flex justify-between"><span>{t('Revenue')} {symbol}</span><span>{formatCurrency(revenue)}</span></div>
+              <div className="flex justify-between"><span>{t('COGS')} {symbol}</span><span>{formatCurrency(cogs)}</span></div>
+              <div className="flex justify-between"><span>{t('Shipping')} {symbol}</span><span>{formatCurrency(sc)}</span></div>
+              <div className="flex justify-between"><span>{t('Ad cost')} {symbol}</span><span>{formatCurrency(ac)}</span></div>
             </div>
             <div className="mt-2 border-t border-border pt-2">
               <div className="flex items-center justify-between">
@@ -382,13 +384,13 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
                   {margin}%
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Break-even Ad {symbol}: {formatCurrency(Math.max(breakevenAd, 0))}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('Break-even ad spend')} {symbol}: {formatCurrency(Math.max(breakevenAd, 0))}</p>
             </div>
           </div>
         )}
 
         <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full font-bold text-base">
-          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : isEdit ? 'Update Order' : 'Save Order'}
+          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> : isEdit ? t('Update order') : t('Save order')}
         </Button>
       </div>
     </ModalShell>

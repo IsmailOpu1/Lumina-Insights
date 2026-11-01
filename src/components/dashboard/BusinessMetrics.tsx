@@ -6,6 +6,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { activeOrders } from '@/hooks/useDashboardData';
 import { countsForProfit } from '@/lib/constants';
+import { rich, useT } from '@/i18n';
 
 interface Order {
   date: string;
@@ -40,6 +41,7 @@ interface Props {
 }
 
 export default function BusinessMetrics({ orders: periodOrders, allOrders: recentOrders, inventory, expenses, loading, deadProductDays }: Props) {
+  const { t } = useT();
   const { formatCurrency } = useCurrency();
   const metrics = useMemo(() => {
     if (loading) return null;
@@ -84,7 +86,7 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
     orders.forEach((o) => {
       const pid = o.product_id || 'unknown';
       const inv = inventory.find((i) => i.id === pid);
-      const name = inv?.product_name || o.product_name || 'Unknown';
+      const name = inv?.product_name || o.product_name || t('Unknown');
       if (!productRevenue[pid]) productRevenue[pid] = { name, revenue: 0 };
       productRevenue[pid].revenue += o.selling_price * o.quantity;
     });
@@ -105,7 +107,7 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
       turnover, deadProducts, top1Pct, top1Name: sortedProducts[0]?.name || '—',
       top3Pct, adSpend, shippingExp, miscExp, returnedCount: returned.length, returnLoss
     };
-  }, [periodOrders, recentOrders, inventory, expenses, deadProductDays, loading]);
+  }, [periodOrders, recentOrders, inventory, expenses, deadProductDays, loading, t]);
 
   const riskTone = (pct: number) => pct > 60 ? 'text-destructive' : pct > 40 ? 'text-warning' : 'text-success';
   const signed = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
@@ -114,60 +116,64 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
 
   return (
     <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <Tile icon={Sun} title="Today">
-        <Stat label="Revenue" value={formatCurrency(metrics.dailyRevenue)} />
-        <Stat label="Orders" value={metrics.dailyCount.toLocaleString()} />
+      <Tile icon={Sun} title={t('Today')}>
+        <Stat label={t('Revenue')} value={formatCurrency(metrics.dailyRevenue)} />
+        <Stat label={t('Orders')} value={metrics.dailyCount.toLocaleString()} />
       </Tile>
 
       <Tile
         icon={CalendarDays}
-        title="This week"
+        title={t('This week')}
         badge={
           <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium',
             metrics.weekGrowth >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive')}>
-            {signed(metrics.weekGrowth)} vs last week
+            {t('{pct} vs last week', { pct: signed(metrics.weekGrowth) })}
           </span>
         }
       >
-        <Stat label="Revenue" value={formatCurrency(metrics.weeklyRevenue)} />
+        <Stat label={t('Revenue')} value={formatCurrency(metrics.weeklyRevenue)} />
         <Stat
-          label="Profit"
+          label={t('Profit')}
           value={formatCurrency(metrics.weeklyProfit)}
           className={metrics.weeklyProfit >= 0 ? 'text-success' : 'text-destructive'}
         />
       </Tile>
 
-      <Tile icon={Wallet} title="Expenses">
-        <Stat label="Ads" value={formatCurrency(metrics.adSpend)} />
-        <Stat label="Shipping" value={formatCurrency(metrics.shippingExp)} />
-        <Stat label="Other" value={formatCurrency(metrics.miscExp)} />
+      <Tile icon={Wallet} title={t('Expenses')}>
+        <Stat label={t('Ads')} value={formatCurrency(metrics.adSpend)} />
+        <Stat label={t('Shipping')} value={formatCurrency(metrics.shippingExp)} />
+        <Stat label={t('Other')} value={formatCurrency(metrics.miscExp)} />
         {metrics.returnedCount > 0 && (
           <Stat
-            label={`Returns (${metrics.returnedCount})`}
+            label={t('Returns ({n})', { n: metrics.returnedCount })}
             value={formatCurrency(metrics.returnLoss)}
             className="text-destructive"
           />
         )}
       </Tile>
 
-      <Tile icon={RefreshCw} title="Inventory turnover">
+      <Tile icon={RefreshCw} title={t('Inventory turnover')}>
         <p className="text-2xl font-semibold tabular-nums text-foreground">{metrics.turnover.toFixed(1)}x</p>
-        <p className="mt-1 text-xs text-muted-foreground">Units sold per unit in stock this period</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t('Units sold per unit in stock this period')}</p>
       </Tile>
 
-      <Tile icon={Target} title="Product dependency">
+      <Tile icon={Target} title={t('Product dependency')}>
         <p className="text-sm text-muted-foreground">
-          <span className={cn('font-semibold', riskTone(metrics.top1Pct))}>{metrics.top1Pct.toFixed(0)}%</span> of revenue from{' '}
-          <span className="text-foreground">{metrics.top1Name}</span>
+          {rich(t('{pct} of revenue from {name}'), {
+            pct: <span className={cn('font-semibold', riskTone(metrics.top1Pct))}>{metrics.top1Pct.toFixed(0)}%</span>,
+            name: <span className="text-foreground">{metrics.top1Name}</span>,
+          })}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          <span className={cn('font-semibold', riskTone(metrics.top3Pct))}>{metrics.top3Pct.toFixed(0)}%</span> from your top 3
+          {rich(t('{pct} from your top 3'), {
+            pct: <span className={cn('font-semibold', riskTone(metrics.top3Pct))}>{metrics.top3Pct.toFixed(0)}%</span>,
+          })}
         </p>
       </Tile>
 
-      <Tile icon={Snowflake} title={`No sales in ${deadProductDays} days`}>
+      <Tile icon={Snowflake} title={t('No sales in {n} days', { n: deadProductDays })}>
         {metrics.deadProducts.length === 0 ? (
-          <p className="text-sm text-success">Every product is selling</p>
+          <p className="text-sm text-success">{t('Every product is selling')}</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {metrics.deadProducts.slice(0, 5).map((p) => (
@@ -176,7 +182,7 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
               </span>
             ))}
             {metrics.deadProducts.length > 5 && (
-              <span className="text-xs text-muted-foreground">+{metrics.deadProducts.length - 5} more</span>
+              <span className="text-xs text-muted-foreground">{t('+{n} more', { n: metrics.deadProducts.length - 5 })}</span>
             )}
           </div>
         )}

@@ -107,7 +107,7 @@ describe('AddOrderModal — editing an order', () => {
     openEdit({ ...pendingOrder, product_id: null, product_name: 'Old Saree' });
     expect(await screen.findByRole('option', { name: 'Old Saree (deleted)' })).toBeInTheDocument();
 
-    const save = screen.getByRole('button', { name: 'Update Order' });
+    const save = screen.getByRole('button', { name: 'Update order' });
     expect(save).toBeEnabled();
     fireEvent.click(save);
     await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));

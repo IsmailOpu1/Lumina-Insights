@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useT } from '@/i18n';
 
 interface ModalShellProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ModalShellProps {
 }
 
 export default function ModalShell({ isOpen, onClose, title, children }: ModalShellProps) {
+  const { t } = useT();
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +46,7 @@ export default function ModalShell({ isOpen, onClose, title, children }: ModalSh
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('Close')}
             className="icon-btn">
             
             <X size={20} />

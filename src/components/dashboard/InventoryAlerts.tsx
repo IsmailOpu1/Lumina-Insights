@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, PackageX, AlertTriangle } from 'lucide-react';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import ChartCard from './ChartCard';
+import { useT } from '@/i18n';
 
 interface InventoryItem {
   id: string;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function InventoryAlerts({ items, loading }: Props) {
+  const { t } = useT();
   const navigate = useNavigate();
   if (loading) return <SkeletonLoader variant="row" count={4} />;
 
@@ -25,11 +27,11 @@ export default function InventoryAlerts({ items, loading }: Props) {
 
   return (
     <ChartCard
-      title="Stock alerts"
-      subtitle={lowStock.length ? `${lowStock.length} product${lowStock.length === 1 ? '' : 's'} below threshold` : 'Products below their threshold'}
+      title={t('Stock alerts')}
+      subtitle={lowStock.length === 1 ? t('{n} product below threshold', { n: 1 }) : lowStock.length ? t('{n} products below threshold', { n: lowStock.length }) : t('Products below their threshold')}
       action={lowStock.length > 0 && (
         <button onClick={() => navigate('/inventory')} className="text-xs font-medium text-primary hover:underline">
-          Restock
+          {t('Restock')}
         </button>
       )}
     >
@@ -38,7 +40,7 @@ export default function InventoryAlerts({ items, loading }: Props) {
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
             <CheckCircle2 size={20} />
           </span>
-          <p className="text-sm text-muted-foreground">Everything is well stocked</p>
+          <p className="text-sm text-muted-foreground">{t('Everything is well stocked')}</p>
         </div>
       ) : (
         <ul className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
@@ -50,7 +52,7 @@ export default function InventoryAlerts({ items, loading }: Props) {
                 <span className={out ? 'text-destructive' : 'text-warning'}><Icon size={16} /></span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{item.product_name}</span>
                 <span className={`shrink-0 text-xs tabular-nums ${out ? 'text-destructive' : 'text-warning'}`}>
-                  {out ? 'Out of stock' : `${item.stock_quantity} left`}
+                  {out ? t('Out of stock') : t('{n} left', { n: item.stock_quantity })}
                 </span>
               </li>
             );

@@ -9,8 +9,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import UserAvatar from './UserAvatar';
+import { useT } from '@/i18n';
 
-const NAV_GROUPS = [
+export const NAV_GROUPS = [
   {
     label: 'Business',
     items: [
@@ -47,6 +48,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: SidebarProps) {
+  const { t } = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const { isViewer, isOwner, userSettings } = useAuth();
@@ -88,7 +90,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
         {!isMobile && (
           <button
             onClick={onToggleCollapse}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isCollapsed ? t('Expand sidebar') : t('Collapse sidebar')}
             className="absolute -right-3 top-[68px] z-[60] flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-md transition-colors hover:text-foreground"
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -110,7 +112,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
             <div key={group.label} className="mb-5 last:mb-0">
               {!isCollapsed && (
                 <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-                  {group.label}
+                  {t(group.label)}
                 </p>
               )}
               <ul className="space-y-0.5">
@@ -122,7 +124,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                     <li key={item.path}>
                       <button
                         onClick={() => handleNav(item.path)}
-                        title={isCollapsed ? item.label : undefined}
+                        title={isCollapsed ? t(item.label) : undefined}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
                           'group relative flex w-full items-center rounded-lg text-sm transition-colors',
@@ -136,7 +138,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                           <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary shadow-glow" />
                         )}
                         <Icon size={18} className={cn('shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
-                        {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                        {!isCollapsed && <span className="whitespace-nowrap">{t(item.label)}</span>}
                         {showCount && !isCollapsed && (
                           <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-semibold text-primary">
                             {unreadCount > 99 ? '99+' : unreadCount}
@@ -161,7 +163,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
               <UserAvatar className="h-8 w-8 text-xs" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">{userSettings.business_name}</p>
-                <p className="truncate text-xs text-muted-foreground">{isOwner ? 'Owner' : isViewer ? 'Viewer' : 'Manager'}</p>
+                <p className="truncate text-xs text-muted-foreground">{isOwner ? t('Owner') : isViewer ? t('Viewer') : t('Manager')}</p>
               </div>
             </button>
           </div>

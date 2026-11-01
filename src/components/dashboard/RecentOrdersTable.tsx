@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { parseDay } from '@/lib/dates';
 import { useCurrency } from '@/hooks/useCurrency';
 import ChartCard from './ChartCard';
+import { currentDateLocale, useT } from '@/i18n';
 
 interface Order {
   id: string;
@@ -38,6 +39,7 @@ interface Props {
 type SortKey = 'order_number' | 'customer_name' | 'product' | 'source' | 'status' | 'quantity' | 'selling_price' | 'shipping_cost' | 'profit_per_order' | 'date';
 
 export default function RecentOrdersTable({ orders, inventory, loading }: Props) {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const navigate = useNavigate();
   const [sortKey, setSortKey] = useState<SortKey>('date');
@@ -68,26 +70,26 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
   if (loading) return <SkeletonLoader variant="row" count={6} />;
 
   const headers: {label: string;key: SortKey;}[] = [
-  { label: 'Order #', key: 'order_number' },
-  { label: 'Customer', key: 'customer_name' },
-  { label: 'Product', key: 'product' },
-  { label: 'Source', key: 'source' },
-  { label: 'Status', key: 'status' },
-  { label: 'Qty', key: 'quantity' },
-  { label: `Price ${symbol}`, key: 'selling_price' },
-  { label: `Shipping ${symbol}`, key: 'shipping_cost' },
-  { label: `Profit ${symbol}`, key: 'profit_per_order' },
-  { label: 'Date', key: 'date' }];
+  { label: t('Order #'), key: 'order_number' },
+  { label: t('Customer'), key: 'customer_name' },
+  { label: t('Product'), key: 'product' },
+  { label: t('Source'), key: 'source' },
+  { label: t('Status'), key: 'status' },
+  { label: t('Qty'), key: 'quantity' },
+  { label: `${t('Price')} ${symbol}`, key: 'selling_price' },
+  { label: `${t('Shipping')} ${symbol}`, key: 'shipping_cost' },
+  { label: `${t('Profit')} ${symbol}`, key: 'profit_per_order' },
+  { label: t('Date'), key: 'date' }];
 
 
   return (
     <ChartCard
-      title="Recent orders"
-      subtitle="Latest 10, any date"
+      title={t('Recent orders')}
+      subtitle={t('Latest 10, any date')}
       className="mb-6"
       action={
         <button onClick={() => navigate('/orders')} className="text-xs font-medium text-primary hover:underline">
-          View all
+          {t('View all')}
         </button>
       }
     >
@@ -119,11 +121,11 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
                 <td className={`px-5 py-3 font-medium tabular-nums ${o.profit_per_order >= 0 ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(o.profit_per_order)}
                 </td>
-                <td className="px-5 py-3 text-muted-foreground">{format(parseDay(o.date), 'dd MMM')}</td>
+                <td className="px-5 py-3 text-muted-foreground">{format(parseDay(o.date), 'dd MMM', { locale: currentDateLocale() })}</td>
               </tr>
             )}
             {recent.length === 0 &&
-            <tr><td colSpan={10} className="px-5 py-10 text-center text-sm text-muted-foreground">No orders yet</td></tr>
+            <tr><td colSpan={10} className="px-5 py-10 text-center text-sm text-muted-foreground">{t('No orders yet')}</td></tr>
             }
           </tbody>
         </table>

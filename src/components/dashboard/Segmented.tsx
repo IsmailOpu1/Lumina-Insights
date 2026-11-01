@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n';
 
 interface Props<T extends string> {
   options: { label: string; value: T }[];
@@ -9,8 +10,9 @@ interface Props<T extends string> {
 
 /** Pill-style switch between a few options (date range, chart granularity). */
 export default function Segmented<T extends string>({ options, value, onChange, label }: Props<T>) {
+  const { t } = useT();
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-lg border border-border bg-muted p-0.5">
+    <div role="group" aria-label={t(label)} className="inline-flex rounded-lg border border-border bg-muted p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -23,7 +25,7 @@ export default function Segmented<T extends string>({ options, value, onChange, 
               : 'text-muted-foreground hover:text-foreground'
           )}
         >
-          {o.label}
+          {t(o.label)}
         </button>
       ))}
     </div>

@@ -23,6 +23,7 @@ import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll } from '@/lib/fetchAll';
+import { currentDateLocale, msg, useT } from '@/i18n';
 
 interface OrderRow {
   id: string;
@@ -49,13 +50,14 @@ type DateFilter = DayFilter;
 const PAGE_SIZE = 20;
 
 const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
-  { label: 'Today', value: 'today' },
-  { label: '7 days', value: '7days' },
-  { label: '30 days', value: '30days' },
-  { label: 'All time', value: 'custom' },
+  { label: msg('Today'), value: 'today' },
+  { label: msg('7 days'), value: '7days' },
+  { label: msg('30 days'), value: '30days' },
+  { label: msg('All time'), value: 'custom' },
 ];
 
 export default function Orders() {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const readOnly = useReadOnly();
@@ -82,7 +84,7 @@ export default function Orders() {
     order('created_at', { ascending: false }).
     order('id').
     range(a, b));
-    if (error) {toast.error('Failed to load orders');console.error(error);} else
+    if (error) {toast.error(t('Failed to load orders'));console.error(error);} else
     setOrders(data as OrderRow[] || []);
     setLoading(false);
   }, []);
@@ -143,8 +145,8 @@ export default function Orders() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from('orders').delete().eq('id', deleteId);
-    if (error) toast.error('Failed to delete order');else
-    {toast.success('Order deleted');fetchOrders();}
+    if (error) toast.error(t('Failed to delete order'));else
+    {toast.success(t('Order deleted'));fetchOrders();}
     setDeleteId(null);
   }
 
@@ -196,8 +198,8 @@ export default function Orders() {
       ''];
 
       await exportXLSX({ headers, rows, totalsRow: totals, filename: `Orders_Export_${todaySuffix()}.xlsx` });
-      toast.success('Export complete ✓');
-    } catch {toast.error('Export failed');}
+      toast.success(t('Export complete ✓'));
+    } catch {toast.error(t('Export failed'));}
     setExporting(false);
   }
 
@@ -219,18 +221,18 @@ export default function Orders() {
   return (
     <div className="mx-auto max-w-[1400px]">
       <PageHeader
-        title="Orders"
-        subtitle="Every sale from every channel, with profit worked out per order."
+        title={t('Orders')}
+        subtitle={t('Every sale from every channel, with profit worked out per order.')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} disabled={exporting || filtered.length === 0} className="max-sm:flex-1">
               {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              {exporting ? 'Exporting...' : 'Export'}
+              {exporting ? t('Exporting...') : t('Export')}
             </Button>
             {!readOnly && (
               <Button className="gap-1.5 shadow-glow max-sm:flex-1" onClick={() => setAddOpen(true)}>
                 <Plus size={16} />
-                Add order
+                {t('Add order')}
               </Button>
             )}
           </>
@@ -239,10 +241,10 @@ export default function Orders() {
 
       <StatStrip
         stats={[
-          { label: 'Orders', value: filtered.length, icon: ShoppingBag, hint: totals.pending ? `${totals.pending} pending` : 'None pending' },
-          { label: 'Revenue', value: formatCurrency(totals.revenue), icon: Wallet, hint: 'Cancelled and returned excluded' },
-          { label: 'Profit', value: formatCurrency(totals.profit), icon: TrendingUp, tone: totals.profit >= 0 ? 'positive' : 'negative' },
-          { label: 'Average order', value: formatCurrency(totals.avg), icon: Receipt },
+          { label: t('Orders'), value: filtered.length, icon: ShoppingBag, hint: totals.pending ? t('{n} pending', { n: totals.pending }) : t('None pending') },
+          { label: t('Revenue'), value: formatCurrency(totals.revenue), icon: Wallet, hint: t('Cancelled and returned excluded') },
+          { label: t('Profit'), value: formatCurrency(totals.profit), icon: TrendingUp, tone: totals.profit >= 0 ? 'positive' : 'negative' },
+          { label: t('Average order'), value: formatCurrency(totals.avg), icon: Receipt },
         ]}
       />
 
@@ -251,42 +253,42 @@ export default function Orders() {
         <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
           <div className="relative w-[280px] max-md:w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-9 pl-9" placeholder="Search customer or order #..." value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
+            <Input className="h-9 pl-9" placeholder={t('Search customer or order #...')} value={search} onChange={(e) => {setSearch(e.target.value);setPage(1);}} />
           </div>
           <Select value={statusFilter} onValueChange={(v) => {setStatusFilter(v);setPage(1);}}>
             <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="all">{t('All statuses')}</SelectItem>
+              {ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{t(s)}</SelectItem>)}
             </SelectContent>
           </Select>
           <div className="flex-1" />
-          <Segmented<DateFilter> label="Date range" value={dateFilter} onChange={(v) => {setDateFilter(v);setPage(1);}} options={DATE_OPTIONS} />
+          <Segmented<DateFilter> label={msg('Date range')} value={dateFilter} onChange={(v) => {setDateFilter(v);setPage(1);}} options={DATE_OPTIONS} />
         </div>
 
         {loading ?
         <div className="p-4"><SkeletonLoader variant="row" count={8} /></div> :
         filtered.length === 0 ?
         orders.length === 0 ?
-        <EmptyState icon={ShoppingBag} title="No orders yet" message="Add your first order and Lumina works out the profit for you." actionLabel={readOnly ? undefined : 'Add order'} onAction={() => setAddOpen(true)} /> :
-        <EmptyState icon={Search} title="No matching orders" message="Try a different search, status or date range." /> :
+        <EmptyState icon={ShoppingBag} title={t('No orders yet')} message={t('Add your first order and Lumina works out the profit for you.')} actionLabel={readOnly ? undefined : t('Add order')} onAction={() => setAddOpen(true)} /> :
+        <EmptyState icon={Search} title={t('No matching orders')} message={t('Try a different search, status or date range.')} /> :
 
         <>
             <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
               <table className="data-table min-w-[960px]">
                 <thead>
                   <tr>
-                    {th('order_number', 'Order #')}
-                    {th('customer_name', 'Customer')}
-                    {th('product', 'Product')}
-                    {th('source', 'Source')}
-                    {th('status', 'Status')}
-                    {th('quantity', 'Qty')}
-                    {th('selling_price', `Price ${symbol}`)}
-                    {th('shipping_cost', `Shipping ${symbol}`)}
-                    {th('profit_per_order', `Profit ${symbol}`)}
-                    {th('date', 'Date')}
-                    {!readOnly && <th className="text-right">Actions</th>}
+                    {th('order_number', t('Order #'))}
+                    {th('customer_name', t('Customer'))}
+                    {th('product', t('Product'))}
+                    {th('source', t('Source'))}
+                    {th('status', t('Status'))}
+                    {th('quantity', t('Qty'))}
+                    {th('selling_price', `${t('Price')} ${symbol}`)}
+                    {th('shipping_cost', `${t('Shipping')} ${symbol}`)}
+                    {th('profit_per_order', `${t('Profit')} ${symbol}`)}
+                    {th('date', t('Date'))}
+                    {!readOnly && <th className="text-right">{t('Actions')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -309,14 +311,14 @@ export default function Orders() {
                         <td className={cn('font-medium tabular-nums', profit >= 0 ? 'text-success' : 'text-destructive')}>
                           {formatCurrency(profit)}
                         </td>
-                        <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(o.date), 'dd MMM yyyy')}</td>
+                        <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(o.date), 'dd MMM yyyy', { locale: currentDateLocale() })}</td>
                         {!readOnly && (
                           <td>
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => handleEdit(o)} className="icon-btn" aria-label={`Edit order ${o.order_number}`}>
+                              <button onClick={() => handleEdit(o)} className="icon-btn" aria-label={t('Edit order {n}', { n: o.order_number })}>
                                 <Pencil size={16} />
                               </button>
-                              <button onClick={() => setDeleteId(o.id)} className="icon-btn-danger" aria-label={`Delete order ${o.order_number}`}>
+                              <button onClick={() => setDeleteId(o.id)} className="icon-btn-danger" aria-label={t('Delete order {n}', { n: o.order_number })}>
                                 <Trash2 size={16} />
                               </button>
                             </div>
@@ -352,12 +354,12 @@ export default function Orders() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => {if (!open) setDeleteId(null);}}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this order?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t('Delete this order?')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('This cannot be undone.')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('Delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

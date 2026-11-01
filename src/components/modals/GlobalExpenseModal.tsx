@@ -12,11 +12,13 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
+import { useT } from '@/i18n';
 
 const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
 export default function GlobalExpenseModal() {
+  const { t } = useT();
   const { symbol } = useCurrency();
   const { activeModal, closeModal, notifySaved } = useFAB();
   const { ownerIdForQueries } = useAuth();
@@ -46,8 +48,8 @@ export default function GlobalExpenseModal() {
       date,
       owner_id: ownerIdForQueries,
     });
-    if (error) { toast.error('Failed to add expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
-    toast.success('Expense added ✓');
+    if (error) { toast.error(t('Failed to add expense'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+    toast.success(t('Expense added ✓'));
     notifySaved('expense');
     closeModal();
   }
@@ -55,38 +57,38 @@ export default function GlobalExpenseModal() {
   if (!isOpen) return null;
 
   return (
-    <ModalShell isOpen={isOpen} onClose={closeModal} title="Add Expense">
+    <ModalShell isOpen={isOpen} onClose={closeModal} title={t('Add expense')}>
       <div className="flex flex-col gap-4">
         <div>
-          <Label>Type *</Label>
+          <Label>{t('Type')} *</Label>
           <select value={type} onChange={(e) => setType(e.target.value)} required className={nativeSelectClass}>
-            <option value="">Select Type</option>
-            {EXPENSE_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
+            <option value="">{t('Select Type')}</option>
+            {EXPENSE_TYPES.map((type) => (<option key={type} value={type}>{t(type)}</option>))}
           </select>
         </div>
         <div>
-          <Label>Amount {symbol} *</Label>
+          <Label>{t('Amount')} {symbol} *</Label>
           <Input type="number" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
         </div>
         <div>
-          <Label>Platform</Label>
-          <Input value={platform} onChange={(e) => setPlatform(e.target.value)} placeholder="e.g. Facebook Ads" />
+          <Label>{t('Platform')}</Label>
+          <Input value={platform} onChange={(e) => setPlatform(e.target.value)} placeholder={t('e.g. Facebook Ads')} />
         </div>
         <div>
-          <Label>Notes</Label>
+          <Label>{t('Notes')}</Label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional notes..."
+            placeholder={t('Optional notes...')}
             className="w-full min-h-[80px] px-3 py-2 rounded-lg border border-border bg-background text-foreground text-[15px] resize-y"
           />
         </div>
         <div>
-          <Label>Date *</Label>
+          <Label>{t('Date')} *</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full font-bold text-base">
-          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Expense'}
+          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> : t('Save expense')}
         </Button>
       </div>
     </ModalShell>

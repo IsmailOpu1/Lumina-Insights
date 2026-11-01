@@ -21,8 +21,10 @@ import { format, min, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns'
 import {
   AlertTriangle, CalendarSearch, Crown, Gauge, Megaphone, Package, Percent, Repeat, ShoppingBag, TrendingUp, Wallet,
 } from 'lucide-react';
+import { currentDateLocale, tr, useT } from '@/i18n';
 
 export default function Dashboard() {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const { orders, inventory, expenses, loading, refetch } = useDashboardData();
   const { ownerIdForQueries, userSettings } = useAuth();
@@ -88,31 +90,31 @@ export default function Dashboard() {
   const roas = kpis.totalAdSpend > 0 ? kpis.totalRevenue / kpis.totalAdSpend : Infinity;
 
   const primaryKpis: KPI[] = [
-    { label: 'Revenue', value: kpis.totalRevenue, format: 'taka', icon: TrendingUp },
+    { label: t('Revenue'), value: kpis.totalRevenue, format: 'taka', icon: TrendingUp },
     {
-      label: 'Net profit',
+      label: t('Net profit'),
       value: kpis.netProfit,
       format: 'taka',
       icon: Wallet,
       tone: kpis.netProfit >= 0 ? 'positive' : 'negative',
-      subValue: `${kpis.profitMargin.toFixed(1)}% margin`,
+      subValue: t('{pct}% margin', { pct: kpis.profitMargin.toFixed(1) }),
     },
-    { label: 'Orders', value: kpis.totalOrders, format: 'number', icon: ShoppingBag, subValue: `${kpis.repeatCustomers} repeat customer${kpis.repeatCustomers === 1 ? '' : 's'}` },
-    { label: 'Inventory value', value: kpis.inventoryValue, format: 'taka', icon: Package, subValue: 'At cost price' },
+    { label: t('Orders'), value: kpis.totalOrders, format: 'number', icon: ShoppingBag, subValue: kpis.repeatCustomers === 1 ? t('{n} repeat customer', { n: 1 }) : t('{n} repeat customers', { n: kpis.repeatCustomers }) },
+    { label: t('Inventory value'), value: kpis.inventoryValue, format: 'taka', icon: Package, subValue: t('At cost price') },
   ];
 
   const secondaryKpis: KPI[] = [
-    { label: 'Profit margin', value: kpis.profitMargin, format: 'percent', icon: Percent },
+    { label: t('Profit margin'), value: kpis.profitMargin, format: 'percent', icon: Percent },
     {
-      label: 'Low stock',
+      label: t('Low stock'),
       value: kpis.lowStockItems.length,
       format: 'number',
       icon: AlertTriangle,
       tone: kpis.lowStockItems.length > 0 ? 'warning' : undefined,
     },
-    { label: 'Repeat customers', value: kpis.repeatCustomers, format: 'number', icon: Repeat },
+    { label: t('Repeat customers'), value: kpis.repeatCustomers, format: 'number', icon: Repeat },
     {
-      label: 'Top customer',
+      label: t('Top customer'),
       value: 0,
       format: 'name',
       icon: Crown,
@@ -120,11 +122,11 @@ export default function Dashboard() {
       subValue: kpis.topCustomer ? formatCurrency(kpis.topCustomer.revenue) : undefined,
     },
     {
-      label: 'Ad cost / order',
+      label: t('Ad cost / order'),
       value: avgAdCostPerOrder,
       format: 'taka',
       icon: Megaphone,
-      tooltip: 'Average ad spend to win each order in this period',
+      tooltip: t('Average ad spend to win each order in this period'),
     },
     {
       label: 'ROAS',
@@ -132,7 +134,7 @@ export default function Dashboard() {
       format: 'roas',
       icon: Gauge,
       tone: roas >= roasThreshold ? 'positive' : 'negative',
-      tooltip: `Revenue per ${symbol}1 spent on ads. Your target: ${roasThreshold}x.`,
+      tooltip: t('Revenue per {amount} spent on ads. Your target: {target}x.', { amount: `${symbol}1`, target: roasThreshold }),
     },
   ];
 
@@ -143,7 +145,7 @@ export default function Dashboard() {
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="page-title">{greeting()}{name ? `, ${name}` : ''}</h1>
-          <p className="page-subtitle">Here's how your business is doing · {format(new Date(), 'EEEE, d MMMM')}</p>
+          <p className="page-subtitle">{t("Here's how your business is doing")} · {format(new Date(), 'EEEE, d MMMM', { locale: currentDateLocale() })}</p>
         </div>
         <DateFilterBar />
       </header>
@@ -152,9 +154,9 @@ export default function Dashboard() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
           <p className="flex items-center gap-2 text-sm text-foreground">
             <CalendarSearch size={16} className="shrink-0 text-primary" />
-            No sales in this period. Your latest sale was on {format(parseISO(latestSale), 'd MMMM yyyy')}.
+            {t('No sales in this period. Your latest sale was on {date}.', { date: format(parseISO(latestSale), 'd MMMM yyyy', { locale: currentDateLocale() }) })}
           </p>
-          <Button size="sm" variant="outline" onClick={() => setDateFilter('all')}>Show all time</Button>
+          <Button size="sm" variant="outline" onClick={() => setDateFilter('all')}>{t('Show all time')}</Button>
         </div>
       )}
 
@@ -202,5 +204,5 @@ export default function Dashboard() {
 
 function greeting(now = new Date()) {
   const h = now.getHours();
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return h < 12 ? tr('Good morning') : h < 17 ? tr('Good afternoon') : tr('Good evening');
 }

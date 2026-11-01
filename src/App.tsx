@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppShell from '@/components/AppShell';
 import PageLoader from '@/components/PageLoader';
+import { LanguageProvider } from '@/i18n';
 
 // Each page is its own chunk, downloaded the first time it is opened.
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -65,6 +66,7 @@ function SettingsBootstrap({ children }: { children: React.ReactNode }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <LanguageProvider>
     <AuthProvider>
       <ThemeProvider>
         <FilterProvider>
@@ -114,6 +116,7 @@ const App = () => (
         </FilterProvider>
       </ThemeProvider>
     </AuthProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 

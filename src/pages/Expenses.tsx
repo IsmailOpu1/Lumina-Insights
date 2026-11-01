@@ -26,6 +26,7 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll } from '@/lib/fetchAll';
 import { useReadOnly } from '@/hooks/useReadOnly';
+import { currentDateLocale, msg, useT } from '@/i18n';
 
 interface ExpenseRow {
   id: string;
@@ -62,13 +63,14 @@ const TYPE_STYLE: Record<string, { badge: string; bar: string }> = {
 };
 
 const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
-  { label: 'Today', value: 'today' },
-  { label: '7 days', value: '7days' },
-  { label: '30 days', value: '30days' },
-  { label: 'All time', value: 'custom' },
+  { label: msg('Today'), value: 'today' },
+  { label: msg('7 days'), value: '7days' },
+  { label: msg('30 days'), value: '30days' },
+  { label: msg('All time'), value: 'custom' },
 ];
 
 export default function Expenses() {
+  const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const { ownerIdForQueries } = useAuth();
@@ -102,7 +104,7 @@ export default function Expenses() {
       .order('date', { ascending: false })
       .order('id')
       .range(a, b));
-    if (error) { toast.error('Failed to load expenses'); console.error(error); }
+    if (error) { toast.error(t('Failed to load expenses')); console.error(error); }
     else setExpenses((data as ExpenseRow[]) || []);
     setLoading(false);
   }, []);
@@ -184,12 +186,12 @@ export default function Expenses() {
 
     if (editExpense) {
       const { error } = await supabase.from('expenses').update(payload).eq('id', editExpense.id);
-      if (error) { toast.error('Failed to update expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
-      toast.success('Expense updated ✓');
+      if (error) { toast.error(t('Failed to update expense'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+      toast.success(t('Expense updated ✓'));
     } else {
       const { error } = await supabase.from('expenses').insert({ ...payload, owner_id: ownerIdForQueries });
-      if (error) { toast.error('Failed to add expense', { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
-      toast.success('Expense saved ✓');
+      if (error) { toast.error(t('Failed to add expense'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+      toast.success(t('Expense saved ✓'));
     }
     setModalOpen(false);
     fetchExpenses();
@@ -198,8 +200,8 @@ export default function Expenses() {
   async function handleDelete() {
     if (!deleteId) return;
     const { error } = await supabase.from('expenses').delete().eq('id', deleteId);
-    if (error) toast.error('Failed to delete expense');
-    else { toast.success('Expense deleted'); fetchExpenses(); }
+    if (error) toast.error(t('Failed to delete expense'));
+    else { toast.success(t('Expense deleted')); fetchExpenses(); }
     setDeleteId(null);
   }
 
@@ -214,12 +216,12 @@ export default function Expenses() {
       ]);
       const totals = ['TOTAL', filtered.reduce((s, e) => s + e.amount, 0), '', '', ''];
       await exportXLSX({ headers, rows, totalsRow: totals, filename: `Expenses_Export_${todaySuffix()}.xlsx` });
-      toast.success('Export complete ✓');
-    } catch { toast.error('Export failed'); }
+      toast.success(t('Export complete ✓'));
+    } catch { toast.error(t('Export failed')); }
     setExporting(false);
   }
 
-  const share = (v: number) => (metrics.total > 0 ? `${Math.round((v / metrics.total) * 100)}% of total` : 'No spend yet');
+  const share = (v: number) => (metrics.total > 0 ? t('{pct}% of total', { pct: Math.round((v / metrics.total) * 100) }) : t('No spend yet'));
   const breakdown = [
     { type: 'Ad Spend', value: metrics.adSpend },
     { type: 'Shipping', value: metrics.shipping },
@@ -235,18 +237,18 @@ export default function Expenses() {
   return (
     <div className="mx-auto max-w-[1400px]">
       <PageHeader
-        title="Expenses"
-        subtitle="Money going out that is not tied to one order: ads, courier bills, packaging, rent. It comes off your net profit."
+        title={t('Expenses')}
+        subtitle={t('Money going out that is not tied to one order: ads, courier bills, packaging, rent. It comes off your net profit.')}
         actions={
           <>
             <Button variant="outline" onClick={handleExport} disabled={exporting || filtered.length === 0} className="max-sm:flex-1">
               {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              {exporting ? 'Exporting...' : 'Export'}
+              {exporting ? t('Exporting...') : t('Export')}
             </Button>
             {!readOnly && (
               <Button className="gap-1.5 shadow-glow max-sm:flex-1" onClick={openAdd}>
                 <Plus size={16} />
-                Add expense
+                {t('Add expense')}
               </Button>
             )}
           </>
@@ -256,16 +258,16 @@ export default function Expenses() {
       <StatStrip
         className="mb-3"
         stats={[
-          { label: 'Total spent', value: formatCurrency(metrics.total), icon: Wallet, hint: `${filtered.length} expense${filtered.length === 1 ? '' : 's'}` },
-          { label: 'Ad spend', value: formatCurrency(metrics.adSpend), icon: Megaphone, hint: share(metrics.adSpend) },
-          { label: 'Shipping', value: formatCurrency(metrics.shipping), icon: Truck, hint: share(metrics.shipping) },
-          { label: 'Miscellaneous', value: formatCurrency(metrics.misc), icon: Shapes, hint: share(metrics.misc) },
+          { label: t('Total spent'), value: formatCurrency(metrics.total), icon: Wallet, hint: filtered.length === 1 ? t('{n} expense', { n: 1 }) : t('{n} expenses', { n: filtered.length }) },
+          { label: t('Ad spend'), value: formatCurrency(metrics.adSpend), icon: Megaphone, hint: share(metrics.adSpend) },
+          { label: t('Shipping'), value: formatCurrency(metrics.shipping), icon: Truck, hint: share(metrics.shipping) },
+          { label: t('Miscellaneous'), value: formatCurrency(metrics.misc), icon: Shapes, hint: share(metrics.misc) },
         ]}
       />
 
       {metrics.total > 0 && (
         <div className="surface mb-6 p-4">
-          <div className="flex h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label="Spend by type">
+          <div className="flex h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={t('Spend by type')}>
             {breakdown.map((b) => b.value > 0 && (
               <div key={b.type} className={TYPE_STYLE[b.type].bar} style={{ width: `${(b.value / metrics.total) * 100}%` }} />
             ))}
@@ -274,7 +276,7 @@ export default function Expenses() {
             {breakdown.map((b) => (
               <span key={b.type} className="flex items-center gap-1.5">
                 <span className={cn('h-2 w-2 rounded-full', TYPE_STYLE[b.type].bar)} />
-                {b.type}
+                {t(b.type)}
               </span>
             ))}
           </div>
@@ -286,12 +288,12 @@ export default function Expenses() {
           <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
             <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              {EXPENSE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              <SelectItem value="all">{t('All types')}</SelectItem>
+              {EXPENSE_TYPES.map(type => <SelectItem key={type} value={type}>{t(type)}</SelectItem>)}
             </SelectContent>
           </Select>
           <div className="flex-1" />
-          <Segmented<DateFilter> label="Date range" value={dateFilter} onChange={(v) => { setDateFilter(v); setPage(1); }} options={DATE_OPTIONS} />
+          <Segmented<DateFilter> label={msg('Date range')} value={dateFilter} onChange={(v) => { setDateFilter(v); setPage(1); }} options={DATE_OPTIONS} />
         </div>
 
         {loading ? (
@@ -299,9 +301,9 @@ export default function Expenses() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Receipt}
-            title={expenses.length === 0 ? 'No expenses recorded' : 'No expenses in this range'}
-            message={expenses.length === 0 ? 'Add ad spend, courier bills and other costs to see your true profit.' : 'Try a different type or date range.'}
-            actionLabel={readOnly || expenses.length > 0 ? undefined : 'Add expense'}
+            title={expenses.length === 0 ? t('No expenses recorded') : t('No expenses in this range')}
+            message={expenses.length === 0 ? t('Add ad spend, courier bills and other costs to see your true profit.') : t('Try a different type or date range.')}
+            actionLabel={readOnly || expenses.length > 0 ? undefined : t('Add expense')}
             onAction={openAdd}
           />
         ) : (
@@ -310,12 +312,12 @@ export default function Expenses() {
               <table className="data-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Type</th>
-                    {th('amount', `Amount ${symbol}`)}
-                    <th>Platform</th>
-                    <th>Notes</th>
-                    {th('date', 'Date')}
-                    {!readOnly && <th className="text-right">Actions</th>}
+                    <th>{t('Type')}</th>
+                    {th('amount', `${t('Amount')} ${symbol}`)}
+                    <th>{t('Platform')}</th>
+                    <th>{t('Notes')}</th>
+                    {th('date', t('Date'))}
+                    {!readOnly && <th className="text-right">{t('Actions')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -324,7 +326,7 @@ export default function Expenses() {
                       <tr key={e.id}>
                         <td>
                           <span className={cn('inline-flex rounded-md border px-2 py-0.5 text-xs font-medium', (TYPE_STYLE[e.type] || TYPE_STYLE['Miscellaneous']).badge)}>
-                            {e.type}
+                            {t(e.type)}
                           </span>
                         </td>
                         <td className="font-medium tabular-nums">{formatCurrency(e.amount)}</td>
@@ -341,14 +343,14 @@ export default function Expenses() {
                             ) : e.notes
                           ) : '—'}
                         </td>
-                        <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(e.date), 'dd MMM yyyy')}</td>
+                        <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(e.date), 'dd MMM yyyy', { locale: currentDateLocale() })}</td>
                         {!readOnly && (
                           <td>
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => openEdit(e)} className="icon-btn" aria-label="Edit expense">
+                              <button onClick={() => openEdit(e)} className="icon-btn" aria-label={t('Edit expense')}>
                                 <Pencil size={16} />
                               </button>
-                              <button onClick={() => setDeleteId(e.id)} className="icon-btn-danger" aria-label="Delete expense">
+                              <button onClick={() => setDeleteId(e.id)} className="icon-btn-danger" aria-label={t('Delete expense')}>
                                 <Trash2 size={16} />
                               </button>
                             </div>
@@ -366,40 +368,40 @@ export default function Expenses() {
       </div>
 
       {/* Add/Edit Expense Modal */}
-      <ModalShell isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editExpense ? 'Edit expense' : 'Add expense'}>
+      <ModalShell isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editExpense ? t('Edit expense') : t('Add expense')}>
         <div className="flex flex-col gap-4">
           <div>
-            <Label>Type *</Label>
+            <Label>{t('Type')} *</Label>
             <select value={formType} onChange={e => setFormType(e.target.value)} required className={nativeSelectClass}>
-              <option value="">Select Type</option>
-              {EXPENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="">{t('Select Type')}</option>
+              {EXPENSE_TYPES.map(type => <option key={type} value={type}>{t(type)}</option>)}
             </select>
           </div>
           <div>
-            <Label>Amount {symbol} *</Label>
+            <Label>{t('Amount')} {symbol} *</Label>
             <Input type="number" min={0} step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label>Platform</Label>
-            <Input value={formPlatform} onChange={e => setFormPlatform(e.target.value)} placeholder="e.g. Facebook Ads, Pathao, Sundarban Courier" />
+            <Label>{t('Platform')}</Label>
+            <Input value={formPlatform} onChange={e => setFormPlatform(e.target.value)} placeholder={t('e.g. Facebook Ads, Pathao, Sundarban Courier')} />
           </div>
           <div>
-            <Label>Notes</Label>
+            <Label>{t('Notes')}</Label>
             <textarea
               value={formNotes}
               onChange={e => { if (e.target.value.length <= 300) setFormNotes(e.target.value); }}
-              placeholder="Optional notes..."
+              placeholder={t('Optional notes...')}
               maxLength={300}
               className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <p className="mt-1 text-xs text-muted-foreground text-right">{formNotes.length}/300</p>
           </div>
           <div>
-            <Label>Date *</Label>
+            <Label>{t('Date')} *</Label>
             <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} />
           </div>
           <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-11 w-full font-semibold">
-            {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : editExpense ? 'Update expense' : 'Save expense'}
+            {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> : editExpense ? t('Update expense') : t('Save expense')}
           </Button>
         </div>
       </ModalShell>
@@ -408,12 +410,12 @@ export default function Expenses() {
       <AlertDialog open={!!deleteId} onOpenChange={open => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t('Delete this expense?')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('This cannot be undone.')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('Delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

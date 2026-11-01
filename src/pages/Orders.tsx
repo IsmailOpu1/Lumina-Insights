@@ -22,6 +22,7 @@ import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
 import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
+import { fetchAll } from '@/lib/fetchAll';
 
 interface OrderRow {
   id: string;
@@ -75,10 +76,12 @@ export default function Orders() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.
+    const { data, error } = await fetchAll((a, b) => supabase.
     from('orders').
     select('*, inventory!orders_product_id_fkey(product_name)').
-    order('created_at', { ascending: false });
+    order('created_at', { ascending: false }).
+    order('id').
+    range(a, b));
     if (error) {toast.error('Failed to load orders');console.error(error);} else
     setOrders(data as OrderRow[] || []);
     setLoading(false);
@@ -168,7 +171,7 @@ export default function Orders() {
     if (!canExport()) return;
     setExporting(true);
     try {
-      const headers = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', 'Selling Price', 'Shipping', 'Ad Cost', 'Profit', 'Date'];
+      const headers = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', 'Unit Price', 'Order Total', 'Shipping', 'Ad Cost', 'Profit', 'Date'];
       const rows = filtered.map((o) => [
       o.order_number,
       o.customer_name,
@@ -177,13 +180,16 @@ export default function Orders() {
       o.status,
       o.quantity,
       o.selling_price,
+      o.selling_price * o.quantity,
       o.shipping_cost,
       o.ad_cost ?? 0,
       o.profit_per_order ?? 0,
       fnsFormat(parseDay(o.date), 'dd/MM/yyyy')]
       );
-      const totals = ['TOTALS', '', '', '', '', '',
-      filtered.reduce((s, o) => s + o.selling_price, 0),
+      const totals = ['TOTALS', '', '', '', '',
+      filtered.reduce((s, o) => s + o.quantity, 0),
+      '',
+      filtered.reduce((s, o) => s + o.selling_price * o.quantity, 0),
       filtered.reduce((s, o) => s + o.shipping_cost, 0),
       filtered.reduce((s, o) => s + (o.ad_cost ?? 0), 0),
       filtered.reduce((s, o) => s + (o.profit_per_order ?? 0), 0),
@@ -197,7 +203,8 @@ export default function Orders() {
 
   const totals = useMemo(() => {
     const live = filtered.filter((o) => o.status !== 'Cancelled');
-    const revenue = live.reduce((s, o) => s + o.selling_price, 0);
+    // selling_price is per unit.
+    const revenue = live.reduce((s, o) => s + o.selling_price * o.quantity, 0);
     const profit = live.reduce((s, o) => s + (o.profit_per_order ?? 0), 0);
     return { revenue, profit, avg: live.length ? revenue / live.length : 0, pending: filtered.filter((o) => o.status === 'Pending').length };
   }, [filtered]);

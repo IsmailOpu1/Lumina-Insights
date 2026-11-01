@@ -4,6 +4,7 @@ import { useFilter } from '@/context/FilterContext';
 import { format } from 'date-fns';
 import { parseDay } from '@/lib/dates';
 import { useRefreshOnSave } from '@/context/FABContext';
+import { fetchAll } from '@/lib/fetchAll';
 
 interface Order {
   id: string;
@@ -67,9 +68,10 @@ export function useDashboardData(): DashboardData {
     const toStr = format(to, 'yyyy-MM-dd');
 
     const [ordersRes, inventoryRes, expensesRes] = await Promise.all([
-      supabase.from('orders').select('*').gte('date', fromStr).lte('date', toStr).order('created_at', { ascending: false }),
-      supabase.from('inventory').select('*'),
-      supabase.from('expenses').select('*').gte('date', fromStr).lte('date', toStr),
+      fetchAll((a, b) => supabase.from('orders').select('*').gte('date', fromStr).lte('date', toStr)
+        .order('created_at', { ascending: false }).order('id').range(a, b)),
+      fetchAll((a, b) => supabase.from('inventory').select('*').order('id').range(a, b)),
+      fetchAll((a, b) => supabase.from('expenses').select('*').gte('date', fromStr).lte('date', toStr).order('id').range(a, b)),
     ]);
 
     setOrders((ordersRes.data as Order[]) || []);

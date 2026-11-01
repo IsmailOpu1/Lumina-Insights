@@ -21,6 +21,7 @@ import { format as fnsFormat, subDays } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
+import { fetchAll as fetchAllRows } from '@/lib/fetchAll';
 import { useReadOnly } from '@/hooks/useReadOnly';
 
 interface InvRow {
@@ -73,7 +74,7 @@ export default function Inventory() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [{ data: inv }, { data: settings }] = await Promise.all([
-    supabase.from('inventory').select('*').order('product_name'),
+    fetchAllRows((a, b) => supabase.from('inventory').select('*').order('product_name').order('id').range(a, b)),
     supabase.from('user_settings').select('dead_product_days').eq('user_id', ownerIdForQueries).maybeSingle()]
     );
     if (inv) setItems(inv as InvRow[]);
@@ -84,19 +85,23 @@ export default function Inventory() {
     // their own window. Cancelled orders are not sales.
     const range = getDateRange();
     const [{ data: ordersData }, { data: recentSales }] = await Promise.all([
-      supabase
+      fetchAllRows((a, b) => supabase
         .from('orders')
         .select('product_id, quantity, selling_price')
         .neq('status', 'Cancelled')
         .not('product_id', 'is', null)
         .gte('date', fnsFormat(range.from, 'yyyy-MM-dd'))
-        .lte('date', fnsFormat(range.to, 'yyyy-MM-dd')),
-      supabase
+        .lte('date', fnsFormat(range.to, 'yyyy-MM-dd'))
+        .order('id')
+        .range(a, b)),
+      fetchAllRows((a, b) => supabase
         .from('orders')
         .select('product_id')
         .neq('status', 'Cancelled')
         .not('product_id', 'is', null)
-        .gte('date', fnsFormat(subDays(new Date(), days), 'yyyy-MM-dd')),
+        .gte('date', fnsFormat(subDays(new Date(), days), 'yyyy-MM-dd'))
+        .order('id')
+        .range(a, b)),
     ]);
 
     if (ordersData) {

@@ -24,6 +24,7 @@ import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
+import { fetchAll } from '@/lib/fetchAll';
 import { useReadOnly } from '@/hooks/useReadOnly';
 
 interface ExpenseRow {
@@ -95,10 +96,12 @@ export default function Expenses() {
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await fetchAll((a, b) => supabase
       .from('expenses')
       .select('*')
-      .order('date', { ascending: false });
+      .order('date', { ascending: false })
+      .order('id')
+      .range(a, b));
     if (error) { toast.error('Failed to load expenses'); console.error(error); }
     else setExpenses((data as ExpenseRow[]) || []);
     setLoading(false);

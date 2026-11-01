@@ -16,6 +16,7 @@ import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
 import ProfitCalculator from '@/components/dashboard/ProfitCalculator';
 import { useCurrency } from '@/hooks/useCurrency';
+import { fetchAll } from '@/lib/fetchAll';
 import { format, min, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns';
 import {
   AlertTriangle, CalendarSearch, Crown, Gauge, Megaphone, Package, Percent, Repeat, ShoppingBag, TrendingUp, Wallet,
@@ -50,11 +51,13 @@ export default function Dashboard() {
     async function fetchRecent() {
       const now = new Date();
       const since = min([startOfWeek(subWeeks(now, 1)), subDays(now, deadProductDays)]);
-      const { data } = await supabase
+      const { data } = await fetchAll((a, b) => supabase
         .from('orders')
         .select('*')
         .gte('date', format(since, 'yyyy-MM-dd'))
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('id')
+        .range(a, b));
       setAllOrders((data as typeof orders) || []);
     }
     fetchRecent();

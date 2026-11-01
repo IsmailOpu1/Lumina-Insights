@@ -27,20 +27,21 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
     switch (dateFilter) {
       case 'today':
         return { from: today, to: now };
+      // Ranges include today: "7 days" is today and the six days before it.
       case '7days':
-        return { from: startOfDay(subDays(now, 7)), to: now };
+        return { from: startOfDay(subDays(now, 6)), to: now };
       case '30days':
-        return { from: startOfDay(subDays(now, 30)), to: now };
+        return { from: startOfDay(subDays(now, 29)), to: now };
       case 'all':
         // Imported history can go back years; the importer accepts 2000 on.
         return { from: new Date(2000, 0, 1), to: now };
       case 'custom':
         return {
-          from: customRange.from ?? startOfDay(subDays(now, 7)),
+          from: customRange.from ?? startOfDay(subDays(now, 6)),
           to: customRange.to ?? now,
         };
       default:
-        return { from: startOfDay(subDays(now, 7)), to: now };
+        return { from: startOfDay(subDays(now, 6)), to: now };
     }
   }, [dateFilter, customRange]);
 

@@ -27,8 +27,9 @@ export function inDayFilter(day: string, filter: DayFilter, now = new Date()): b
   const today = todayKey(now);
   switch (filter) {
     case 'today': return day === today;
-    case '7days': return day >= todayKey(subDays(now, 7)) && day <= today;
-    case '30days': return day >= todayKey(subDays(now, 30)) && day <= today;
+    // "7 days" is today and the six days before it, matching the AI advisor.
+    case '7days': return day >= todayKey(subDays(now, 6)) && day <= today;
+    case '30days': return day >= todayKey(subDays(now, 29)) && day <= today;
     default: return true;
   }
 }

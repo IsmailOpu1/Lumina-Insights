@@ -15,8 +15,10 @@ describe('plain-day dates', () => {
 
   it('applies the range edges and treats "All Time" as everything', () => {
     expect(inDayFilter('2026-10-25', 'today', justAfterMidnight)).toBe(false);
-    expect(inDayFilter('2026-10-19', '7days', justAfterMidnight)).toBe(true);
-    expect(inDayFilter('2026-10-18', '7days', justAfterMidnight)).toBe(false);
+    expect(inDayFilter('2026-10-20', '7days', justAfterMidnight)).toBe(true);
+    expect(inDayFilter('2026-10-19', '7days', justAfterMidnight)).toBe(false);
+    expect(inDayFilter('2026-09-27', '30days', justAfterMidnight)).toBe(true);
+    expect(inDayFilter('2026-09-26', '30days', justAfterMidnight)).toBe(false);
     expect(inDayFilter('2026-10-27', '30days', justAfterMidnight)).toBe(false);
     expect(inDayFilter('2020-01-01', 'custom', justAfterMidnight)).toBe(true);
   });

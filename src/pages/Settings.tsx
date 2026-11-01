@@ -42,14 +42,14 @@ const DEFAULT_PREFS: NotifPrefs = {
 };
 
 const PREF_LABELS: Record<keyof NotifPrefs, string> = {
-  new_order: 'New order', cancelled_order: 'Cancelled order',
+  new_order: 'New order', cancelled_order: 'Cancelled or returned order',
   low_stock: 'Low stock', critical_stock: 'Out of stock',
   profit_drop: 'Profit drop', roas_alert: 'ROAS alert', weekly_summary: 'Weekly summary',
 };
 
 const PREF_HINTS: Record<keyof NotifPrefs, string> = {
   new_order: 'When an order comes in',
-  cancelled_order: 'When an order is cancelled',
+  cancelled_order: 'When an order is cancelled or returned',
   low_stock: 'When a product drops below its threshold',
   critical_stock: 'When a product runs out',
   profit_drop: 'When profit falls sharply',

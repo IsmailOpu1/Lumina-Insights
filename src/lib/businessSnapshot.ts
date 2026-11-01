@@ -11,6 +11,8 @@ export interface BusinessSnapshot {
   margin_pct: number;
   orders: number;
   cancelled_orders: number;
+  returned_orders?: number;
+  return_losses?: number;
   expenses: number;
   ad_spend: number;
   roas: number | null;

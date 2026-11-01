@@ -88,6 +88,32 @@ describe('computeKPIs', () => {
   });
 });
 
+describe('returned orders', () => {
+  // Went out and came back: 80 delivery + 40 ads lost, nothing earned.
+  const returned = order({ quantity: 2, selling_price: 1000, unit_cost: 300, shipping_cost: 80, ad_cost: 40, status: 'Returned', source: 'TikTok' });
+  const k = computeKPIs([...orders, returned], [panjabi], expenses);
+
+  it('are not sales: no revenue, product cost or order count', () => {
+    expect(k.totalRevenue).toBe(4200);
+    expect(k.cogs).toBe(1200);
+    expect(k.totalOrders).toBe(2);
+    expect(activeOrders([...orders, returned])).toHaveLength(2);
+    expect(getRevenueBySource([returned])).toEqual([]);
+  });
+
+  it('still cost their delivery and ads', () => {
+    expect(k.totalShipping).toBe(60 + 80);
+    expect(k.orderAdCost).toBe(100 + 40);
+    expect(k.netProfit).toBe(2500 - 120);
+  });
+
+  it('report how many came back and what they cost', () => {
+    expect(k.returnedOrders).toBe(1);
+    expect(k.returnLoss).toBe(120);
+    expect(k.returnRate).toBeCloseTo(100 / 3, 5);
+  });
+});
+
 describe('sales breakdowns', () => {
   it('leaves cancelled orders out of revenue by channel', () => {
     const channels = getRevenueBySource(orders).map((c) => c.name);

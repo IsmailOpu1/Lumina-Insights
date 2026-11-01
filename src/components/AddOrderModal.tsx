@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
-import { SOURCES, ORDER_STATUSES, STATUS_COLORS } from '@/lib/constants';
+import { SOURCES, ORDER_STATUSES, STATUS_COLORS, holdsStock } from '@/lib/constants';
 import ModalShell from '@/components/ModalShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -131,10 +131,10 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
   const qtyNum = parseInt(quantity) || 0;
   const keepsOriginalProduct = isEdit && (editOrder?.product_id ?? '') === productId;
-  // Units this order already holds; cancelled orders hold none.
-  const heldByOrder = keepsOriginalProduct && editOrder?.status !== 'Cancelled' ? editOrder?.quantity ?? 0 : 0;
+  // Units this order already holds; cancelled and returned orders hold none.
+  const heldByOrder = keepsOriginalProduct && editOrder && holdsStock(editOrder.status) ? editOrder.quantity : 0;
   const maxStock = selectedProduct ? selectedProduct.stock_quantity + heldByOrder : 0;
-  const stockError = selectedProduct && status !== 'Cancelled' && qtyNum > maxStock
+  const stockError = selectedProduct && holdsStock(status) && qtyNum > maxStock
     ? `Only ${maxStock} units available`
     : '';
   // An order whose product was deleted can still be edited without one.
@@ -163,8 +163,10 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   const ac = parseFloat(adCost) || 0;
   const revenue = sp * qtyNum;
   const cogs = costPrice * qtyNum;
-  const profit = revenue - cogs - sc - ac;
-  const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
+  // A returned order earned nothing but still paid for delivery and ads.
+  const returned = status === 'Returned';
+  const profit = returned ? -sc - ac : revenue - cogs - sc - ac;
+  const margin = !returned && revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
   const breakevenAd = revenue - cogs - sc;
 
   function resetForm() {

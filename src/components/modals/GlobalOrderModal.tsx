@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
-import { SOURCES, ORDER_STATUSES } from '@/lib/constants';
+import { SOURCES, ORDER_STATUSES, holdsStock } from '@/lib/constants';
 import ModalShell from '@/components/ModalShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,10 +76,12 @@ export default function GlobalOrderModal() {
   const ac = parseFloat(adCost) || 0;
   const revenue = sp * qtyNum;
   const cogs = costPrice * qtyNum;
-  const profit = revenue - cogs - sc - ac;
-  const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
+  // A returned order earned nothing but still paid for delivery and ads.
+  const returned = status === 'Returned';
+  const profit = returned ? -sc - ac : revenue - cogs - sc - ac;
+  const margin = !returned && revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
 
-  const stockError = selectedProduct && status !== 'Cancelled' && qtyNum > selectedProduct.stock_quantity
+  const stockError = selectedProduct && holdsStock(status) && qtyNum > selectedProduct.stock_quantity
     ? `Only ${selectedProduct.stock_quantity} units available`
     : '';
 

@@ -6,5 +6,8 @@ export const LEGAL = {
   legalEntity: '[Your registered business name]',
   address: '[Business address, Dhaka, Bangladesh]',
   contactEmail: '[support@yourdomain.com]',
+  // WhatsApp support number with country code, digits only (e.g. '8801712345678').
+  // The support buttons stay hidden while this is empty.
+  supportWhatsApp: '',
   lastUpdated: '26 October 2026',
 } as const;

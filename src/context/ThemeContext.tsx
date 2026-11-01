@@ -20,7 +20,30 @@ export const FONT_LABELS: Record<FontStyle, string> = {
   dmsans: 'DM Sans',
 };
 
+// Google Fonts names; Inter is already in index.html.
+const FONT_QUERIES: Record<Exclude<FontStyle, 'inter'>, string> = {
+  poppins: 'Poppins:wght@400;500;600;700;800',
+  roboto: 'Roboto:wght@400;500;600;700;800',
+  playfair: 'Playfair+Display:wght@400;500;600;700',
+  nunito: 'Nunito:wght@400;500;600;700;800',
+  dmsans: 'DM+Sans:wght@400;500;600;700;800',
+};
+
+/** Downloads a font the first time it's needed instead of on every visit. */
+export function loadFont(font: FontStyle) {
+  if (font === 'inter' || !FONT_QUERIES[font]) return;
+  const id = `font-${font}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${FONT_QUERIES[font]}&display=swap`;
+  document.head.appendChild(link);
+}
+
 function applyFont(font: FontStyle) {
+  if (!FONT_FAMILIES[font]) return;
+  loadFont(font);
   document.documentElement.style.fontFamily = FONT_FAMILIES[font];
 }
 

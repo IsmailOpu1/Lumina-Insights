@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, LogOut, Settings, UserRound } from 'lucide-react';
+import { CreditCard, LogOut, MessageCircle, Settings, UserRound } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -7,6 +7,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { planLabel } from '@/lib/subscription';
+import { whatsAppSupportLink } from '@/lib/support';
 import UserAvatar from './UserAvatar';
 
 /** Avatar in the top bar; opens the signed-in person's account menu. */
@@ -16,6 +17,7 @@ export default function AccountMenu() {
   const { subscription } = useSubscription();
   const role = isOwner ? 'Owner' : isManager ? 'Manager' : isViewer ? 'Viewer' : null;
   const name = userSettings?.full_name || user?.email?.split('@')[0] || 'Account';
+  const supportLink = whatsAppSupportLink();
 
   async function handleSignOut() {
     await signOut();
@@ -55,6 +57,13 @@ export default function AccountMenu() {
         {isOwner && (
           <DropdownMenuItem onSelect={() => navigate('/billing')} className="gap-2.5 py-2">
             <CreditCard size={16} className="text-muted-foreground" /> Billing
+          </DropdownMenuItem>
+        )}
+        {supportLink && (
+          <DropdownMenuItem asChild className="gap-2.5 py-2">
+            <a href={supportLink} target="_blank" rel="noopener noreferrer">
+              <MessageCircle size={16} className="text-muted-foreground" /> Help on WhatsApp
+            </a>
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />

@@ -2,9 +2,6 @@ project_id = "zfpsldylzmpadlknypzz"
 
 # Every function requires a signed-in user; each one also checks the session
 # itself, so this is defence in depth.
-[functions.generate-dashboard-insights]
-verify_jwt = true
-
 [functions.generate-marketing-content]
 verify_jwt = true
 

@@ -8,6 +8,7 @@ import { useTilt } from '@/hooks/useTilt';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/hooks/useCurrency';
 import { LEGAL } from '@/lib/legal';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import type { BillingPeriod, Plan } from '@/lib/subscription';
 import { cn } from '@/lib/utils';
 
@@ -376,6 +377,7 @@ export default function Landing() {
           </nav>
         </div>
       </footer>
+      <WhatsAppButton />
     </div>
   );
 }

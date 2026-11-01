@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { acceptInvite } from '@/lib/invites';
+import { setMonitoringUser } from '@/lib/monitoring';
 
 export type UserRole = 'owner' | 'manager' | 'viewer';
 
@@ -100,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadUser = useCallback(async (u: User) => {
+    setMonitoringUser(u.id);
     await acceptPendingInvite(u);
     await fetchSettings(u.id);
   }, [acceptPendingInvite, fetchSettings]);
@@ -112,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchSettings]);
 
   const signOut = useCallback(async () => {
+    setMonitoringUser(null);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

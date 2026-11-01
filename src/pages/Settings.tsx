@@ -22,6 +22,7 @@ import { format as fnsFormat } from 'date-fns';
 import { createInvite, inviteLink } from '@/lib/invites';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
+import { fetchAll } from '@/lib/fetchAll';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { parseDay } from '@/lib/dates';
 
@@ -218,11 +219,17 @@ export default function SettingsPage() {
     if (editingName && nameInputRef.current) nameInputRef.current.focus();
   }, [editingName]);
 
+  // Changes made within half a second are saved together, so one setting
+  // never cancels another.
+  const pendingRef = useRef<Record<string, unknown>>({});
   function saveDebounced(patch: Record<string, unknown>) {
+    pendingRef.current = { ...pendingRef.current, ...patch };
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       if (!settingsId) return;
-      await supabase.from('user_settings').update(patch as never).eq('id', settingsId);
+      const changes = pendingRef.current;
+      pendingRef.current = {};
+      await supabase.from('user_settings').update(changes as never).eq('id', settingsId);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }, 500);
@@ -320,25 +327,27 @@ export default function SettingsPage() {
     setExporting(true);
     try {
       const [ordersRes, invRes, expRes] = await Promise.all([
-        supabase.from('orders').select('*, inventory!orders_product_id_fkey(product_name)').order('date', { ascending: false }),
-        supabase.from('inventory').select('*').order('product_name'),
-        supabase.from('expenses').select('*').order('date', { ascending: false }),
+        fetchAll((a, b) => supabase.from('orders').select('*, inventory!orders_product_id_fkey(product_name)')
+          .order('date', { ascending: false }).order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('inventory').select('*').order('product_name').order('id').range(a, b)),
+        fetchAll((a, b) => supabase.from('expenses').select('*').order('date', { ascending: false }).order('id').range(a, b)),
       ]);
 
       const XLSX = await import('xlsx');
       const wb = XLSX.utils.book_new();
 
       const orders = ordersRes.data || [];
-      const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', `Selling ${symbol}`, `Shipping ${symbol}`, `Ad Cost ${symbol}`, `Profit ${symbol}`, 'Date'];
+      const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', `Unit price ${symbol}`, `Order total ${symbol}`, `Shipping ${symbol}`, `Ad Cost ${symbol}`, `Profit ${symbol}`, 'Date'];
       const oRows = orders.map((o) => [
         o.order_number, o.customer_name, (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
-        o.quantity, o.selling_price, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
+        o.quantity, o.selling_price, o.selling_price * o.quantity, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
         fnsFormat(parseDay(o.date), 'dd/MM/yyyy'),
       ]);
       const oTotals = [
         'TOTALS', '', '', '', '',
         orders.reduce((s, o) => s + o.quantity, 0),
-        orders.reduce((s, o) => s + o.selling_price, 0),
+        '',
+        orders.reduce((s, o) => s + o.selling_price * o.quantity, 0),
         orders.reduce((s, o) => s + o.shipping_cost, 0),
         orders.reduce((s, o) => s + o.ad_cost, 0),
         orders.reduce((s, o) => s + (o.profit_per_order ?? 0), 0),
@@ -360,9 +369,7 @@ export default function SettingsPage() {
         p.low_stock_threshold, p.stock_quantity * p.cost_price, p.supplier || '',
       ]);
       const iTotals = [
-        'TOTALS', '',
-        inv.reduce((s, p) => s + p.cost_price, 0),
-        inv.reduce((s, p) => s + p.selling_price, 0),
+        'TOTALS', '', '', '',
         inv.reduce((s, p) => s + p.stock_quantity, 0),
         '',
         inv.reduce((s, p) => s + p.stock_quantity * p.cost_price, 0),

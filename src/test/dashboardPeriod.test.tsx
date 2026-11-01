@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
 
 function query(data: unknown[]) {
   const q: Record<string, unknown> = {};
-  for (const m of ['select', 'eq', 'gte', 'order', 'limit', 'maybeSingle']) q[m] = () => q;
+  for (const m of ['select', 'eq', 'gte', 'order', 'limit', 'range', 'maybeSingle']) q[m] = () => q;
   q.then = (resolve: (v: unknown) => void) => resolve({ data, error: null });
   return q;
 }

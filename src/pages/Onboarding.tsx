@@ -103,6 +103,7 @@ export default function Onboarding() {
       </div>
     );
   }
+  if (!user) return <Navigate to="/login" replace />;
   if (userSettings?.onboarding_complete === true && !saving) {
     return <Navigate to="/" replace />;
   }

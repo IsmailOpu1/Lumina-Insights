@@ -5,12 +5,15 @@ import { format, subDays, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { activeOrders } from '@/hooks/useDashboardData';
+import { countsForProfit } from '@/lib/constants';
 
 interface Order {
   date: string;
   status: string;
   selling_price: number;
   quantity: number;
+  shipping_cost: number;
+  ad_cost?: number | null;
   profit_per_order: number;
   product_id: string | null;
   product_name?: string | null;
@@ -40,7 +43,7 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
   const { formatCurrency } = useCurrency();
   const metrics = useMemo(() => {
     if (loading) return null;
-    // Cancelled orders are not sales.
+    // Cancelled and returned orders are not sales.
     const orders = activeOrders(periodOrders);
     const allOrders = activeOrders(recentOrders);
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -54,7 +57,10 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
     const weekEnd = format(endOfWeek(now), 'yyyy-MM-dd');
     const thisWeekOrders = allOrders.filter((o) => o.date >= weekStart && o.date <= weekEnd);
     const weeklyRevenue = thisWeekOrders.reduce((s, o) => s + o.selling_price * o.quantity, 0);
-    const weeklyProfit = thisWeekOrders.reduce((s, o) => s + o.profit_per_order, 0);
+    // Returned orders still lost their delivery and ad cost.
+    const weeklyProfit = recentOrders
+      .filter((o) => countsForProfit(o.status) && o.date >= weekStart && o.date <= weekEnd)
+      .reduce((s, o) => s + o.profit_per_order, 0);
 
     // Last week
     const lastWeekStart = format(startOfWeek(subWeeks(now, 1)), 'yyyy-MM-dd');
@@ -91,11 +97,13 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
     const adSpend = expenses.filter((e) => e.type === 'Ad Spend').reduce((s, e) => s + e.amount, 0);
     const shippingExp = expenses.filter((e) => e.type === 'Shipping').reduce((s, e) => s + e.amount, 0);
     const miscExp = expenses.filter((e) => e.type === 'Miscellaneous').reduce((s, e) => s + e.amount, 0);
+    const returned = periodOrders.filter((o) => o.status === 'Returned');
+    const returnLoss = returned.reduce((s, o) => s + o.shipping_cost + (o.ad_cost ?? 0), 0);
 
     return {
       dailyRevenue, dailyCount, weeklyRevenue, weeklyProfit, weekGrowth,
       turnover, deadProducts, top1Pct, top1Name: sortedProducts[0]?.name || '—',
-      top3Pct, adSpend, shippingExp, miscExp
+      top3Pct, adSpend, shippingExp, miscExp, returnedCount: returned.length, returnLoss
     };
   }, [periodOrders, recentOrders, inventory, expenses, deadProductDays, loading]);
 
@@ -133,6 +141,13 @@ export default function BusinessMetrics({ orders: periodOrders, allOrders: recen
         <Stat label="Ads" value={formatCurrency(metrics.adSpend)} />
         <Stat label="Shipping" value={formatCurrency(metrics.shippingExp)} />
         <Stat label="Other" value={formatCurrency(metrics.miscExp)} />
+        {metrics.returnedCount > 0 && (
+          <Stat
+            label={`Returns (${metrics.returnedCount})`}
+            value={formatCurrency(metrics.returnLoss)}
+            className="text-destructive"
+          />
+        )}
       </Tile>
 
       <Tile icon={RefreshCw} title="Inventory turnover">

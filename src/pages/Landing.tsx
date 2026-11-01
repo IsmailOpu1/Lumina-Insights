@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 const FEATURES = [
   { icon: ShoppingBag, title: 'Orders from every channel', desc: 'Facebook, Instagram, WhatsApp, TikTok and your website in one list, with profit worked out on every order.' },
-  { icon: Package, title: 'Stock that keeps itself right', desc: 'Stock drops when you sell and comes back when an order is cancelled. Get alerted before you run out.' },
+  { icon: Package, title: 'Stock that keeps itself right', desc: 'Stock drops when you sell and comes back when an order is cancelled or returned. Get alerted before you run out.' },
   { icon: BarChart3, title: 'Real profit, not guesses', desc: 'Revenue, product cost, shipping, ad spend and expenses add up to the profit you actually made.' },
   { icon: Bot, title: 'An AI advisor that knows your shop', desc: 'Ask “What should I restock?” or “Is my Facebook ad spend worth it?” and get answers from your own numbers.' },
   { icon: Megaphone, title: 'Marketing posts in seconds', desc: 'Captions, hooks and TikTok scripts written for Bangladeshi customers, ready to post.' },

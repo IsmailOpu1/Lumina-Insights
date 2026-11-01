@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { parseDay } from '@/lib/dates';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { fetchAll } from '@/lib/fetchAll';
+import { countsForProfit, isSale } from '@/lib/constants';
 
 interface Order {
   id: string;
@@ -90,9 +91,9 @@ export function useDashboardData(): DashboardData {
   return { orders, inventory, expenses, loading, refetch: fetchData };
 }
 
-// Cancelled orders earn nothing and cost nothing.
+// Sales only: cancelled and returned orders earn nothing.
 export function activeOrders<T extends { status: string }>(orders: T[]): T[] {
-  return orders.filter(o => o.status !== 'Cancelled');
+  return orders.filter(o => isSale(o.status));
 }
 
 // Computed helpers
@@ -102,8 +103,13 @@ export function computeKPIs(allOrders: Order[], inventory: InventoryItem[], expe
   const inventoryMap = new Map(inventory.map(i => [i.id, i]));
   // unit_cost is the product cost captured when the order was placed.
   const cogs = orders.reduce((s, o) => s + (o.unit_cost ?? 0) * o.quantity, 0);
-  const orderShipping = orders.reduce((s, o) => s + o.shipping_cost, 0);
-  const orderAdCost = orders.reduce((s, o) => s + (o.ad_cost ?? 0), 0);
+  // Returned orders were still delivered and advertised: those costs count.
+  const returned = allOrders.filter(o => o.status === 'Returned');
+  const costed = allOrders.filter(o => countsForProfit(o.status));
+  const orderShipping = costed.reduce((s, o) => s + o.shipping_cost, 0);
+  const orderAdCost = costed.reduce((s, o) => s + (o.ad_cost ?? 0), 0);
+  const returnLoss = returned.reduce((s, o) => s + o.shipping_cost + (o.ad_cost ?? 0), 0);
+  const returnRate = orders.length + returned.length > 0 ? returned.length / (orders.length + returned.length) * 100 : 0;
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const netProfit = totalRevenue - cogs - orderShipping - orderAdCost - totalExpenses;
   const totalOrders = orders.length;
@@ -132,6 +138,7 @@ export function computeKPIs(allOrders: Order[], inventory: InventoryItem[], expe
     totalRevenue, netProfit, totalOrders, inventoryValue,
     lowStockItems, profitMargin, repeatCustomers, topCustomer,
     cogs, totalShipping, adSpend, orderAdCost, totalAdSpend, shippingExpense, miscExpense, totalExpenses,
+    returnedOrders: returned.length, returnLoss, returnRate,
     inventoryMap,
   };
 }

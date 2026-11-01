@@ -82,13 +82,13 @@ export default function Inventory() {
     setDeadDays(days);
 
     // Sales metrics cover the selected period; "dead" products are judged on
-    // their own window. Cancelled orders are not sales.
+    // their own window. Cancelled and returned orders are not sales.
     const range = getDateRange();
     const [{ data: ordersData }, { data: recentSales }] = await Promise.all([
       fetchAllRows((a, b) => supabase
         .from('orders')
         .select('product_id, quantity, selling_price')
-        .neq('status', 'Cancelled')
+        .not('status', 'in', '("Cancelled","Returned")')
         .not('product_id', 'is', null)
         .gte('date', fnsFormat(range.from, 'yyyy-MM-dd'))
         .lte('date', fnsFormat(range.to, 'yyyy-MM-dd'))
@@ -97,7 +97,7 @@ export default function Inventory() {
       fetchAllRows((a, b) => supabase
         .from('orders')
         .select('product_id')
-        .neq('status', 'Cancelled')
+        .not('status', 'in', '("Cancelled","Returned")')
         .not('product_id', 'is', null)
         .gte('date', fnsFormat(subDays(new Date(), days), 'yyyy-MM-dd'))
         .order('id')
@@ -213,7 +213,7 @@ export default function Inventory() {
   const turnover = avgStock > 0 ? totalSold / avgStock : 0;
 
   // Dead products
-  // No (non-cancelled) sale in the last `deadDays` days.
+  // No sale in the last `deadDays` days.
   const deadProducts = useMemo(
     () => items.filter((i) => !soldRecently.has(i.id)),
     [items, soldRecently]

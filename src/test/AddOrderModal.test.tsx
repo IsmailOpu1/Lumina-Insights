@@ -86,6 +86,14 @@ describe('AddOrderModal — editing an order', () => {
     expect(screen.queryByText(/Only \d+ units available/)).not.toBeInTheDocument();
   });
 
+  it('a returned order holds no stock and its profit is the delivery and ads lost', async () => {
+    openEdit({ ...pendingOrder, status: 'Returned', shipping_cost: 80, ad_cost: 20 });
+    expect(await screen.findByText('7 units in stock')).toBeInTheDocument();
+    setQuantity('50');
+    expect(screen.queryByText(/Only \d+ units available/)).not.toBeInTheDocument();
+    expect(screen.getByText('-৳100')).toBeInTheDocument();
+  });
+
   it('switching product only counts that product’s stock', async () => {
     openEdit(pendingOrder);
     const productSelect = (await screen.findByRole('option', { name: /Saree/ })).closest('select')!;

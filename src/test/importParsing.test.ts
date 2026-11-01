@@ -54,7 +54,11 @@ describe('value mapping', () => {
 
   it('maps statuses, with unpaid staying pending', () => {
     expect(mapStatus('Delivered ✓')).toBe('Delivered');
-    expect(mapStatus('Returned')).toBe('Cancelled');
+    expect(mapStatus('Returned')).toBe('Returned');
+    expect(mapStatus('ফেরত')).toBe('Returned');
+    expect(mapStatus('Refunded')).toBe('Cancelled');
+    expect(mapStatus('বাতিল')).toBe('Cancelled');
+    expect(mapStatus('ডেলিভারি হয়েছে')).toBe('Delivered');
     expect(mapStatus('Unpaid')).toBe('Pending');
     expect(mapStatus('Paid')).toBe('Delivered');
     expect(mapStatus('')).toBe('Delivered');

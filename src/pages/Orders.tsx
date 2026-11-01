@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useReadOnly } from '@/hooks/useReadOnly';
-import { ORDER_STATUSES } from '@/lib/constants';
+import { ORDER_STATUSES, countsForProfit, isSale } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
 import AddOrderModal, { OrderToEdit } from '@/components/AddOrderModal';
 import SkeletonLoader from '@/components/SkeletonLoader';
@@ -202,10 +202,11 @@ export default function Orders() {
   }
 
   const totals = useMemo(() => {
-    const live = filtered.filter((o) => o.status !== 'Cancelled');
+    const live = filtered.filter((o) => isSale(o.status));
     // selling_price is per unit.
     const revenue = live.reduce((s, o) => s + o.selling_price * o.quantity, 0);
-    const profit = live.reduce((s, o) => s + (o.profit_per_order ?? 0), 0);
+    // Returned orders count here: their delivery and ad cost were lost.
+    const profit = filtered.filter((o) => countsForProfit(o.status)).reduce((s, o) => s + (o.profit_per_order ?? 0), 0);
     return { revenue, profit, avg: live.length ? revenue / live.length : 0, pending: filtered.filter((o) => o.status === 'Pending').length };
   }, [filtered]);
 
@@ -239,7 +240,7 @@ export default function Orders() {
       <StatStrip
         stats={[
           { label: 'Orders', value: filtered.length, icon: ShoppingBag, hint: totals.pending ? `${totals.pending} pending` : 'None pending' },
-          { label: 'Revenue', value: formatCurrency(totals.revenue), icon: Wallet, hint: 'Cancelled orders excluded' },
+          { label: 'Revenue', value: formatCurrency(totals.revenue), icon: Wallet, hint: 'Cancelled and returned excluded' },
           { label: 'Profit', value: formatCurrency(totals.profit), icon: TrendingUp, tone: totals.profit >= 0 ? 'positive' : 'negative' },
           { label: 'Average order', value: formatCurrency(totals.avg), icon: Receipt },
         ]}

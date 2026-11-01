@@ -48,6 +48,8 @@ interface Snapshot {
   margin_pct: number;
   orders: number;
   cancelled_orders: number;
+  returned_orders?: number;
+  return_losses?: number;
   expenses: number;
   ad_spend: number;
   roas: number | null;
@@ -90,11 +92,12 @@ export function describeSnapshot(s: Snapshot) {
 
   return `${describeBusiness(s)}
 
-BUSINESS DATA (${period}; cancelled orders excluded):
+BUSINESS DATA (${period}; cancelled and returned orders excluded from sales):
 Revenue: ${money(s.revenue)}
-Net profit (after product cost, shipping, ad costs and expenses): ${money(s.net_profit)}
+Net profit (after product cost, shipping, ad costs, losses on returns and expenses): ${money(s.net_profit)}
 Net margin: ${s.margin_pct}%
-Orders: ${s.orders} (plus ${s.cancelled_orders} cancelled)
+Orders: ${s.orders} (plus ${s.cancelled_orders} cancelled and ${s.returned_orders ?? 0} returned)
+Lost on returns (delivery and ads paid, nothing earned): ${money(s.return_losses ?? 0)}
 Expenses: ${money(s.expenses)}
 Ad spend: ${money(s.ad_spend)}${s.roas !== null ? `, ROAS ${s.roas}x` : ""}
 Inventory: ${s.inventory.products} products worth ${money(s.inventory.value)} at cost
@@ -125,12 +128,13 @@ export function describeKeyFigures(s: Snapshot, previous?: Snapshot) {
     const d = ((now - before) / Math.abs(before)) * 100;
     return `${d >= 0 ? "+" : ""}${d.toFixed(1)}%`;
   };
-  const totalOrders = s.orders + s.cancelled_orders;
+  const totalOrders = s.orders + s.cancelled_orders + (s.returned_orders ?? 0);
 
   const lines = [
     `Average order value: ${s.orders ? money(s.revenue / s.orders) : "n/a"}`,
     `Profit per order: ${s.orders ? money(s.net_profit / s.orders) : "n/a"}`,
     `Cancellation rate: ${pct(s.cancelled_orders, totalOrders)}`,
+    `Return rate (of shipped sales and returns): ${pct(s.returned_orders ?? 0, s.orders + (s.returned_orders ?? 0))}`,
     `Expenses as share of revenue: ${pct(s.expenses, s.revenue)}`,
     `Ad spend as share of revenue: ${pct(s.ad_spend, s.revenue)}`,
     `Days with at least one order: ${s.daily.length}`,

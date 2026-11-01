@@ -124,11 +124,12 @@ export function parseText(value: unknown, max = 200): string | null {
 }
 
 function key(value: unknown) {
-  return String(value ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  // \p{M} keeps Bangla vowel signs, or "ফেরত" would become "ফরত".
+  return String(value ?? '').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu, '');
 }
 
 export const ORDER_SOURCES = ['Facebook', 'Instagram', 'WhatsApp', 'Website', 'TikTok'] as const;
-export const ORDER_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'] as const;
+export const ORDER_STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'] as const;
 export const EXPENSE_TYPES = ['Ad Spend', 'Shipping', 'Miscellaneous'] as const;
 
 const SOURCE_WORDS: [RegExp, (typeof ORDER_SOURCES)[number]][] = [
@@ -147,7 +148,8 @@ export function mapSource(value: unknown): (typeof ORDER_SOURCES)[number] | null
 }
 
 const STATUS_WORDS: [RegExp, (typeof ORDER_STATUSES)[number]][] = [
-  [/(cancel|return|refund|reject|failed|বাতিল|ফেরত)/, 'Cancelled'],
+  [/(return|ফেরত)/, 'Returned'],
+  [/(cancel|refund|reject|failed|বাতিল)/, 'Cancelled'],
   // Before "paid" below, which these contain.
   [/(unpaid|notpaid|due|বাকি)/, 'Pending'],
   [/(deliver|complete|done|paid|received|success|closed|ডেলিভারি|সম্পন্ন|পরিশোধ)/, 'Delivered'],

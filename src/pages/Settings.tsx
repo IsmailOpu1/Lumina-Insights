@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme, FONT_FAMILIES, FONT_LABELS, type FontStyle } from '@/context/ThemeContext';
+import { useTheme, loadFont, FONT_FAMILIES, FONT_LABELS, type FontStyle } from '@/context/ThemeContext';
 import { useNotifications } from '@/context/NotificationContext';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -196,6 +196,8 @@ export default function SettingsPage() {
   }, [user]);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  // The font picker previews every font, so only this page loads them all.
+  useEffect(() => { FONT_OPTIONS.forEach(loadFont); }, []);
 
   // Links like /settings#profile land on that card once the page has loaded.
   const { hash } = useLocation();

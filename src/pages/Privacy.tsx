@@ -31,6 +31,7 @@ export default function Privacy() {
               <ul className="list-disc space-y-1 pl-5">
                 <li><strong>Supabase</strong> — database, sign-in and file storage (servers in Singapore).</li>
                 <li><strong>Vercel</strong> — hosting of the web app.</li>
+                <li><strong>Sentry</strong> — technical error reports when something breaks: the error, the page, your browser and your account ID. Never your password or email address.</li>
                 <li><strong>Google (Gemini)</strong> — when you use an AI feature, a summary of your business data and your question are sent to Google to generate the answer.</li>
                 <li><strong>Resend</strong> — sending invitation emails.</li>
                 <li><strong>SSLCommerz</strong> — taking payments.</li>

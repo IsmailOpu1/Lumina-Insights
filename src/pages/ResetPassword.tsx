@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import LanguageToggle from '@/components/LanguageToggle';
-import { useT } from '@/i18n';
+import { clearPasswordRecovery, passwordRecoveryEmail } from '@/lib/recovery';
+import { useT, rich } from '@/i18n';
 
 export default function ResetPassword() {
   const { t } = useT();
@@ -15,6 +16,8 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Only the account the reset link signed in may get a new password here.
+  const [email] = useState(passwordRecoveryEmail);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,13 +25,21 @@ export default function ResetPassword() {
     if (password !== confirmPassword) { toast.error(t('Passwords do not match')); return; }
 
     setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!email || session?.user.email !== email) {
+      toast.error(t('This reset link has expired or was already used'));
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       toast.error(t('Failed to reset password'), { description: error.message });
       setLoading(false);
       return;
     }
-    toast.success(t('Password updated!'));
+    clearPasswordRecovery();
+    await supabase.auth.signOut({ scope: 'local' });
+    toast.success(t('Password updated! Sign in with your new password.'));
     navigate('/login', { replace: true });
   };
 
@@ -40,8 +51,21 @@ export default function ResetPassword() {
           <Sparkles size={28} className="text-primary" />
           <span className="text-xl font-bold text-foreground">Lumina Insights</span>
         </div>
+        {!email ? (
+          <div className="text-center">
+            <AlertTriangle size={40} className="mx-auto mb-4 text-destructive" />
+            <h1 className="text-2xl font-bold text-foreground">{t('This reset link has expired or was already used')}</h1>
+            <p className="mt-2 mb-6 text-sm text-muted-foreground">{t('Ask for a reset code instead. It works even when your email app opens links by itself.')}</p>
+            <Link to="/forgot-password" className="inline-flex h-12 w-full items-center justify-center rounded-md bg-primary font-bold text-white hover:bg-primary/90">
+              {t('Get a reset code')}
+            </Link>
+          </div>
+        ) : (
+        <>
         <h1 className="text-[28px] font-bold text-foreground text-center">{t('Set new password')}</h1>
-        <p className="mt-1 mb-8 text-sm text-muted-foreground text-center">{t('Enter your new password below')}</p>
+        <p className="mt-1 mb-8 text-sm text-muted-foreground text-center">
+          {rich(t('Choose a new password for {email}'), { email: <strong className="text-foreground">{email}</strong> })}
+        </p>
 
         <form onSubmit={handleReset} className="flex flex-col gap-4">
           <div className="relative">
@@ -62,6 +86,8 @@ export default function ResetPassword() {
             {loading ? <Loader2 className="animate-spin" size={20} /> : t('Update Password')}
           </Button>
         </form>
+        </>
+        )}
       </div>
     </div>
   );

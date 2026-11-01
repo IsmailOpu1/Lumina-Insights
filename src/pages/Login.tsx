@@ -11,8 +11,11 @@ import { acceptInvite } from '@/lib/invites';
 import { isUnconfirmed } from '@/lib/authEmail';
 import ResendConfirmation from '@/components/auth/ResendConfirmation';
 import ConfirmCode from '@/components/auth/ConfirmCode';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useT, rich } from '@/i18n';
 
 export default function Login() {
+  const { t } = useT();
   const navigate = useNavigate();
   const { refreshSettings } = useAuth();
   const [searchParams] = useSearchParams();
@@ -34,15 +37,15 @@ export default function Login() {
 
     if (error) {
       if (isUnconfirmed(error)) setUnconfirmed(true);
-      else toast.error('Login failed', { description: error.message });
+      else toast.error(t('Login failed'), { description: error.message });
       setLoading(false);
       return;
     }
 
     if (token) {
       const message = await acceptInvite(token);
-      if (message) toast.error('Could not join the workspace', { description: message });
-      else toast.success('You have joined the workspace');
+      if (message) toast.error(t('Could not join the workspace'), { description: message });
+      else toast.success(t('You have joined the workspace'));
     }
 
     // ProtectedRoute sends users without finished onboarding to /onboarding.
@@ -54,7 +57,7 @@ export default function Login() {
     <div role="alert" className="mt-4 flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/10 p-4">
       <div className="flex gap-2 text-sm text-foreground">
         <MailWarning size={18} className="mt-0.5 shrink-0 text-primary" />
-        <span>Please confirm your email first. Enter the code we sent to <strong>{email.trim()}</strong>, tap the button in that email, or get a new one below.</span>
+        <span>{rich(t('Please confirm your email first. Enter the code we sent to {email}, tap the button in that email, or get a new one below.'), { email: <strong>{email.trim()}</strong> })}</span>
       </div>
       <ConfirmCode email={email} />
       <ResendConfirmation email={email} />
@@ -79,15 +82,16 @@ export default function Login() {
               <span className="text-xl font-bold text-white">
                 Lumina Insights
               </span>
+              <LanguageToggle className="ml-auto text-white/80 hover:bg-white/10 hover:text-white" />
             </div>
 
             <div className="flex-1 flex flex-col justify-center gap-3">
               {[
-                { emoji: '📊', title: 'AI Business Insights', desc: 'Smart analysis of your real business data' },
-                { emoji: '📣', title: 'Marketing AI', desc: 'Content for Instagram, Facebook, TikTok' },
-                { emoji: '🤖', title: 'Business AI Assistant', desc: 'Personal advisor that knows your business' },
-                { emoji: '🎤', title: 'Voice Notes', desc: 'Record and transcribe business notes instantly' },
-                { emoji: '🔔', title: 'Smart Notifications', desc: 'Real-time alerts for orders, stock, performance' },
+                { emoji: '📊', title: t('AI Business Insights'), desc: t('Smart analysis of your real business data') },
+                { emoji: '📣', title: t('Marketing AI'), desc: t('Content for Instagram, Facebook, TikTok') },
+                { emoji: '🤖', title: t('Business AI Assistant'), desc: t('Personal advisor that knows your business') },
+                { emoji: '🎤', title: t('Voice Notes'), desc: t('Record and transcribe business notes instantly') },
+                { emoji: '🔔', title: t('Smart Notifications'), desc: t('Real-time alerts for orders, stock, performance') },
               ].map((f, i) => (
                 <div key={i} 
                   className="flex items-center gap-3 rounded-xl p-4"
@@ -111,7 +115,7 @@ export default function Login() {
               className="mt-8 h-14 w-full rounded-xl font-bold text-white text-base"
               style={{ backgroundColor: 'hsl(var(--primary))' }}
             >
-              Get Started →
+              {t('Get Started')} →
             </button>
           </div>
         ) : (
@@ -121,15 +125,16 @@ export default function Login() {
               <div className="flex items-center gap-2 mb-6">
                 <Sparkles size={28} className="text-primary" />
                 <span className="text-xl font-bold text-foreground">Lumina Insights</span>
+                <LanguageToggle className="ml-auto" />
               </div>
 
-              <h1 className="text-[28px] font-bold text-foreground">Welcome back</h1>
-              <p className="mt-1 mb-8 text-sm text-muted-foreground">Sign in to your account</p>
+              <h1 className="text-[28px] font-bold text-foreground">{t('Welcome back')}</h1>
+              <p className="mt-1 mb-8 text-sm text-muted-foreground">{t('Sign in to your account')}</p>
 
               <form onSubmit={handleLogin} className="flex flex-col gap-4">
                 <Input
                   type="email"
-                  placeholder="Email address"
+                  placeholder={t('Email address')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 text-base"
@@ -138,7 +143,7 @@ export default function Login() {
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Password"
+                    placeholder={t('Password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-12 text-base pr-12"
@@ -147,6 +152,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('Hide password') : t('Show password')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -154,25 +160,25 @@ export default function Login() {
                 </div>
 
                 <Link to="/forgot-password" className="self-end text-sm font-medium text-primary hover:underline">
-                  Forgot password?
+                  {t('Forgot password?')}
                 </Link>
 
                 <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
-                  {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : t('Sign In')}
                 </Button>
               </form>
               {unconfirmedNotice}
 
               <div className="my-6 flex items-center gap-3">
                 <div className="h-px flex-1 bg-border" />
-                <span className="text-sm text-muted-foreground">or</span>
+                <span className="text-sm text-muted-foreground">{t('or')}</span>
                 <div className="h-px flex-1 bg-border" />
               </div>
 
               <p className="text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
+                {t("Don't have an account?")}{' '}
                 <Link to={token ? `/signup?token=${token}` : '/signup'} className="font-bold text-primary hover:underline">
-                  Create account
+                  {t('Create account')}
                 </Link>
               </p>
             </div>
@@ -187,13 +193,14 @@ export default function Login() {
         </div>
         <div className="flex flex-1 items-center justify-center p-6" style={{ backgroundColor: 'hsl(var(--background))' }}>
           <div className="w-full max-w-[420px] rounded-2xl border border-border bg-card p-10 shadow-2xl">
-            <h1 className="text-[28px] font-bold text-foreground">Welcome back</h1>
-            <p className="mt-1 mb-8 text-sm text-muted-foreground">Sign in to your account</p>
+            <LanguageToggle className="-mt-4 mb-2 ml-auto" />
+            <h1 className="text-[28px] font-bold text-foreground">{t('Welcome back')}</h1>
+            <p className="mt-1 mb-8 text-sm text-muted-foreground">{t('Sign in to your account')}</p>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <Input
                 type="email"
-                placeholder="Email address"
+                placeholder={t('Email address')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-12 text-base"
@@ -202,7 +209,7 @@ export default function Login() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
+                  placeholder={t('Password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 text-base pr-12"
@@ -211,6 +218,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('Hide password') : t('Show password')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -218,25 +226,25 @@ export default function Login() {
               </div>
 
               <Link to="/forgot-password" className="self-end text-sm font-medium text-primary hover:underline">
-                Forgot password?
+                {t('Forgot password?')}
               </Link>
 
               <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
-                {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : t('Sign In')}
               </Button>
             </form>
             {unconfirmedNotice}
 
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
-              <span className="text-sm text-muted-foreground">or</span>
+              <span className="text-sm text-muted-foreground">{t('or')}</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
             <p className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              {t("Don't have an account?")}{' '}
               <Link to={token ? `/signup?token=${token}` : '/signup'} className="font-bold text-primary hover:underline">
-                Create account
+                {t('Create account')}
               </Link>
             </p>
           </div>

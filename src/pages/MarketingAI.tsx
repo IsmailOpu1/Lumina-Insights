@@ -14,6 +14,7 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import PageHeader from '@/components/PageHeader';
 import { cn } from '@/lib/utils';
 import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
+import { useT, tr } from '@/i18n';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok'] as const;
 type Platform = typeof PLATFORMS[number];
@@ -34,6 +35,7 @@ interface MarketingOutput {
 }
 
 export default function MarketingAI() {
+  const { t } = useT();
   const { ownerIdForQueries } = useAuth();
   const [productName, setProductName] = useState('');
   const [platform, setPlatform] = useState<Platform>('Instagram');
@@ -53,7 +55,7 @@ export default function MarketingAI() {
 
   const generate = async () => {
     if (!productName.trim()) {
-      toast({ title: 'Product name is required', variant: 'destructive' });
+      toast({ title: t('Product name is required'), variant: 'destructive' });
       return;
     }
     setLoading(true);
@@ -73,7 +75,7 @@ export default function MarketingAI() {
         }
       );
 
-      if (fnError) throw new Error(await functionErrorMessage(fnError, 'Generation failed. Please try again.'));
+      if (fnError) throw new Error(await functionErrorMessage(fnError, t('Generation failed. Please try again.')));
       if (data?.error) throw new Error(data.error);
 
       let hashtags = data.hashtags;
@@ -87,7 +89,7 @@ export default function MarketingAI() {
       setOutput({ ...data, hashtags });
     } catch (e) {
       console.error(e);
-      setError((e instanceof Error && e.message) || 'Generation failed. Check API key or try again.');
+      setError((e instanceof Error && e.message) || t('Generation failed. Check API key or try again.'));
     } finally {
       setLoading(false);
     }
@@ -124,9 +126,9 @@ export default function MarketingAI() {
       });
       if (noteError) throw new Error(dbErrorMessage(noteError.message));
 
-      toast({ title: 'Saved to Notes ✓' });
+      toast({ title: t('Saved to Notes ✓') });
     } catch (e) {
-      toast({ title: 'Save failed', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+      toast({ title: t('Save failed'), description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -134,19 +136,19 @@ export default function MarketingAI() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: `${label} copied!` });
+    toast({ title: t('{label} copied!', { label }) });
   };
 
   const copyHashtag = (tag: string) => {
     navigator.clipboard.writeText(`#${tag}`);
-    toast({ title: `Copied #${tag}!` });
+    toast({ title: t('Copied {tag}!', { tag: `#${tag}` }) });
   };
 
   const copyAllHashtags = () => {
     if (!output?.hashtags) return;
     const all = output.hashtags.map((h) => `#${h}`).join(' ');
     navigator.clipboard.writeText(all);
-    toast({ title: 'All hashtags copied!' });
+    toast({ title: t('All hashtags copied!') });
   };
 
   const clear = () => {
@@ -155,23 +157,23 @@ export default function MarketingAI() {
   };
 
   const getScriptLabel = () => {
-    if (platform === 'TikTok') return 'TikTok video script';
-    if (platform === 'Instagram') return 'Instagram Reel script';
-    return 'Facebook video script';
+    if (platform === 'TikTok') return t('TikTok video script');
+    if (platform === 'Instagram') return t('Instagram Reel script');
+    return t('Facebook video script');
   };
 
   const getScriptTip = () => {
     if (platform === 'TikTok')
-      return 'Paste into Runway, Kling or CapCut — add your product images where indicated.';
+      return t('Paste into Runway, Kling or CapCut — add your product images where indicated.');
     if (platform === 'Instagram')
-      return 'Paste into CapCut or InShot — add your product visuals where indicated.';
-    return 'Paste into any video editor — add your product footage where indicated.';
+      return t('Paste into CapCut or InShot — add your product visuals where indicated.');
+    return t('Paste into any video editor — add your product footage where indicated.');
   };
 
   const PLATFORM_META: Record<Platform, { hint: string; icon: LucideIcon; tint: string }> = {
-    Facebook: { hint: 'Post + video script', icon: Facebook, tint: 'text-[#60A5FA]' },
-    Instagram: { hint: 'Caption + Reel script', icon: Instagram, tint: 'text-[#F472B6]' },
-    TikTok: { hint: 'Hook + video script', icon: Music2, tint: 'text-highlight' },
+    Facebook: { hint: t('Post + video script'), icon: Facebook, tint: 'text-[#60A5FA]' },
+    Instagram: { hint: t('Caption + Reel script'), icon: Instagram, tint: 'text-[#F472B6]' },
+    TikTok: { hint: t('Hook + video script'), icon: Music2, tint: 'text-highlight' },
   };
 
   const filled = [productName, features, audience].filter((v) => v.trim()).length;
@@ -187,11 +189,11 @@ export default function MarketingAI() {
     <div className="relative isolate mx-auto max-w-[1400px]">
       <GlowBackdrop className="-inset-x-10 -top-10 opacity-70" />
       <PageHeader
-        title="Marketing AI"
-        subtitle="Describe a product and get a ready-to-post hook, caption, video script and hashtags for Bangladeshi buyers."
+        title={t('Marketing AI')}
+        subtitle={t('Describe a product and get a ready-to-post hook, caption, video script and hashtags for Bangladeshi buyers.')}
         actions={subscription && subscription.limits.marketing_per_month !== null && (
           <span className="rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-            {subscription.usage.marketing_this_month} / {subscription.limits.marketing_per_month} used this month
+            {t('{used} / {limit} used this month', { used: subscription.usage.marketing_this_month, limit: subscription.limits.marketing_per_month })}
           </span>
         )}
       />
@@ -200,7 +202,7 @@ export default function MarketingAI() {
         {/* Brief */}
         <section className="self-start rounded-xl border border-border bg-card/80 backdrop-blur-xl lg:sticky lg:top-4">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="flex items-center gap-2 text-base font-semibold"><PenLine size={16} className="text-primary" />Product brief</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold"><PenLine size={16} className="text-primary" />{t('Product brief')}</h2>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="flex gap-1">
                 {[0, 1, 2].map((i) => <span key={i} className={cn('h-1.5 w-4 rounded-full', i < filled ? 'bg-primary' : 'bg-muted')} />)}
@@ -211,17 +213,17 @@ export default function MarketingAI() {
 
           <div className="space-y-6 p-5">
             <div>
-              <Label htmlFor="mkt-product" className="text-sm">1. Product <span className="text-primary">*</span></Label>
+              <Label htmlFor="mkt-product" className="text-sm">{t('1. Product')} <span className="text-primary">*</span></Label>
               <Input
                 id="mkt-product"
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
-                placeholder="e.g. Organic Honey from Sundarbans"
+                placeholder={t('e.g. Organic Honey from Sundarbans')}
                 className="mt-2"
               />
               {products.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className="self-center text-[11px] text-muted-foreground">Your products:</span>
+                  <span className="self-center text-[11px] text-muted-foreground">{t('Your products:')}</span>
                   {products.map((name) => (
                     <button
                       key={name}
@@ -239,8 +241,8 @@ export default function MarketingAI() {
             </div>
 
             <div>
-              <Label className="text-sm">2. Where will you post it?</Label>
-              <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="Platform">
+              <Label className="text-sm">{t('2. Where will you post it?')}</Label>
+              <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label={t('Platform')}>
                 {PLATFORMS.map((p) => {
                   const meta = PLATFORM_META[p];
                   const Icon = meta.icon;
@@ -268,31 +270,31 @@ export default function MarketingAI() {
             </div>
 
             <div>
-              <Label htmlFor="mkt-features" className="text-sm">3. What makes it special</Label>
+              <Label htmlFor="mkt-features" className="text-sm">{t('3. What makes it special')}</Label>
               <Textarea
                 id="mkt-features"
                 value={features}
                 onChange={(e) => setFeatures(e.target.value)}
-                placeholder="Key features, benefits, price, offer..."
+                placeholder={t('Key features, benefits, price, offer...')}
                 rows={3}
                 className="mt-2 resize-none"
               />
             </div>
 
             <div>
-              <Label htmlFor="mkt-audience" className="text-sm">4. Who is it for</Label>
+              <Label htmlFor="mkt-audience" className="text-sm">{t('4. Who is it for')}</Label>
               <Input
                 id="mkt-audience"
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                placeholder="e.g. Health-conscious women aged 25-40 in Dhaka"
+                placeholder={t('e.g. Health-conscious women aged 25-40 in Dhaka')}
                 className="mt-2"
               />
             </div>
 
             <Button onClick={generate} disabled={loading} className="h-11 w-full gap-2 font-semibold shadow-glow">
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {loading ? 'Writing...' : output ? 'Write again' : 'Write my content'}
+              {loading ? t('Writing...') : output ? t('Write again') : t('Write my content')}
             </Button>
           </div>
         </section>
@@ -302,7 +304,7 @@ export default function MarketingAI() {
           {loading ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <p className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">
-                <Loader2 size={14} className="animate-spin text-primary" /> Writing your {platform} content...
+                <Loader2 size={14} className="animate-spin text-primary" /> {t('Writing your {platform} content...', { platform })}
               </p>
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className={cn('surface space-y-3 p-5', i === 2 && 'sm:col-span-2')}>
@@ -315,10 +317,10 @@ export default function MarketingAI() {
             </div>
           ) : error ? (
             <div className="surface border-destructive/40 p-6">
-              <p className="font-medium text-destructive">Could not write the content</p>
+              <p className="font-medium text-destructive">{t('Could not write the content')}</p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
               <Button variant="outline" size="sm" className="mt-4 gap-1.5" onClick={generate}>
-                <RefreshCw size={14} /> Try again
+                <RefreshCw size={14} /> {t('Try again')}
               </Button>
             </div>
           ) : output ? (
@@ -328,46 +330,46 @@ export default function MarketingAI() {
                   {(() => { const Icon = PLATFORM_META[platform].icon; return <Icon size={18} className={PLATFORM_META[platform].tint} />; })()}
                   <div>
                     <p className="text-sm font-semibold">{productName}</p>
-                    <p className="text-xs text-muted-foreground">Ready for {platform}</p>
+                    <p className="text-xs text-muted-foreground">{t('Ready for {platform}', { platform })}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={clear} variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-                    <Trash2 size={14} /> Clear
+                    <Trash2 size={14} /> {t('Clear')}
                   </Button>
                   <Button onClick={generate} variant="outline" size="sm" className="gap-1.5">
-                    <RefreshCw size={14} /> Regenerate
+                    <RefreshCw size={14} /> {t('Regenerate')}
                   </Button>
                   <Button onClick={saveToNotes} disabled={saving} size="sm" className="gap-1.5">
                     <Save size={14} />
-                    {saving ? 'Saving...' : 'Save to Notes'}
+                    {saving ? t('Saving...') : t('Save to Notes')}
                   </Button>
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {output.hook && (
-                  <Section icon={Anchor} label="Hook" className="sm:col-span-2 border-primary/30 bg-primary/[0.05]" onCopy={() => copyToClipboard(output.hook || '', 'Hook')}>
+                  <Section icon={Anchor} label={t('Hook')} className="sm:col-span-2 border-primary/30 bg-primary/[0.05]" onCopy={() => copyToClipboard(output.hook || '', t('Hook'))}>
                     <AITextRenderer content={output.hook} className="text-lg font-medium" />
                   </Section>
                 )}
                 {output.value_proposition && (
-                  <Section icon={Gem} label="Why buy it" onCopy={() => copyToClipboard(output.value_proposition || '', 'Value proposition')}>
+                  <Section icon={Gem} label={t('Why buy it')} onCopy={() => copyToClipboard(output.value_proposition || '', t('Value proposition'))}>
                     <AITextRenderer content={output.value_proposition} />
                   </Section>
                 )}
                 {output.cta && (
-                  <Section icon={Megaphone} label="Call to action" onCopy={() => copyToClipboard(output.cta || '', 'Call to action')}>
+                  <Section icon={Megaphone} label={t('Call to action')} onCopy={() => copyToClipboard(output.cta || '', t('Call to action'))}>
                     <AITextRenderer content={output.cta} />
                   </Section>
                 )}
                 {output.caption && (
-                  <Section icon={MessageSquareText} label="Caption" className="sm:col-span-2" onCopy={() => copyToClipboard(output.caption || '', 'Caption')}>
+                  <Section icon={MessageSquareText} label={t('Caption')} className="sm:col-span-2" onCopy={() => copyToClipboard(output.caption || '', t('Caption'))}>
                     <AITextRenderer content={output.caption} />
                   </Section>
                 )}
                 {output.script && (
-                  <Section icon={Clapperboard} label={getScriptLabel()} className={cn(!(output.hashtags && output.hashtags.length) && 'sm:col-span-2')} onCopy={() => copyToClipboard(output.script || '', 'Script')}>
+                  <Section icon={Clapperboard} label={getScriptLabel()} className={cn(!(output.hashtags && output.hashtags.length) && 'sm:col-span-2')} onCopy={() => copyToClipboard(output.script || '', t('Script'))}>
                     <pre className="whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-4 font-sans text-sm leading-relaxed text-foreground">
                       {typeof output.script === 'string' ? output.script : JSON.stringify(output.script)}
                     </pre>
@@ -377,14 +379,14 @@ export default function MarketingAI() {
                   </Section>
                 )}
                 {output.hashtags && output.hashtags.length > 0 && (
-                  <Section icon={Hash} label="Hashtags" copyLabel="Copy all" onCopy={copyAllHashtags} className={cn(!output.script && 'sm:col-span-2')}>
+                  <Section icon={Hash} label={t('Hashtags')} copyLabel={t('Copy all')} onCopy={copyAllHashtags} className={cn(!output.script && 'sm:col-span-2')}>
                     <div className="flex flex-wrap gap-1.5">
                       {output.hashtags.map((tag, i) => (
                         <button
                           key={i}
                           onClick={() => copyHashtag(tag)}
                           className="rounded-md border border-highlight/25 bg-highlight/10 px-2.5 py-1 text-xs font-medium text-highlight transition-colors hover:bg-highlight/20"
-                          title="Click to copy"
+                          title={t('Click to copy')}
                         >
                           #{tag}
                         </button>
@@ -404,18 +406,18 @@ export default function MarketingAI() {
                     <Wand2 size={24} />
                   </span>
                 </div>
-                <h2 className="mt-5 text-lg font-semibold">Your post appears here</h2>
+                <h2 className="mt-5 text-lg font-semibold">{t('Your post appears here')}</h2>
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  Fill in the brief, or try an example. The more you say about the product and buyer, the better the result.
+                  {t('Fill in the brief, or try an example. The more you say about the product and buyer, the better the result.')}
                 </p>
                 <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-2 text-left sm:grid-cols-3">
                   {[
-                    { icon: Anchor, label: 'Hook', desc: 'Stops the scroll' },
-                    { icon: MessageSquareText, label: 'Caption', desc: 'Ready to paste' },
-                    { icon: Clapperboard, label: 'Video script', desc: 'Scene by scene' },
-                    { icon: Gem, label: 'Why buy it', desc: 'The main benefit' },
-                    { icon: Megaphone, label: 'Call to action', desc: 'What to do next' },
-                    { icon: Hash, label: 'Hashtags', desc: 'Tap to copy' },
+                    { icon: Anchor, label: t('Hook'), desc: t('Stops the scroll') },
+                    { icon: MessageSquareText, label: t('Caption'), desc: t('Ready to paste') },
+                    { icon: Clapperboard, label: t('Video script'), desc: t('Scene by scene') },
+                    { icon: Gem, label: t('Why buy it'), desc: t('The main benefit') },
+                    { icon: Megaphone, label: t('Call to action'), desc: t('What to do next') },
+                    { icon: Hash, label: t('Hashtags'), desc: t('Tap to copy') },
                   ].map(({ icon: Icon, label, desc }) => (
                     <div key={label} className="rounded-lg border border-border bg-background/30 p-3">
                       <Icon size={15} className="text-primary" />
@@ -428,8 +430,8 @@ export default function MarketingAI() {
 
               {/* Examples */}
               <div className="rounded-xl border border-border bg-card/80 p-5 backdrop-blur-xl">
-                <p className="flex items-center gap-2 text-sm font-semibold"><Lightbulb size={15} className="text-warning" />Try an example</p>
-                <p className="mt-1 text-xs text-muted-foreground">Fills in the brief so you can see how it works.</p>
+                <p className="flex items-center gap-2 text-sm font-semibold"><Lightbulb size={15} className="text-warning" />{t('Try an example')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('Fills in the brief so you can see how it works.')}</p>
                 <div className="mt-4 space-y-2">
                   {EXAMPLE_BRIEFS.map((e) => {
                     const Icon = PLATFORM_META[e.platform].icon;
@@ -462,7 +464,7 @@ function Section({
   label,
   children,
   onCopy,
-  copyLabel = 'Copy',
+  copyLabel = tr('Copy'),
   className,
 }: {
   icon: LucideIcon;

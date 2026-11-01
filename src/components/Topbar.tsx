@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Bell, ChevronRight, Languages } from 'lucide-react';
+import { Menu, Bell, ChevronRight } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { currentDateLocale, useT } from '@/i18n';
 import AccountMenu from './AccountMenu';
+import LanguageToggle from './LanguageToggle';
 import { notificationText } from '@/i18n/notifications';
 
 export const ROUTE_TITLES: Record<string, string> = {
@@ -45,7 +46,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { t, lang, setLang } = useT();
+  const { t } = useT();
   const pageTitle =
     t(ROUTE_TITLES[location.pathname] || 'Lumina Insights');
 
@@ -99,7 +100,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         >
           <Menu size={20} />
         </button>
-        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
+        <nav aria-label={t('Breadcrumb')} className="flex min-w-0 items-center gap-1.5 text-sm">
           <span className="hidden text-muted-foreground sm:inline">{userSettings?.business_name || 'Lumina'}</span>
           <ChevronRight size={14} className="hidden text-muted-foreground/60 sm:inline" />
           <span className="truncate font-medium text-foreground">{pageTitle}</span>
@@ -107,15 +108,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="relative flex items-center gap-1.5" ref={dropdownRef}>
-        <button
-          onClick={() => setLang(lang === 'bn' ? 'en' : 'bn')}
-          aria-label={lang === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন'}
-          title={lang === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন'}
-          className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <Languages size={16} />
-          <span className="font-medium">{lang === 'bn' ? 'EN' : 'বাংলা'}</span>
-        </button>
+        <LanguageToggle />
         <button
           onClick={() => setDropdownOpen((p) => !p)}
           aria-label={unreadCount ? t('Notifications, {n} unread', { n: unreadCount }) : t('Notifications')}

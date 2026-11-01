@@ -38,18 +38,20 @@ export async function createInvite(ownerId: string, email: string, role: InviteR
   return { error: null, link: inviteLink(token), emailed: !emailError };
 }
 
+import { msg, tr } from '@/i18n';
+
 const ACCEPT_ERRORS: Record<string, string> = {
-  invite_not_found_or_used: 'This invite link is invalid or has already been used.',
-  invite_expired: 'This invite has expired. Ask the workspace owner for a new one.',
-  invite_email_mismatch: 'This invite was sent to a different email address. Sign in with the invited email.',
-  already_owns_workspace: 'Your account already owns a workspace, so it cannot join another one.',
-  cannot_join_own_workspace: 'You cannot accept an invite to your own workspace.',
-  not_authenticated: 'Please sign in to accept the invite.',
+  invite_not_found_or_used: msg('This invite link is invalid or has already been used.'),
+  invite_expired: msg('This invite has expired. Ask the workspace owner for a new one.'),
+  invite_email_mismatch: msg('This invite was sent to a different email address. Sign in with the invited email.'),
+  already_owns_workspace: msg('Your account already owns a workspace, so it cannot join another one.'),
+  cannot_join_own_workspace: msg('You cannot accept an invite to your own workspace.'),
+  not_authenticated: msg('Please sign in to accept the invite.'),
 };
 
 export async function acceptInvite(token: string): Promise<string | null> {
   const { error } = await supabase.rpc('accept_team_invite', { p_token: token });
   if (!error) return null;
   const code = Object.keys(ACCEPT_ERRORS).find((k) => error.message.includes(k));
-  return code ? ACCEPT_ERRORS[code] : error.message;
+  return code ? tr(ACCEPT_ERRORS[code]) : error.message;
 }

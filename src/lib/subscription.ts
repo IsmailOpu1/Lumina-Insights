@@ -1,4 +1,5 @@
 import type { Tables } from '@/integrations/supabase/types';
+import { msg } from '@/i18n';
 
 export type Plan = Tables<'plans'>;
 export type PlanId = 'starter' | 'pro';
@@ -56,13 +57,13 @@ const ABANDONED_AFTER_MS = 60 * 60 * 1000;
 /** Payment status for people: abandoned checkouts aren't "pending" forever. */
 export function paymentStatusLabel(status: string, createdAt: string, now = new Date()) {
   if (status === 'pending' && now.getTime() - new Date(createdAt).getTime() > ABANDONED_AFTER_MS) {
-    return 'Not completed';
+    return msg('Not completed');
   }
-  if (status === 'review') return 'Under review';
+  if (status === 'review') return msg('Under review');
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export function planLabel(sub: Subscription) {
-  if (sub.state === 'trialing') return 'Pro trial';
+  if (sub.state === 'trialing') return msg('Pro trial');
   return sub.plan === 'pro' ? 'Pro' : 'Starter';
 }

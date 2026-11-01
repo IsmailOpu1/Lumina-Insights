@@ -1,15 +1,17 @@
+import { msg, tr } from '@/i18n';
+
 // Friendly messages for exceptions raised by database triggers and plan checks.
 const MESSAGES: Record<string, string> = {
-  insufficient_stock: 'Not enough stock for this order. Restock the product or lower the quantity.',
-  product_not_in_workspace: 'That product does not belong to this workspace.',
-  subscription_inactive: 'Your plan has expired, so this workspace is read-only. Choose a plan on the Billing page to keep working.',
-  plan_limit_orders: "You've reached your plan's monthly order limit. Upgrade to Pro for unlimited orders.",
-  plan_limit_team: "You've reached your plan's team member limit. Upgrade to Pro to invite more people.",
+  insufficient_stock: msg('Not enough stock for this order. Restock the product or lower the quantity.'),
+  product_not_in_workspace: msg('That product does not belong to this workspace.'),
+  subscription_inactive: msg('Your plan has expired, so this workspace is read-only. Choose a plan on the Billing page to keep working.'),
+  plan_limit_orders: msg("You've reached your plan's monthly order limit. Upgrade to Pro for unlimited orders."),
+  plan_limit_team: msg("You've reached your plan's team member limit. Upgrade to Pro to invite more people."),
 };
 
 export function dbErrorMessage(message: string): string {
   const code = Object.keys(MESSAGES).find((k) => message.includes(k));
-  return code ? MESSAGES[code] : message;
+  return code ? tr(MESSAGES[code]) : message;
 }
 
 /**

@@ -13,6 +13,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { fetchRecentSnapshot } from '@/lib/businessSnapshot';
 import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
 import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
+import { useT, tr } from '@/i18n';
 
 interface ChatMessage {
   id: string;
@@ -43,6 +44,7 @@ const EXAMPLES = [
 ];
 
 export default function AIAssistant() {
+  const { t, lang } = useT();
   const { ownerIdForQueries } = useAuth();
   const { formatCurrency } = useCurrency();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -76,11 +78,11 @@ export default function AIAssistant() {
         revenue: Math.round(s.revenue),
         profit: Math.round(s.net_profit),
         margin: s.margin_pct,
-        top_product: top ? `${top.name} (${top.units} units)` : 'N/A',
+        top_product: top ? tr('{name} ({n} units)', { name: top.name, n: top.units }) : tr('N/A'),
         low_stock: s.low_stock.length,
         top_sales_source: channel && s.revenue > 0
           ? `${channel.channel} (${Math.round((channel.revenue / s.revenue) * 100)}%)`
-          : 'N/A',
+          : tr('N/A'),
         total_orders: s.orders,
         total_ad_spend: Math.round(s.ad_spend),
       });
@@ -147,8 +149,8 @@ export default function AIAssistant() {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: 'Image too large',
-        description: 'Max 5MB',
+        title: t('Image too large'),
+        description: t('Max 5MB'),
         variant: 'destructive',
       });
       return;
@@ -177,7 +179,7 @@ export default function AIAssistant() {
     const SR = getSpeechRecognition();
     if (!SR) {
       toast({
-        title: 'Speech to text needs Chrome or Edge browser',
+        title: t('Speech to text needs Chrome or Edge browser'),
         variant: 'destructive',
       });
       return;
@@ -186,7 +188,7 @@ export default function AIAssistant() {
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = 'en-US';
+    rec.lang = lang === 'bn' ? 'bn-BD' : 'en-US';
     finalTranscriptRef.current = '';
 
     rec.onresult = (e) => {
@@ -206,7 +208,7 @@ export default function AIAssistant() {
     rec.onerror = (e) => {
       if (e.error === 'not-allowed') {
         toast({
-          title: 'Microphone access denied',
+          title: t('Microphone access denied'),
           variant: 'destructive',
         });
         stopListening();
@@ -289,7 +291,7 @@ export default function AIAssistant() {
       if (error) throw error;
 
       const aiText =
-        data?.response || 'I could not generate a response.';
+        data?.response || t('I could not generate a response.');
       const aiMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -301,7 +303,7 @@ export default function AIAssistant() {
       const errMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: await functionErrorMessage(e, 'Something went wrong. Please try again.'),
+        content: await functionErrorMessage(e, t('Something went wrong. Please try again.')),
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
@@ -325,7 +327,7 @@ export default function AIAssistant() {
       owner_id: ownerIdForQueries,
     });
     if (error) {
-      toast({ title: 'Could not save', description: dbErrorMessage(error.message), variant: 'destructive' });
+      toast({ title: t('Could not save'), description: dbErrorMessage(error.message), variant: 'destructive' });
       return;
     }
     setMessages((prev) =>
@@ -333,7 +335,7 @@ export default function AIAssistant() {
         m.id === msg.id ? { ...m, savedToNotes: true } : m
       )
     );
-    toast({ title: 'Saved ✓' });
+    toast({ title: t('Saved ✓') });
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -345,13 +347,13 @@ export default function AIAssistant() {
 
   const contextItems: { label: string; value: string; tone?: string }[] = context
     ? [
-        { label: 'Revenue', value: formatCurrency(context.revenue) },
-        { label: 'Net profit', value: formatCurrency(context.profit), tone: context.profit >= 0 ? 'text-success' : 'text-destructive' },
-        { label: 'Margin', value: `${context.margin}%`, tone: context.margin >= 0 ? 'text-success' : 'text-destructive' },
-        { label: 'Orders', value: `${context.total_orders}` },
-        { label: 'Top product', value: context.top_product },
-        { label: 'Best channel', value: context.top_sales_source },
-        { label: 'Low stock', value: `${context.low_stock} ${context.low_stock === 1 ? 'product' : 'products'}`, tone: context.low_stock > 0 ? 'text-warning' : 'text-success' },
+        { label: t('Revenue'), value: formatCurrency(context.revenue) },
+        { label: t('Net profit'), value: formatCurrency(context.profit), tone: context.profit >= 0 ? 'text-success' : 'text-destructive' },
+        { label: t('Margin'), value: `${context.margin}%`, tone: context.margin >= 0 ? 'text-success' : 'text-destructive' },
+        { label: t('Orders'), value: `${context.total_orders}` },
+        { label: t('Top product'), value: context.top_product },
+        { label: t('Best channel'), value: context.top_sales_source },
+        { label: t('Low stock'), value: context.low_stock === 1 ? t('1 product') : t('{n} products', { n: context.low_stock }), tone: context.low_stock > 0 ? 'text-warning' : 'text-success' },
       ]
     : [];
 
@@ -402,7 +404,7 @@ export default function AIAssistant() {
             aria-expanded={contextOpen}
             className="flex w-full items-center justify-between px-4 py-2.5 text-sm"
           >
-            <span className="flex items-center gap-2 font-medium"><BarChart3 size={15} className="text-primary" />Your business, last {CONTEXT_DAYS} days</span>
+            <span className="flex items-center gap-2 font-medium"><BarChart3 size={15} className="text-primary" />{t('Your business, last {n} days', { n: CONTEXT_DAYS })}</span>
             {contextOpen ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
           </button>
           {contextOpen && !contextLoading && <div className="px-4 pb-2">{contextList}</div>}
@@ -418,18 +420,18 @@ export default function AIAssistant() {
                     <Sparkles size={26} />
                   </span>
                 </div>
-                <h1 className="mt-5 text-2xl font-semibold tracking-tight">Ask about your business</h1>
+                <h1 className="mt-5 text-2xl font-semibold tracking-tight">{t('Ask about your business')}</h1>
                 <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                  Answers come from your own orders, stock and expenses. You can also send a photo, like a product or a receipt.
+                  {t('Answers come from your own orders, stock and expenses. You can also send a photo, like a product or a receipt.')}
                 </p>
                 <div className="mt-8 grid w-full max-w-xl gap-2 sm:grid-cols-3">
                   {EXAMPLES.map((e) => (
                     <button
                       key={e}
-                      onClick={() => sendMessage(e)}
+                      onClick={() => sendMessage(t(e))}
                       className="surface-interactive px-4 py-3 text-left text-sm text-foreground"
                     >
-                      {e}
+                      {t(e)}
                     </button>
                   ))}
                 </div>
@@ -443,7 +445,7 @@ export default function AIAssistant() {
                     <div className="flex justify-end">
                       <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[15px] text-primary-foreground">
                         {msg.imagePreview && (
-                          <img src={msg.imagePreview} alt="Uploaded" className="mb-2 max-w-[200px] rounded-lg object-cover" />
+                          <img src={msg.imagePreview} alt={t('Uploaded')} className="mb-2 max-w-[200px] rounded-lg object-cover" />
                         )}
                         <span className="break-words">{msg.content}</span>
                       </div>
@@ -466,12 +468,12 @@ export default function AIAssistant() {
                           </ReactMarkdown>
                         </div>
                         <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>Based on your live data</span>
+                          <span>{t('Based on your live data')}</span>
                           {msg.savedToNotes ? (
-                            <span className="flex items-center gap-1 text-success"><Check size={12} /> Saved to Notes</span>
+                            <span className="flex items-center gap-1 text-success"><Check size={12} /> {t('Saved to Notes')}</span>
                           ) : (
                             <button onClick={() => saveToNotes(msg)} className="flex items-center gap-1 transition-colors hover:text-foreground">
-                              <BookmarkPlus size={12} /> Save to Notes
+                              <BookmarkPlus size={12} /> {t('Save to Notes')}
                             </button>
                           )}
                         </div>
@@ -504,10 +506,10 @@ export default function AIAssistant() {
             <div className="surface p-2 shadow-xl shadow-black/30 focus-within:border-primary/40">
               {imagePreview && (
                 <div className="relative mb-2 ml-1 mt-1 inline-block">
-                  <img src={imagePreview} alt="Upload" className="h-16 max-w-[200px] rounded-lg border border-border object-cover" />
+                  <img src={imagePreview} alt={t('Upload')} className="h-16 max-w-[200px] rounded-lg border border-border object-cover" />
                   <button
                     onClick={removeImage}
-                    aria-label="Remove image"
+                    aria-label={t('Remove image')}
                     className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
                   >
                     <X size={12} />
@@ -519,7 +521,7 @@ export default function AIAssistant() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={toggleListening}
-                    aria-label="Stop listening"
+                    aria-label={t('Stop listening')}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive text-destructive-foreground shadow-[0_0_12px_hsl(var(--destructive)/0.5)]"
                   >
                     <MicOff size={18} />
@@ -532,15 +534,15 @@ export default function AIAssistant() {
                     ) : (
                       <WaveformBars />
                     )}
-                    <span className="mt-1 text-xs text-muted-foreground">Listening... tap to stop</span>
+                    <span className="mt-1 text-xs text-muted-foreground">{t('Listening... tap to stop')}</span>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-1">
-                  <button onClick={toggleListening} aria-label="Speak your question" className="icon-btn h-10 w-10 shrink-0">
+                  <button onClick={toggleListening} aria-label={t('Speak your question')} className="icon-btn h-10 w-10 shrink-0">
                     <Mic size={18} />
                   </button>
-                  <button onClick={() => fileInputRef.current?.click()} aria-label="Attach an image" className="icon-btn h-10 w-10 shrink-0">
+                  <button onClick={() => fileInputRef.current?.click()} aria-label={t('Attach an image')} className="icon-btn h-10 w-10 shrink-0">
                     <ImageIcon size={18} />
                   </button>
                   <input
@@ -548,14 +550,14 @@ export default function AIAssistant() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask anything about your business..."
+                    placeholder={t('Ask anything about your business...')}
                     className="min-w-0 flex-1 bg-transparent px-2 text-[15px] text-foreground outline-none placeholder:text-muted-foreground max-md:text-[16px]"
                     style={{ outline: 'none' }}
                   />
                   <button
                     onClick={() => sendMessage()}
                     disabled={(!input.trim() && !imageFile) || isGenerating}
-                    aria-label="Send"
+                    aria-label={t('Send')}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition hover:brightness-110 disabled:opacity-30"
                   >
                     <Send size={17} />
@@ -563,7 +565,7 @@ export default function AIAssistant() {
                 </div>
               )}
             </div>
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">AI can make mistakes. Check important numbers on your Dashboard.</p>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">{t('AI can make mistakes. Check important numbers on your Dashboard.')}</p>
           </div>
         </div>
       </div>
@@ -572,17 +574,17 @@ export default function AIAssistant() {
       <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-sidebar lg:flex">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <p className="text-sm font-medium">Your business</p>
-            <p className="text-xs text-muted-foreground">Last {CONTEXT_DAYS} days</p>
+            <p className="text-sm font-medium">{t('Your business')}</p>
+            <p className="text-xs text-muted-foreground">{t('Last {n} days', { n: CONTEXT_DAYS })}</p>
           </div>
-          <button onClick={fetchContext} aria-label="Refresh numbers" className="icon-btn h-8 w-8">
+          <button onClick={fetchContext} aria-label={t('Refresh numbers')} className="icon-btn h-8 w-8">
             <RefreshCw size={14} className={contextLoading ? 'animate-spin' : ''} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-2">
           {contextLoading && !context ? <SkeletonLoader variant="row" count={5} /> : contextList}
           <p className="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
-            The assistant sees these same numbers when it answers.
+            {t('The assistant sees these same numbers when it answers.')}
           </p>
         </div>
       </aside>

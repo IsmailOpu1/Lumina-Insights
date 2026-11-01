@@ -113,7 +113,7 @@ describe('Invite page', () => {
     });
     openInvite();
     expect(await screen.findByText('Rahman Fashion')).toBeInTheDocument();
-    expect(screen.getByText('manager')).toBeInTheDocument();
+    expect(screen.getByText('Manager')).toBeInTheDocument();
     expect(screen.getByText('karim@example.com')).toBeInTheDocument();
     expect(mocks.rpc).toHaveBeenCalledWith('get_invite_preview', { p_token: 'tok-123' });
   });

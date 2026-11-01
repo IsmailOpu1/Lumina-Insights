@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Entity } from './fields';
+import { msg, tr } from '@/i18n';
 
 export interface ImportCounts {
   import_id?: string;
@@ -21,21 +22,21 @@ export interface ImportRecord {
 
 const MESSAGES: Record<string, string> = {
   plan_limit_orders:
-    "This file has more orders from this month than your plan allows. Older orders don't count, so you can import last months' history now, or upgrade to Pro for unlimited orders.",
-  subscription_inactive: 'Your plan has expired. Choose a plan on the Billing page to import data.',
-  import_not_allowed: 'Only the owner and managers can import data.',
-  import_too_large: 'That file is too large. Please import up to 5,000 rows of each kind at a time.',
-  import_not_found: 'That import no longer exists.',
-  import_already_undone: 'That import was already undone.',
+    msg("This file has more orders from this month than your plan allows. Older orders don't count, so you can import last months' history now, or upgrade to Pro for unlimited orders."),
+  subscription_inactive: msg('Your plan has expired. Choose a plan on the Billing page to import data.'),
+  import_not_allowed: msg('Only the owner and managers can import data.'),
+  import_too_large: msg('That file is too large. Please import up to 5,000 rows of each kind at a time.'),
+  import_not_found: msg('That import no longer exists.'),
+  import_already_undone: msg('That import was already undone.'),
 };
 
 function friendly(message: string) {
   const code = Object.keys(MESSAGES).find((c) => message.includes(c));
-  if (code) return MESSAGES[code];
+  if (code) return tr(MESSAGES[code]);
   if (/invalid input syntax|violates check constraint|out of range/i.test(message)) {
-    return 'Some values in the file could not be saved. Please check the highlighted rows and try again.';
+    return tr('Some values in the file could not be saved. Please check the highlighted rows and try again.');
   }
-  return 'The import did not finish, and nothing was saved. Please try again.';
+  return tr('The import did not finish, and nothing was saved. Please try again.');
 }
 
 /** All or nothing: on any error the database keeps nothing from the file. */

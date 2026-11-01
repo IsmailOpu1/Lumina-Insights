@@ -25,6 +25,7 @@ import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll } from '@/lib/fetchAll';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { parseDay } from '@/lib/dates';
+import { useT, tr, msg, currentDateLocale } from '@/i18n';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -42,19 +43,19 @@ const DEFAULT_PREFS: NotifPrefs = {
 };
 
 const PREF_LABELS: Record<keyof NotifPrefs, string> = {
-  new_order: 'New order', cancelled_order: 'Cancelled or returned order',
-  low_stock: 'Low stock', critical_stock: 'Out of stock',
-  profit_drop: 'Profit drop', roas_alert: 'ROAS alert', weekly_summary: 'Weekly summary',
+  new_order: msg('New order'), cancelled_order: msg('Cancelled or returned order'),
+  low_stock: msg('Low stock'), critical_stock: msg('Out of stock'),
+  profit_drop: msg('Profit drop'), roas_alert: msg('ROAS alert'), weekly_summary: msg('Weekly summary'),
 };
 
 const PREF_HINTS: Record<keyof NotifPrefs, string> = {
-  new_order: 'When an order comes in',
-  cancelled_order: 'When an order is cancelled or returned',
-  low_stock: 'When a product drops below its threshold',
-  critical_stock: 'When a product runs out',
-  profit_drop: 'When profit falls sharply',
-  roas_alert: 'When ad returns drop below your limit',
-  weekly_summary: 'A short recap every week',
+  new_order: msg('When an order comes in'),
+  cancelled_order: msg('When an order is cancelled or returned'),
+  low_stock: msg('When a product drops below its threshold'),
+  critical_stock: msg('When a product runs out'),
+  profit_drop: msg('When profit falls sharply'),
+  roas_alert: msg('When ad returns drop below your limit'),
+  weekly_summary: msg('A short recap every week'),
 };
 
 const PREF_ICONS: Record<keyof NotifPrefs, LucideIcon> = {
@@ -76,7 +77,7 @@ const ROLE_STYLE: Record<string, string> = {
 function RoleBadge({ role }: { role: string }) {
   return (
     <span className={cn('shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize', ROLE_STYLE[role] ?? ROLE_STYLE.viewer)}>
-      {role}
+      {tr(role.charAt(0).toUpperCase() + role.slice(1))}
     </span>
   );
 }
@@ -118,6 +119,7 @@ function SettingRow({ label, description, children }: { label: string; descripti
 const FONT_OPTIONS: FontStyle[] = ['inter', 'poppins', 'roboto', 'playfair', 'nunito', 'dmsans'];
 
 export default function SettingsPage() {
+  const { t } = useT();
   const { symbol } = useCurrency();
   const canExport = useExportGate();
   const navigate = useNavigate();
@@ -295,10 +297,10 @@ export default function SettingsPage() {
       }
       setAvatarUrl(url);
       await refreshSettings();
-      toast.success('Photo updated');
+      toast.success(t('Photo updated'));
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar');
+      toast.error(t('Failed to upload avatar'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -314,7 +316,7 @@ export default function SettingsPage() {
     setBusinessName(profileBusinessName.trim());
     setProfileModalOpen(false);
     setIsEditingProfile(false);
-    toast.success('Profile updated successfully');
+    toast.success(t('Profile updated successfully'));
   }
 
   function openProfileModal() {
@@ -406,15 +408,15 @@ export default function SettingsPage() {
       XLSX.utils.book_append_sheet(wb, eWs, 'Expenses');
 
       XLSX.writeFile(wb, `LuminaInsights_Export_${todaySuffix()}.xlsx`);
-      toast.success('Exported successfully ✓');
-    } catch { toast.error('Export failed'); }
+      toast.success(t('Exported successfully ✓'));
+    } catch { toast.error(t('Export failed')); }
     setExporting(false);
   }
 
   async function handleClearNotifs() {
     // Hides them for this user only; teammates keep theirs.
     await dismiss();
-    toast.success('Cleared ✓');
+    toast.success(t('Cleared ✓'));
     setClearOpen(false);
   }
 
@@ -425,23 +427,23 @@ export default function SettingsPage() {
     setSendingInvite(false);
 
     if (error) {
-      toast.error('Failed to create invite', { description: error });
+      toast.error(t('Failed to create invite'), { description: error });
       return;
     }
 
     setInviteEmail('');
     setInviteModalOpen(false);
     fetchTeamData();
-    if (emailed) toast.success('Invite email sent!');
-    else toast.warning('Invite created, but the email could not be sent. Use the copy-link button to share it.');
+    if (emailed) toast.success(t('Invite email sent!'));
+    else toast.warning(t('Invite created, but the email could not be sent. Use the copy-link button to share it.'));
   }
 
   async function removeTeamMember(memberId: string) {
     const { error } = await supabase.from('team_members').delete().eq('id', memberId);
     if (error) {
-      toast.error('Failed to remove member', { description: error.message });
+      toast.error(t('Failed to remove member'), { description: error.message });
     } else {
-      toast.success('Member removed');
+      toast.success(t('Member removed'));
       fetchTeamData();
     }
   }
@@ -449,21 +451,21 @@ export default function SettingsPage() {
   async function revokeInvite(inviteId: string) {
     const { error } = await supabase.from('invites').delete().eq('id', inviteId);
     if (error) {
-      toast.error('Failed to revoke invite', { description: error.message });
+      toast.error(t('Failed to revoke invite'), { description: error.message });
     } else {
-      toast.success('Invite revoked');
+      toast.success(t('Invite revoked'));
       fetchTeamData();
     }
   }
 
   function copyInviteLink(token: string) {
     navigator.clipboard.writeText(inviteLink(token));
-    toast.success('Link copied!');
+    toast.success(t('Link copied!'));
   }
 
   if (loading) return (
     <div className="mx-auto max-w-[1200px]">
-      <h1 className="page-title mb-6">Settings</h1>
+      <h1 className="page-title mb-6">{t('Settings')}</h1>
       <SkeletonLoader variant="row" count={6} />
     </div>
   );
@@ -476,17 +478,17 @@ export default function SettingsPage() {
     .slice(0, 2);
 
   const planBadge = !subscription ? null
-    : subscription.state === 'trialing' ? 'Pro trial'
-    : subscription.state === 'expired' ? 'Expired'
+    : subscription.state === 'trialing' ? t('Pro trial')
+    : subscription.state === 'expired' ? t('Expired')
     : subscription.limits.name;
 
   const usage = subscription?.usage;
   const limits = subscription?.limits;
   const heroStats = subscription && usage && limits ? [
-    { label: 'Plan', value: planBadge ?? '—', icon: Crown },
-    { label: 'Orders this month', value: limits.max_orders_per_month === null ? `${usage.orders_this_month}` : `${usage.orders_this_month} / ${limits.max_orders_per_month}`, icon: ShoppingBag },
-    { label: 'AI questions today', value: `${usage.ai_chat_today} / ${limits.ai_chat_per_day}`, icon: Sparkles },
-    { label: 'Team', value: limits.max_team_members > 0 ? `${usage.team_members + 1} / ${limits.max_team_members + 1}` : 'Just you', icon: Users },
+    { label: t('Plan'), value: planBadge ?? '—', icon: Crown },
+    { label: t('Orders this month'), value: limits.max_orders_per_month === null ? `${usage.orders_this_month}` : `${usage.orders_this_month} / ${limits.max_orders_per_month}`, icon: ShoppingBag },
+    { label: t('AI questions today'), value: `${usage.ai_chat_today} / ${limits.ai_chat_per_day}`, icon: Sparkles },
+    { label: t('Team'), value: limits.max_team_members > 0 ? `${usage.team_members + 1} / ${limits.max_team_members + 1}` : t('Just you'), icon: Users },
   ] : [];
 
   return (
@@ -495,10 +497,10 @@ export default function SettingsPage() {
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Your account, how Lumina looks, and the rules behind your alerts.</p>
+          <h1 className="page-title">{t('Settings')}</h1>
+          <p className="page-subtitle">{t('Your account, how Lumina looks, and the rules behind your alerts.')}</p>
         </div>
-        {saved && <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success animate-in fade-in"><Check size={13} />Saved</span>}
+        {saved && <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success animate-in fade-in"><Check size={13} />{t('Saved')}</span>}
       </div>
 
       {/* Profile hero */}
@@ -513,7 +515,7 @@ export default function SettingsPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingAvatar}
             className="group relative h-24 w-24 shrink-0 self-start rounded-3xl md:self-auto"
-            aria-label="Change profile photo"
+            aria-label={t('Change profile photo')}
           >
             <span className="absolute -inset-1 rounded-[28px] bg-gradient-to-br from-primary to-highlight opacity-60 blur-md transition-opacity group-hover:opacity-90" />
             <span className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-highlight text-3xl font-semibold text-primary-foreground ring-2 ring-background">
@@ -533,15 +535,15 @@ export default function SettingsPage() {
             <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><Mail size={14} />{displayEmail}</span>
               <span className="flex items-center gap-1.5"><Building2 size={14} />{businessName}</span>
-              {user?.created_at && <span className="flex items-center gap-1.5"><CalendarDays size={14} />Since {fnsFormat(new Date(user.created_at), 'MMM yyyy')}</span>}
+              {user?.created_at && <span className="flex items-center gap-1.5"><CalendarDays size={14} />{t('Since {date}', { date: fnsFormat(new Date(user.created_at), 'MMM yyyy', { locale: currentDateLocale() }) })}</span>}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="sm" className="gap-1.5" onClick={openProfileModal}>
-                <Pencil size={14} /> Edit profile
+                <Pencil size={14} /> {t('Edit profile')}
               </Button>
               {isOwner && (
                 <Button size="sm" variant="outline" className="gap-1.5 bg-background/40" onClick={() => navigate('/billing')}>
-                  <CreditCard size={14} /> Billing
+                  <CreditCard size={14} /> {t('Billing')}
                 </Button>
               )}
               <Button
@@ -550,7 +552,7 @@ export default function SettingsPage() {
                 className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={async () => { await signOut(); navigate('/login', { replace: true }); }}
               >
-                <LogOut size={14} /> Sign out
+                <LogOut size={14} /> {t('Sign out')}
               </Button>
             </div>
           </div>
@@ -573,7 +575,7 @@ export default function SettingsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Appearance */}
-        <SettingsCard id="appearance" icon={Palette} title="Appearance" description="Pick the font you find easiest to read.">
+        <SettingsCard id="appearance" icon={Palette} title={t('Appearance')} description={t('Pick the font you find easiest to read.')}>
           <div className="grid grid-cols-3 gap-2 p-5">
             {FONT_OPTIONS.map(f => (
               <button
@@ -594,25 +596,25 @@ export default function SettingsPage() {
         </SettingsCard>
 
         {/* Dashboard + rules */}
-        <SettingsCard id="rules" icon={Gauge} title="Dashboard and alerts" description="What you see first, and when Lumina warns you.">
-          <SettingRow label="Default date range" description="The period the Dashboard opens on.">
+        <SettingsCard id="rules" icon={Gauge} title={t('Dashboard and alerts')} description={t('What you see first, and when Lumina warns you.')}>
+          <SettingRow label={t('Default date range')} description={t('The period the Dashboard opens on.')}>
             <Segmented
-              label="Default date range"
+              label={t('Default date range')}
               value={dashboardFilter}
               onChange={handleDashFilter}
               options={[{ label: 'Today', value: 'today' }, { label: '7 days', value: '7days' }, { label: '30 days', value: '30days' }]}
             />
           </SettingRow>
-          <SettingRow label="ROAS alert" description="Warn me when return on ad spend drops below this.">
+          <SettingRow label={t('ROAS alert')} description={t('Warn me when return on ad spend drops below this.')}>
             <div className="relative w-28">
-              <Input type="number" min={0} step="0.1" value={roasThreshold} onChange={e => handleRoas(e.target.value)} className="pr-7 text-right tabular-nums" aria-label="ROAS threshold" />
+              <Input type="number" min={0} step="0.1" value={roasThreshold} onChange={e => handleRoas(e.target.value)} className="pr-7 text-right tabular-nums" aria-label={t('ROAS threshold')} />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">x</span>
             </div>
           </SettingRow>
-          <SettingRow label="Not selling after" description="Flag a product after this many days without a sale.">
+          <SettingRow label={t('Not selling after')} description={t('Flag a product after this many days without a sale.')}>
             <div className="relative w-28">
-              <Input type="number" min={1} value={deadDays} onChange={e => handleDeadDays(e.target.value)} className="pr-12 text-right tabular-nums" aria-label="Dead product days" />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">days</span>
+              <Input type="number" min={1} value={deadDays} onChange={e => handleDeadDays(e.target.value)} className="pr-12 text-right tabular-nums" aria-label={t('Dead product days')} />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{t('days')}</span>
             </div>
           </SettingRow>
         </SettingsCard>
@@ -621,10 +623,10 @@ export default function SettingsPage() {
         <SettingsCard
           id="alerts"
           icon={Bell}
-          title="Notifications"
-          description="Choose which alerts reach your bell menu."
+          title={t('Notifications')}
+          description={t('Choose which alerts reach your bell menu.')}
           className="lg:col-span-2"
-          action={<Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setClearOpen(true)}>Clear mine</Button>}
+          action={<Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setClearOpen(true)}>{t('Clear mine')}</Button>}
         >
           <div className="grid gap-2 p-5 sm:grid-cols-2 xl:grid-cols-4">
             {(Object.keys(PREF_LABELS) as (keyof NotifPrefs)[]).map(key => {
@@ -649,15 +651,15 @@ export default function SettingsPage() {
                       checked={on}
                       disabled={proOnly}
                       onCheckedChange={() => handlePrefToggle(key)}
-                      aria-label={PREF_LABELS[key]}
+                      aria-label={t(PREF_LABELS[key])}
                     />
                   </span>
                   <span>
                     <span className="flex items-center gap-2 text-sm font-medium">
-                      {PREF_LABELS[key]}
+                      {t(PREF_LABELS[key])}
                       {proOnly && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary">Pro</span>}
                     </span>
-                    <span className="block text-xs text-muted-foreground">{PREF_HINTS[key]}</span>
+                    <span className="block text-xs text-muted-foreground">{t(PREF_HINTS[key])}</span>
                   </span>
                 </label>
               );
@@ -670,21 +672,21 @@ export default function SettingsPage() {
           <SettingsCard
             id="team"
             icon={Users}
-            title="Team"
-            description="Managers can add and edit data. Viewers can only look."
+            title={t('Team')}
+            description={t('Managers can add and edit data. Viewers can only look.')}
             action={teamAllowed && (
               <Button size="sm" className="gap-1.5" onClick={() => setInviteModalOpen(true)}>
-                <MailPlus size={14} /> Invite
+                <MailPlus size={14} /> {t('Invite')}
               </Button>
             )}
           >
             {!teamAllowed && (
               <div className="m-5 rounded-lg border border-primary/30 bg-primary/5 p-4">
-                <p className="text-sm font-medium">Team members are a Pro feature.</p>
+                <p className="text-sm font-medium">{t('Team members are a Pro feature.')}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade to Pro to invite people. Anyone you invited before keeps their place and gets access back when you upgrade.
+                  {t('Upgrade to Pro to invite people. Anyone you invited before keeps their place and gets access back when you upgrade.')}
                 </p>
-                <Button size="sm" className="mt-3" onClick={() => navigate('/billing')}>See plans</Button>
+                <Button size="sm" className="mt-3" onClick={() => navigate('/billing')}>{t('See plans')}</Button>
               </div>
             )}
 
@@ -692,7 +694,7 @@ export default function SettingsPage() {
               <li className="flex items-center gap-3 border-b border-border/60 px-5 py-3">
                 <UserAvatar className="h-9 w-9 text-xs" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{fullName || businessName} <span className="text-muted-foreground">(you)</span></p>
+                  <p className="truncate text-sm font-medium">{fullName || businessName} <span className="text-muted-foreground">{t('(you)')}</span></p>
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
                 <RoleBadge role="owner" />
@@ -704,7 +706,7 @@ export default function SettingsPage() {
                   </span>
                   <p className="min-w-0 flex-1 truncate text-sm">{member.email}</p>
                   <RoleBadge role={member.role} />
-                  <button onClick={() => removeTeamMember(member.id)} className="icon-btn-danger" aria-label={`Remove ${member.email}`}>
+                  <button onClick={() => removeTeamMember(member.id)} className="icon-btn-danger" aria-label={t('Remove {email}', { email: member.email ?? '' })}>
                     <X size={16} />
                   </button>
                 </li>
@@ -716,13 +718,13 @@ export default function SettingsPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{invite.email}</p>
-                    <p className="text-xs text-muted-foreground">Invite pending · expires {fnsFormat(new Date(invite.expires_at), 'MMM d')}</p>
+                    <p className="text-xs text-muted-foreground">{t('Invite pending · expires {date}', { date: fnsFormat(new Date(invite.expires_at), 'MMM d', { locale: currentDateLocale() }) })}</p>
                   </div>
                   <RoleBadge role={invite.role} />
-                  <button onClick={() => copyInviteLink(invite.token)} className="icon-btn" aria-label="Copy invite link">
+                  <button onClick={() => copyInviteLink(invite.token)} className="icon-btn" aria-label={t('Copy invite link')}>
                     <Copy size={16} />
                   </button>
-                  <button onClick={() => revokeInvite(invite.id)} className="icon-btn-danger" aria-label="Revoke invite">
+                  <button onClick={() => revokeInvite(invite.id)} className="icon-btn-danger" aria-label={t('Revoke invite')}>
                     <X size={16} />
                   </button>
                 </li>
@@ -735,15 +737,15 @@ export default function SettingsPage() {
                     <span key={i} className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-muted text-muted-foreground"><UserRound size={15} /></span>
                   ))}
                 </div>
-                <p className="mt-3 text-sm font-medium">Run the shop together</p>
-                <p className="mt-1 max-w-xs text-xs text-muted-foreground">Invite a manager to record orders, or a viewer like a partner who only wants to see the numbers.</p>
+                <p className="mt-3 text-sm font-medium">{t('Run the shop together')}</p>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground">{t('Invite a manager to record orders, or a viewer like a partner who only wants to see the numbers.')}</p>
               </div>
             )}
           </SettingsCard>
         )}
 
         {/* Data */}
-        <SettingsCard id="data" icon={Database} title="Your data" description="It belongs to you. Take a copy any time." className={cn(!isOwner && 'lg:col-span-2')}>
+        <SettingsCard id="data" icon={Database} title={t('Your data')} description={t('It belongs to you. Take a copy any time.')} className={cn(!isOwner && 'lg:col-span-2')}>
           <div className="space-y-3 p-5">
             <button
               onClick={handleExportAll}
@@ -754,8 +756,8 @@ export default function SettingsPage() {
                 {exporting ? <Loader2 size={20} className="animate-spin" /> : <FileSpreadsheet size={20} />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium">{exporting ? 'Exporting...' : 'Export everything to Excel'}</span>
-                <span className="block text-xs text-muted-foreground">Orders, inventory and expenses, one sheet each</span>
+                <span className="block text-sm font-medium">{exporting ? t('Exporting...') : t('Export everything to Excel')}</span>
+                <span className="block text-xs text-muted-foreground">{t('Orders, inventory and expenses, one sheet each')}</span>
               </span>
               <Download size={16} className="text-muted-foreground transition-colors group-hover:text-primary" />
             </button>
@@ -763,13 +765,13 @@ export default function SettingsPage() {
               {[{ label: 'Orders', icon: ShoppingBag }, { label: 'Inventory', icon: Package }, { label: 'Expenses', icon: Receipt }].map(({ label, icon: Icon }) => (
                 <div key={label} className="rounded-lg border border-border/70 bg-background/20 px-2 py-3">
                   <Icon size={16} className="mx-auto text-muted-foreground" />
-                  <p className="mt-1.5 text-xs text-muted-foreground">{label}</p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{t(label)}</p>
                 </div>
               ))}
             </div>
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
               <ShieldCheck size={14} className="mt-px shrink-0 text-primary" />
-              Only you and the people you invite can see this workspace.
+              {t('Only you and the people you invite can see this workspace.')}
             </p>
           </div>
         </SettingsCard>
@@ -778,12 +780,12 @@ export default function SettingsPage() {
       <AlertDialog open={clearOpen} onOpenChange={o => { if (!o) setClearOpen(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear your notifications?</AlertDialogTitle>
-            <AlertDialogDescription>They disappear from your bell menu. Your teammates keep theirs.</AlertDialogDescription>
+            <AlertDialogTitle>{t('Clear your notifications?')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('They disappear from your bell menu. Your teammates keep theirs.')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearNotifs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Clear</AlertDialogAction>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearNotifs} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('Clear')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -792,12 +794,12 @@ export default function SettingsPage() {
       <AlertDialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Invite a team member</AlertDialogTitle>
-            <AlertDialogDescription>They get an email with a link to join your workspace.</AlertDialogDescription>
+            <AlertDialogTitle>{t('Invite a team member')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('They get an email with a link to join your workspace.')}</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label className="mb-2 block text-sm">Email Address</Label>
+              <Label className="mb-2 block text-sm">{t('Email Address')}</Label>
               <Input
                 type="email"
                 placeholder="team@example.com"
@@ -807,7 +809,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <Label className="mb-2 block text-sm">Role</Label>
+              <Label className="mb-2 block text-sm">{t('Role')}</Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -816,7 +818,7 @@ export default function SettingsPage() {
                   onClick={() => setInviteRole('manager')}
                   disabled={sendingInvite}
                 >
-                  Manager
+                  {t('Manager')}
                 </Button>
                 <Button
                   type="button"
@@ -825,23 +827,23 @@ export default function SettingsPage() {
                   onClick={() => setInviteRole('viewer')}
                   disabled={sendingInvite}
                 >
-                  Viewer
+                  {t('Viewer')}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {inviteRole === 'manager' ? 'Can add/edit data and manage team' : 'Can only view data'}
+                {inviteRole === 'manager' ? t('Can add/edit data and manage team') : t('Can only view data')}
               </p>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={sendingInvite}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={sendingInvite}>{t('Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={sendTeamInvite}
               disabled={!inviteEmail.trim() || sendingInvite}
               
             >
               {sendingInvite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Send invite
+              {t('Send invite')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -851,8 +853,8 @@ export default function SettingsPage() {
       <AlertDialog open={profileModalOpen} onOpenChange={setProfileModalOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Edit profile</AlertDialogTitle>
-            <AlertDialogDescription>Update your profile information</AlertDialogDescription>
+            <AlertDialogTitle>{t('Edit profile')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('Update your profile information')}</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
             {/* Avatar Upload */}
@@ -881,45 +883,45 @@ export default function SettingsPage() {
 
             {/* Full Name */}
             <div>
-              <Label className="mb-2 block text-sm">Full Name</Label>
+              <Label className="mb-2 block text-sm">{t('Full Name')}</Label>
               <Input
                 value={profileFullName}
                 onChange={e => setProfileFullName(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder={t('Enter your full name')}
               />
             </div>
 
             {/* Business Name - only for owners */}
             {isOwner && (
               <div>
-                <Label className="mb-2 block text-sm">Business Name</Label>
+                <Label className="mb-2 block text-sm">{t('Business Name')}</Label>
                 <Input
                   value={profileBusinessName}
                   onChange={e => setProfileBusinessName(e.target.value)}
-                  placeholder="Enter your business name"
+                  placeholder={t('Enter your business name')}
                 />
               </div>
             )}
 
             {/* Email (Read-only) */}
             <div>
-              <Label className="mb-2 block text-sm">Email</Label>
+              <Label className="mb-2 block text-sm">{t('Email')}</Label>
               <Input
                 value={user?.email || ''}
                 disabled
                 className="bg-muted/50"
               />
-              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('Email cannot be changed')}</p>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleProfileSave}
               disabled={!profileFullName.trim() && !profileBusinessName.trim()}
               
             >
-              Save changes
+              {t('Save changes')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

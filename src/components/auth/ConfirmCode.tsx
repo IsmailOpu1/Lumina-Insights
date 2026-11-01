@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/i18n';
 
 /** Matches otp_length in supabase/config.toml. */
 export const CODE_LENGTH = 8;
@@ -16,6 +17,7 @@ export const CODE_LENGTH = 8;
  * code is cleaned up, and a complete code is checked straight away.
  */
 export default function ConfirmCode({ email }: { email: string }) {
+  const { t } = useT();
   const navigate = useNavigate();
   const { refreshSettings } = useAuth();
   const [code, setCode] = useState('');
@@ -29,11 +31,11 @@ export default function ConfirmCode({ email }: { email: string }) {
     setChecking(false);
     if (err) {
       setError(/expired|invalid/i.test(err.message)
-        ? 'That code is wrong or has expired. Check the latest email, or send a new one below.'
+        ? t('That code is wrong or has expired. Check the latest email, or send a new one below.')
         : err.message);
       return;
     }
-    toast.success('Email confirmed. Welcome to Lumina!');
+    toast.success(t('Email confirmed. Welcome to Lumina!'));
     // ProtectedRoute sends new accounts on to onboarding.
     await refreshSettings();
     navigate('/', { replace: true });
@@ -52,7 +54,7 @@ export default function ConfirmCode({ email }: { email: string }) {
       onSubmit={(e) => { e.preventDefault(); if (code.length === CODE_LENGTH) verify(code); }}
     >
       <label htmlFor="confirm-code" className="text-sm font-medium text-foreground">
-        Enter the {CODE_LENGTH}-digit code from the email
+        {t('Enter the {n}-digit code from the email', { n: CODE_LENGTH })}
       </label>
       <Input
         id="confirm-code"
@@ -68,7 +70,7 @@ export default function ConfirmCode({ email }: { email: string }) {
       />
       {error && <p role="alert" className="text-xs font-medium text-destructive">{error}</p>}
       <Button type="submit" disabled={checking || code.length !== CODE_LENGTH} className="h-12 w-full font-bold">
-        {checking ? <Loader2 className="animate-spin" size={18} /> : 'Confirm email'}
+        {checking ? <Loader2 className="animate-spin" size={18} /> : t('Confirm email')}
       </Button>
     </form>
   );

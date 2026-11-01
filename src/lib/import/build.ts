@@ -3,6 +3,7 @@ import {
   CellError, mapExpenseType, mapSource, mapStatus, parseAmount, parseCount, parseDate, parseText,
 } from './normalize';
 import type { SheetData } from './readFile';
+import { tr } from '@/i18n';
 
 export interface CellIssue {
   /** Index into sheet.rows. */
@@ -64,33 +65,33 @@ export function buildRecords(entity: Entity, sheet: SheetData, mapping: Mapping,
         out[key] = parseField(field, value);
         if (field.kind === 'source' && out[key] === null && parseText(value)) {
           notes.push({ index, row: sheet.rowNumbers[index], column, field: key, label: field.label,
-            message: `"${parseText(value)}" isn't a channel Lumina tracks, so it's saved as not specified`, value: String(value) });
+            message: tr("\"{value}\" isn't a channel Lumina tracks, so it's saved as not specified", { value: parseText(value) }), value: String(value) });
         }
       } catch (e) {
-        problem(field, column, e instanceof CellError ? e.message : 'could not be read', value);
+        problem(field, column, e instanceof CellError ? e.message : tr('could not be read'), value);
       }
     });
 
     const col = (key: string) => mapping.indexOf(key);
     for (const f of fields) {
       if (f.required && (out[f.key] === null || out[f.key] === undefined) && !issues.some((i) => i.index === index && i.field === f.key)) {
-        problem(f, col(f.key), 'is empty', '');
+        problem(f, col(f.key), tr('is empty'), '');
       }
     }
 
     if (entity === 'orders') {
       const qty = (out.quantity as number | null) ?? 1;
-      if (qty === 0) problem(fields.find((f) => f.key === 'quantity')!, col('quantity'), 'is 0', '0');
+      if (qty === 0) problem(fields.find((f) => f.key === 'quantity')!, col('quantity'), tr('is 0'), '0');
       if (out.selling_price == null && out.total != null && qty > 0) {
         out.selling_price = Math.round(((out.total as number) / qty) * 100) / 100;
       }
       if (out.selling_price == null && !invalid.has(index)) {
         const priceCol = col('selling_price') >= 0 ? col('selling_price') : col('total');
         problem(fields.find((f) => f.key === (col('selling_price') >= 0 ? 'selling_price' : 'total'))!, priceCol,
-          'needs a price or a total', '');
+          tr('needs a price or a total'), '');
       }
       if (!out.product_name && !out.sku && !invalid.has(index)) {
-        problem(fields.find((f) => f.key === 'product_name')!, col('product_name'), 'is empty', '');
+        problem(fields.find((f) => f.key === 'product_name')!, col('product_name'), tr('is empty'), '');
       }
       out.quantity = qty;
       delete out.total;

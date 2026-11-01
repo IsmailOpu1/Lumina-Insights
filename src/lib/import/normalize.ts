@@ -1,3 +1,4 @@
+import { tr } from '@/i18n';
 // Turns the messy values people keep in spreadsheets into what Lumina
 // stores. Every parser returns null for an empty cell and throws a short,
 // human message when a value can't be understood.
@@ -19,7 +20,7 @@ export class CellError extends Error {}
 export function parseNumber(value: unknown): number | null {
   if (isBlank(value)) return null;
   if (typeof value === 'number') {
-    if (!Number.isFinite(value)) throw new CellError('is not a number');
+    if (!Number.isFinite(value)) throw new CellError(tr('is not a number'));
     return value;
   }
   let s = toLatinDigits(String(value)).trim().toLowerCase();
@@ -29,7 +30,7 @@ export function parseNumber(value: unknown): number | null {
     .replace(/৳|tk\.?|taka|bdt|rs\.?|টাকা/g, '')
     .replace(/[,\s()]/g, '')
     .replace(/^-/, '');
-  if (s === '' || !/^\d*\.?\d+$/.test(s)) throw new CellError(`"${String(value).trim()}" is not a number`);
+  if (s === '' || !/^\d*\.?\d+$/.test(s)) throw new CellError(tr('"{value}" is not a number', { value: String(value).trim() }));
   const n = Number(s);
   return negative ? -n : n;
 }
@@ -38,10 +39,10 @@ export function parseNumber(value: unknown): number | null {
 export function parseCount(value: unknown): number | null {
   const n = parseNumber(value);
   if (n === null) return null;
-  if (n < 0) throw new CellError('cannot be negative');
+  if (n < 0) throw new CellError(tr('cannot be negative'));
   if (!Number.isInteger(n)) {
     if (Math.abs(n - Math.round(n)) < 1e-9) return Math.round(n);
-    throw new CellError(`${n} is not a whole number`);
+    throw new CellError(tr('{n} is not a whole number', { n }));
   }
   return n;
 }
@@ -49,7 +50,7 @@ export function parseCount(value: unknown): number | null {
 /** Like parseNumber but must not be negative (prices, costs, amounts). */
 export function parseAmount(value: unknown): number | null {
   const n = parseNumber(value);
-  if (n !== null && n < 0) throw new CellError('cannot be negative');
+  if (n !== null && n < 0) throw new CellError(tr('cannot be negative'));
   return n === null ? null : Math.round(n * 100) / 100;
 }
 
@@ -69,9 +70,9 @@ function toIso(y: number, m: number, d: number): string {
   if (y < 100) y += 2000;
   const date = new Date(Date.UTC(y, m - 1, d));
   if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) {
-    throw new CellError('is not a real date');
+    throw new CellError(tr('is not a real date'));
   }
-  if (y < 2000 || y > 2100) throw new CellError(`year ${y} looks wrong`);
+  if (y < 2000 || y > 2100) throw new CellError(tr('year {y} looks wrong', { y }));
   return `${y}-${pad(m)}-${pad(d)}`;
 }
 
@@ -84,7 +85,7 @@ export function parseDate(value: unknown): string | null {
 
   // Excel stores dates as days since 1899-12-30.
   if (typeof value === 'number') {
-    if (value < 20000 || value > 80000) throw new CellError(`${value} is not a date`);
+    if (value < 20000 || value > 80000) throw new CellError(tr('{value} is not a date', { value }));
     const d = new Date(Date.UTC(1899, 11, 30) + Math.round(value) * 86400000);
     return toIso(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   }
@@ -114,7 +115,7 @@ export function parseDate(value: unknown): string | null {
   if ((m = s.match(/^([\p{L}\p{M}]+)\.? (\d{1,2})(?:st|nd|rd|th)? (\d{2}|\d{4})$/u)) && MONTHS[m[1]]) {
     return toIso(+m[3], MONTHS[m[1]], +m[2]);
   }
-  throw new CellError(`"${raw}" is not a date Lumina understands`);
+  throw new CellError(tr('"{value}" is not a date Lumina understands', { value: raw }));
 }
 
 export function parseText(value: unknown, max = 200): string | null {

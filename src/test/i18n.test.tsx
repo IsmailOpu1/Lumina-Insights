@@ -8,6 +8,8 @@ import { ORDER_STATUSES, EXPENSE_TYPES } from '@/lib/constants';
 import { NAV_GROUPS } from '@/components/Sidebar';
 import { ROUTE_TITLES } from '@/components/Topbar';
 import { NOTIFICATION_KEYS, notificationText } from '@/i18n/notifications';
+import { ENTITY_LABELS, FIELDS } from '@/lib/import/fields';
+import { paymentStatusLabel } from '@/lib/subscription';
 
 /** Every English text passed to t(), tr() or msg() in the app's code. */
 function wrappedTexts() {
@@ -39,6 +41,10 @@ describe('Bangla dictionary', () => {
       ...NAV_GROUPS.flatMap((g) => [g.label, ...g.items.map((i) => i.label)]),
       ...Object.values(ROUTE_TITLES),
       ...NOTIFICATION_KEYS,
+      ...Object.values(ENTITY_LABELS),
+      ...Object.values(FIELDS).flatMap((fields) => fields.map((f) => f.label)),
+      ...['pending', 'paid', 'failed', 'cancelled', 'review'].map((s) => paymentStatusLabel(s, new Date().toISOString())),
+      'Pro', 'Starter', 'Pro trial', 'Not completed',
     ];
     expect(dynamic.filter((text) => !(text in bn))).toEqual([]);
   });

@@ -1,3 +1,4 @@
+import { tr } from '@/i18n';
 // Reads .xlsx / .xls / .csv in the browser. Nothing is uploaded here; only
 // the cleaned records are sent to the database when the person confirms.
 
@@ -69,7 +70,7 @@ function toSheet(name: string, grid: unknown[][], firstRow: number): SheetData |
   if (!rows.length) return null;
   if (rows.length > MAX_ROWS_PER_SHEET) {
     throw new ImportFileError(
-      `The sheet "${name}" has ${rows.length.toLocaleString()} rows. Lumina imports up to ${MAX_ROWS_PER_SHEET.toLocaleString()} per sheet, so please split it into smaller files.`,
+      tr('The sheet "{name}" has {rows} rows. Lumina imports up to {max} per sheet, so please split it into smaller files.', { name, rows: rows.length.toLocaleString(), max: MAX_ROWS_PER_SHEET.toLocaleString() }),
     );
   }
   return { name, headers, rows, rowNumbers };
@@ -91,10 +92,10 @@ function readBlob(file: File, as: 'text' | 'buffer'): Promise<string | ArrayBuff
 export async function readSpreadsheet(file: File): Promise<SheetData[]> {
   const lower = file.name.toLowerCase();
   if (!ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext))) {
-    throw new ImportFileError('Please choose an Excel (.xlsx, .xls) or CSV file.');
+    throw new ImportFileError(tr('Please choose an Excel (.xlsx, .xls) or CSV file.'));
   }
   if (file.size > MAX_FILE_BYTES) {
-    throw new ImportFileError('That file is larger than 5 MB. Please remove unused sheets or split it.');
+    throw new ImportFileError(tr('That file is larger than 5 MB. Please remove unused sheets or split it.'));
   }
 
   // xlsx is large, so it only loads when someone imports.
@@ -106,7 +107,7 @@ export async function readSpreadsheet(file: File): Promise<SheetData[]> {
       ? XLSX.read(await readBlob(file, 'text'), { type: 'string', raw: true })
       : XLSX.read(await readBlob(file, 'buffer'), { type: 'array', cellDates: false });
   } catch {
-    throw new ImportFileError("Lumina couldn't open that file. If it has a password, remove it and try again.");
+    throw new ImportFileError(tr("Lumina couldn't open that file. If it has a password, remove it and try again."));
   }
 
   const sheets: SheetData[] = [];
@@ -119,6 +120,6 @@ export async function readSpreadsheet(file: File): Promise<SheetData[]> {
     const sheet = toSheet(name, grid, firstRow);
     if (sheet) sheets.push(sheet);
   }
-  if (!sheets.length) throw new ImportFileError('That file has no rows to import.');
+  if (!sheets.length) throw new ImportFileError(tr('That file has no rows to import.'));
   return sheets;
 }

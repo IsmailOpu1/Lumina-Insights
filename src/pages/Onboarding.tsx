@@ -10,16 +10,20 @@ import { Progress } from '@/components/ui/progress';
 import { Sparkles, ArrowRight, Check, Loader2, ShoppingBag, Megaphone, MessageSquare, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createInvite, type InviteRole } from '@/lib/invites';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useT, msg } from '@/i18n';
 
-const BUSINESS_TYPES = ['Fashion/Clothing', 'Electronics', 'Food & Beverage', 'Beauty & Skincare', 'Home & Living', 'Other'];
+// Stored in English; shown translated.
+const BUSINESS_TYPES = [msg('Fashion/Clothing'), msg('Electronics'), msg('Food & Beverage'), msg('Beauty & Skincare'), msg('Home & Living'), msg('Other')];
 
 const CURRENCIES = [
-  { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'BDT', symbol: '৳', name: msg('Bangladeshi Taka') },
+  { code: 'INR', symbol: '₹', name: msg('Indian Rupee') },
+  { code: 'USD', symbol: '$', name: msg('US Dollar') },
 ];
 
 export default function Onboarding() {
+  const { t } = useT();
   const navigate = useNavigate();
   const { user, userSettings, loading: authLoading, refreshSettings } = useAuth();
   const [step, setStep] = useState(1);
@@ -53,14 +57,14 @@ export default function Onboarding() {
     setSendingInvite(false);
 
     if (error) {
-      toast.error('Failed to create invite', { description: error });
+      toast.error(t('Failed to create invite'), { description: error });
       return;
     }
 
     setSentInvites((prev) => [...prev, { email: inviteEmail.trim(), role: inviteRole, link }]);
     setInviteEmail('');
-    if (emailed) toast.success('Invite email sent!');
-    else toast.warning('Invite created, but the email could not be sent. Copy the link and share it.');
+    if (emailed) toast.success(t('Invite email sent!'));
+    else toast.warning(t('Invite created, but the email could not be sent. Copy the link and share it.'));
   };
 
   // role and owner_id are enforced by the database for new rows.
@@ -76,7 +80,7 @@ export default function Onboarding() {
       onboarding_complete: complete,
     }, { onConflict: 'user_id' });
     if (error) {
-      toast.error('Could not save your business profile', { description: error.message });
+      toast.error(t('Could not save your business profile'), { description: error.message });
       return false;
     }
     return true;
@@ -132,6 +136,7 @@ export default function Onboarding() {
           ))}
         </div>
         <Progress value={progress} className="h-1.5 mb-6" />
+        <LanguageToggle className="mb-2 ml-auto" />
 
         {/* Card */}
         <div className="rounded-2xl border border-white/10 bg-card p-8 shadow-2xl" style={{ animation: 'slideLeft 400ms ease' }}>
@@ -140,52 +145,52 @@ export default function Onboarding() {
               <div style={{ animation: 'scaleIn 600ms ease' }}>
                 <Sparkles size={56} className="text-primary" />
               </div>
-              <h1 className="text-[28px] font-bold text-foreground">Welcome to Lumina Insights!</h1>
-              <p className="text-muted-foreground">Let's set up your business in just a few steps</p>
+              <h1 className="text-[28px] font-bold text-foreground">{t('Welcome to Lumina Insights!')}</h1>
+              <p className="text-muted-foreground">{t("Let's set up your business in just a few steps")}</p>
               <Button onClick={nextStep} className="mt-4 h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
-                Let's Get Started <ArrowRight size={18} className="ml-2" />
+                {t("Let's Get Started")} <ArrowRight size={18} className="ml-2" />
               </Button>
             </div>
           )}
 
           {step === 2 && (
             <div className="flex flex-col gap-4">
-              <h2 className="text-2xl font-bold text-foreground">Tell us about your business</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('Tell us about your business')}</h2>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Business Name *</label>
-                <Input placeholder='e.g. Rahman Electronics' value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-12" />
+                <label className="text-sm font-medium text-foreground mb-1 block">{t('Business Name *')}</label>
+                <Input placeholder={t('e.g. Rahman Electronics')} value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-12" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Business Type *</label>
+                <label className="text-sm font-medium text-foreground mb-1 block">{t('Business Type *')}</label>
                 <Select value={businessType} onValueChange={setBusinessType}>
-                  <SelectTrigger className="h-12"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectTrigger className="h-12"><SelectValue placeholder={t('Select type')} /></SelectTrigger>
                   <SelectContent>
-                    {BUSINESS_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    {BUSINESS_TYPES.map((type) => <SelectItem key={type} value={type}>{t(type)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Business Description *</label>
+                <label className="text-sm font-medium text-foreground mb-1 block">{t('Business Description *')}</label>
                 <Textarea
-                  placeholder="e.g. We sell handmade jewelry on Instagram and WhatsApp in Dhaka. Our main customers are women aged 18-35 in Bangladesh."
+                  placeholder={t('e.g. We sell handmade jewelry on Instagram and WhatsApp in Dhaka. Our main customers are women aged 18-35 in Bangladesh.')}
                   value={businessDesc}
                   onChange={(e) => setBusinessDesc(e.target.value.slice(0, 300))}
                   className="min-h-[100px]"
                 />
-                <p className="text-xs text-muted-foreground mt-1">{businessDesc.length}/300 — This helps our AI give you better advice</p>
+                <p className="text-xs text-muted-foreground mt-1">{businessDesc.length}/300 — {t('This helps our AI give you better advice')}</p>
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Your Full Name *</label>
-                <Input placeholder="Your name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-12" />
+                <label className="text-sm font-medium text-foreground mb-1 block">{t('Your Full Name *')}</label>
+                <Input placeholder={t('Your name')} value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-12" />
               </div>
               <div className="flex gap-3 mt-2">
-                <Button variant="outline" onClick={prevStep} className="flex-1 h-12">Back</Button>
+                <Button variant="outline" onClick={prevStep} className="flex-1 h-12">{t('Back')}</Button>
                 <Button
                   onClick={nextStep}
                   disabled={!businessName.trim() || !businessType || !businessDesc.trim() || !fullName.trim()}
                   className="flex-1 h-12 bg-primary font-bold text-white hover:bg-primary/90"
                 >
-                  Continue <ArrowRight size={18} className="ml-2" />
+                  {t('Continue')} <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>
             </div>
@@ -193,8 +198,8 @@ export default function Onboarding() {
 
           {step === 3 && (
             <div className="flex flex-col gap-4">
-              <h2 className="text-2xl font-bold text-foreground">Choose your currency</h2>
-              <p className="text-muted-foreground">This will be used across your entire dashboard</p>
+              <h2 className="text-2xl font-bold text-foreground">{t('Choose your currency')}</h2>
+              <p className="text-muted-foreground">{t('This will be used across your entire dashboard')}</p>
               <div className="grid grid-cols-3 max-md:grid-cols-2 gap-3 mt-2">
                 {CURRENCIES.map((c) => (
                   <button
@@ -210,18 +215,18 @@ export default function Onboarding() {
                       </div>
                     )}
                     <p className="text-3xl font-bold text-foreground">{c.symbol}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{c.name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{t(c.name)}</p>
                     <span className="inline-block mt-1 rounded bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">{c.code}</span>
                   </button>
                 ))}
               </div>
               <div className="flex gap-3 mt-2">
-                <Button variant="outline" onClick={prevStep} className="flex-1 h-12">Back</Button>
+                <Button variant="outline" onClick={prevStep} className="flex-1 h-12">{t('Back')}</Button>
                 <Button
                   onClick={async () => { if (await saveProfile(false)) nextStep(); }}
                   className="flex-1 h-12 bg-primary font-bold text-white hover:bg-primary/90"
                 >
-                  Continue <ArrowRight size={18} className="ml-2" />
+                  {t('Continue')} <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>
             </div>
@@ -230,22 +235,22 @@ export default function Onboarding() {
           {step === 4 && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">Build your team</h2>
-                <button onClick={nextStep} className="text-sm font-bold text-muted-foreground hover:underline">Skip for now</button>
+                <h2 className="text-2xl font-bold text-foreground">{t('Build your team')}</h2>
+                <button onClick={nextStep} className="text-sm font-bold text-muted-foreground hover:underline">{t('Skip for now')}</button>
               </div>
-              <p className="text-muted-foreground">Invite team members to collaborate</p>
+              <p className="text-muted-foreground">{t('Invite team members to collaborate')}</p>
 
               <div className="flex gap-2">
-                <Input placeholder="Email address" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="flex-1 h-11" />
+                <Input placeholder={t('Email address')} value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="flex-1 h-11" />
                 <Select value={inviteRole} onValueChange={setInviteRole}>
                   <SelectTrigger className="w-[120px] h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
+                    <SelectItem value="manager">{t('Manager')}</SelectItem>
+                    <SelectItem value="viewer">{t('Viewer')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button onClick={sendInvite} disabled={sendingInvite || !inviteEmail.trim()} className="h-11 bg-primary text-white hover:bg-primary/90">
-                  {sendingInvite ? <Loader2 className="animate-spin" size={16} /> : 'Send'}
+                  {sendingInvite ? <Loader2 className="animate-spin" size={16} /> : t('Send')}
                 </Button>
               </div>
 
@@ -255,8 +260,8 @@ export default function Onboarding() {
                     <div key={i} className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-sm">
                       <Check size={14} className="text-primary shrink-0" />
                       <span className="font-medium text-foreground truncate flex-1">{inv.email}</span>
-                      <span className="text-xs text-muted-foreground capitalize">{inv.role}</span>
-                      <button onClick={() => { navigator.clipboard.writeText(inv.link); toast.success('Link copied!'); }} className="text-muted-foreground hover:text-foreground">
+                      <span className="text-xs text-muted-foreground capitalize">{inv.role === 'manager' ? t('Manager') : t('Viewer')}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(inv.link); toast.success(t('Link copied!')); }} aria-label={t('Copy invite link')} className="text-muted-foreground hover:text-foreground">
                         <Copy size={14} />
                       </button>
                     </div>
@@ -265,9 +270,9 @@ export default function Onboarding() {
               )}
 
               <div className="flex gap-3 mt-2">
-                <Button variant="outline" onClick={prevStep} className="flex-1 h-12">Back</Button>
+                <Button variant="outline" onClick={prevStep} className="flex-1 h-12">{t('Back')}</Button>
                 <Button onClick={nextStep} className="flex-1 h-12 bg-primary font-bold text-white hover:bg-primary/90">
-                  Continue <ArrowRight size={18} className="ml-2" />
+                  {t('Continue')} <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>
             </div>
@@ -295,15 +300,15 @@ export default function Onboarding() {
                   <Check size={40} className="text-primary" />
                 </div>
               </div>
-              <h1 className="text-[28px] font-bold text-foreground">You're all set! 🎉</h1>
+              <h1 className="text-[28px] font-bold text-foreground">{t("You're all set! 🎉")}</h1>
               <p className="text-lg font-bold text-foreground">{businessName}</p>
-              <p className="text-muted-foreground">Your dashboard is ready</p>
+              <p className="text-muted-foreground">{t('Your dashboard is ready')}</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-2">
                 {[
-                  { icon: ShoppingBag, label: 'Add your first order', path: '/orders' },
-                  { icon: Megaphone, label: 'Generate marketing content', path: '/marketing-ai' },
-                  { icon: MessageSquare, label: 'Ask your AI assistant', path: '/ai-assistant' },
+                  { icon: ShoppingBag, label: t('Add your first order'), path: '/orders' },
+                  { icon: Megaphone, label: t('Generate marketing content'), path: '/marketing-ai' },
+                  { icon: MessageSquare, label: t('Ask your AI assistant'), path: '/ai-assistant' },
                 ].map((tip) => (
                   <button
                     key={tip.path}
@@ -317,7 +322,7 @@ export default function Onboarding() {
               </div>
 
               <Button onClick={finish} disabled={saving} className="mt-4 h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
-                {saving ? <Loader2 className="animate-spin" size={20} /> : <>Go to Dashboard <ArrowRight size={18} className="ml-2" /></>}
+                {saving ? <Loader2 className="animate-spin" size={20} /> : <>{t('Go to Dashboard')} <ArrowRight size={18} className="ml-2" /></>}
               </Button>
             </div>
           )}

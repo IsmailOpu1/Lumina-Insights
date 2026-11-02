@@ -206,7 +206,7 @@ export default function ImportData() {
 
   return (
     <div className="relative isolate mx-auto max-w-5xl">
-      <GlowBackdrop />
+      <GlowBackdrop className="-inset-x-10 -top-10" />
       <PageHeader
         title={t('Import data')}
         subtitle={t('Bring your products, orders and expenses in from Excel or CSV.')}

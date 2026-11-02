@@ -31,6 +31,10 @@ export type GeminiResult = { ok: true; text: string } | { ok: false; status: num
 /** One generateContent call with a proper system instruction. */
 export async function generate(opts: {
   apiKey: string;
+  /** Overrides GEMINI_MODEL for this call. */
+  model?: string;
+  /** Tokens the model may spend thinking; 0 turns thinking off. */
+  thinkingBudget?: number;
   system: string;
   contents: GeminiTurn[];
   temperature: number;
@@ -45,9 +49,12 @@ export async function generate(opts: {
     generationConfig.responseMimeType = "application/json";
     generationConfig.responseSchema = opts.responseSchema;
   }
+  if (opts.thinkingBudget !== undefined) {
+    generationConfig.thinkingConfig = { thinkingBudget: opts.thinkingBudget };
+  }
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${opts.apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${opts.model ?? GEMINI_MODEL}:generateContent?key=${opts.apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

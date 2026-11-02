@@ -13,6 +13,7 @@ const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 const MAX_PRODUCTS = 400;
 const MAX_ITEMS = 10;
 const SOURCES = ["Facebook", "Instagram", "WhatsApp", "Website", "TikTok"];
+const ORDER_MODEL = Deno.env.get("GEMINI_ORDER_MODEL") || "gemini-2.5-flash";
 
 const SCHEMA = {
   type: "OBJECT",
@@ -52,7 +53,7 @@ Extract the order the customer placed:
 - source: where the chat comes from, judged from the app shown or named (Messenger or a Facebook page = "Facebook"). Empty if you can't tell.
 - delivery_charge: the delivery charge mentioned (for example 60 inside Dhaka, 120 outside), 0 if none.
 - date: only if the chat states the order date; otherwise empty.
-- items: each product ordered, with quantity (default 1) and the agreed price per unit. If a total is given for several units, divide it. Match each to the shop's PRODUCTS by meaning (name, colour, size, Bangla or English spelling) and give its id; leave product_id empty if nothing clearly matches. Never invent a product id.
+- items: each product ordered, with quantity (default 1) and the agreed price per unit. If a total is given for several units, divide it. The PRODUCTS list gives each product's usual price: the agreed price is normally the same or a little lower. Read numbers digit by digit; Bangla digits are ০=0 ১=1 ২=2 ৩=3 ৪=4 ৫=5 ৬=6 ৭=7 ৮=8 ৯=9. Match each to the shop's PRODUCTS by meaning (name, colour, size, Bangla or English spelling) and give its id; leave product_id empty if nothing clearly matches. Never invent a product id.
 
 Use only what is in the input. Never make up names, numbers or addresses. If the input contains no order, set found to false.
 Return JSON only.`;
@@ -84,6 +85,19 @@ const money = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
 };
+
+/**
+ * The price agreed in the chat, unless it is far from the product's own
+ * price. Discounts and small mark-ups are normal; a price at a quarter or
+ * double the usual one is almost always a misread number (Bangla digits in
+ * a screenshot), so the product's price is used instead.
+ */
+function checkedPrice(read: number, product: Product | undefined) {
+  const usual = Number(product?.selling_price) || 0;
+  if (!read) return usual;
+  if (!usual) return read;
+  return read >= usual * 0.5 && read <= usual * 1.5 ? read : usual;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -137,6 +151,10 @@ Deno.serve(async (req) => {
 
     const result = await generate({
       apiKey: GEMINI_API_KEY,
+      // Reads Bangla digits in screenshots far more reliably than the
+      // default lite model, for a fraction of a taka per order.
+      model: ORDER_MODEL,
+      thinkingBudget: 0,
       system: SYSTEM,
       contents: [{ role: "user", parts }],
       temperature: 0,
@@ -163,7 +181,7 @@ Deno.serve(async (req) => {
         product_id: product?.id ?? null,
         product_text: cleanText(it.product_text, 200) || product?.product_name || "",
         quantity,
-        unit_price: money(it.unit_price) || product?.selling_price || 0,
+        unit_price: checkedPrice(money(it.unit_price), product),
       };
     });
     const date = /^\d{4}-\d{2}-\d{2}$/.test(answer.date ?? "") ? answer.date : null;

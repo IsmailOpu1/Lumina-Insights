@@ -13,6 +13,8 @@ interface Props {
   product: string;
   source: string | null;
   status: string;
+  /** Shown instead of the plain status badge, e.g. a status picker. */
+  statusControl?: ReactNode;
   quantity: number;
   price: number;
   shipping: number;
@@ -22,7 +24,7 @@ interface Props {
 }
 
 /** One order as a card, for phones, where the orders table would need sideways scrolling. */
-export default function OrderCard({ orderNumber, customer, phone, product, source, status, quantity, price, shipping, profit, date, actions }: Props) {
+export default function OrderCard({ orderNumber, customer, phone, product, source, status, statusControl, quantity, price, shipping, profit, date, actions }: Props) {
   const { t } = useT();
   const { formatCurrency } = useCurrency();
   return (
@@ -34,7 +36,7 @@ export default function OrderCard({ orderNumber, customer, phone, product, sourc
             {[orderNumber, phone].filter(Boolean).join(' · ')} · {format(parseDay(date), 'dd MMM yyyy', { locale: currentDateLocale() })}
           </p>
         </div>
-        <StatusBadge status={status} />
+        {statusControl ?? <StatusBadge status={status} />}
       </div>
       <div className="mt-2 flex items-end justify-between gap-3">
         <div className="min-w-0 space-y-1 text-sm">

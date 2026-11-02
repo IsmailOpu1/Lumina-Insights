@@ -6,6 +6,7 @@ import { useReadOnly } from '@/hooks/useReadOnly';
 import { ORDER_STATUSES, countsForProfit, isSale } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
 import OrderCard from '@/components/OrderCard';
+import StatusPicker from '@/components/orders/StatusPicker';
 import AddOrderModal, { OrderToEdit } from '@/components/AddOrderModal';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import EmptyState from '@/components/EmptyState';
@@ -20,6 +21,7 @@ import Segmented from '@/components/dashboard/Segmented';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { exportXLSX, todaySuffix } from '@/lib/xlsxExport';
+import { dbErrorMessage } from '@/lib/dbErrors';
 import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
@@ -79,6 +81,8 @@ export default function Orders() {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  // Orders whose new status is being saved.
+  const [savingStatus, setSavingStatus] = useState<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -155,6 +159,47 @@ export default function Orders() {
     {toast.success(t('Order deleted'));fetchOrders();}
     setDeleteId(null);
   }
+
+  /**
+   * Changes an order's status from the list. The database moves stock and
+   * works out the profit for the new status, so the row is read back after.
+   * A wrong tap is undone from the toast rather than confirmed up front.
+   */
+  async function changeStatus(o: OrderRow, next: string, offerUndo = true) {
+    if (next === o.status) return;
+    const previous = o.status;
+    const busy = (on: boolean) => setSavingStatus((s) => {
+      const copy = new Set(s);
+      if (on) copy.add(o.id); else copy.delete(o.id);
+      return copy;
+    });
+    setOrders((list) => list.map((r) => (r.id === o.id ? { ...r, status: next } : r)));
+    busy(true);
+    const { error } = await supabase.from('orders').update({ status: next }).eq('id', o.id);
+    if (error) {
+      setOrders((list) => list.map((r) => (r.id === o.id ? { ...r, status: previous } : r)));
+      busy(false);
+      toast.error(t('Could not change the status'), { description: dbErrorMessage(error.message) });
+      return;
+    }
+    const { data } = await supabase
+      .from('orders')
+      .select('*, inventory!orders_product_id_fkey(product_name)')
+      .eq('id', o.id)
+      .maybeSingle();
+    if (data) setOrders((list) => list.map((r) => (r.id === o.id ? (data as OrderRow) : r)));
+    busy(false);
+    if (offerUndo) {
+      toast.success(t('{n} marked {status}', { n: o.order_number, status: t(next) }), {
+        action: { label: t('Undo'), onClick: () => changeStatus({ ...o, status: next }, previous, false) },
+      });
+    }
+  }
+
+  const statusOf = (o: OrderRow) =>
+    readOnly
+      ? <StatusBadge status={o.status} />
+      : <StatusPicker status={o.status} orderNumber={o.order_number} disabled={savingStatus.has(o.id)} onChange={(s) => changeStatus(o, s)} />;
 
   function toEditable(o: OrderRow): OrderToEdit {
     return {
@@ -299,6 +344,7 @@ export default function Orders() {
                 product={(o.inventory?.product_name ?? o.product_name) || ''}
                 source={o.source}
                 status={o.status}
+                statusControl={statusOf(o)}
                 quantity={o.quantity}
                 price={o.selling_price}
                 shipping={o.shipping_cost}
@@ -352,7 +398,7 @@ export default function Orders() {
                         <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">{o.source}</span> :
                         <span className="text-muted-foreground">—</span>}
                         </td>
-                        <td><StatusBadge status={o.status} /></td>
+                        <td>{statusOf(o)}</td>
                         <td className="tabular-nums">{o.quantity}</td>
                         <td className="tabular-nums">{formatCurrency(o.selling_price)}</td>
                         <td className="tabular-nums text-muted-foreground">{formatCurrency(o.shipping_cost)}</td>

@@ -13,7 +13,15 @@ const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 const MAX_PRODUCTS = 400;
 const MAX_ITEMS = 10;
 const SOURCES = ["Facebook", "Instagram", "WhatsApp", "Website", "TikTok"];
-const ORDER_MODEL = Deno.env.get("GEMINI_ORDER_MODEL") || "gemini-2.5-flash";
+// Tried in order: a full Flash model reads Bangla digits in screenshots far
+// more reliably than the lite one, but Google retires model names, so a
+// model that is gone (or rejects the request) falls through to the next, and
+// last to the default model every other AI feature uses.
+const ORDER_MODELS: (string | undefined)[] = [
+  ...(Deno.env.get("GEMINI_ORDER_MODEL") ? [Deno.env.get("GEMINI_ORDER_MODEL")] : []),
+  "gemini-flash-latest",
+  undefined,
+];
 
 const SCHEMA = {
   type: "OBJECT",
@@ -149,18 +157,20 @@ Deno.serve(async (req) => {
     }];
     if (image) parts.push({ inline_data: { mime_type: body.image_type, data: image } });
 
-    const result = await generate({
-      apiKey: GEMINI_API_KEY,
-      // Reads Bangla digits in screenshots far more reliably than the
-      // default lite model, for a fraction of a taka per order.
-      model: ORDER_MODEL,
-      thinkingBudget: 0,
-      system: SYSTEM,
-      contents: [{ role: "user", parts }],
-      temperature: 0,
-      maxOutputTokens: 2048,
-      responseSchema: SCHEMA,
-    });
+    let result: Awaited<ReturnType<typeof generate>> = { ok: false, status: 502 };
+    for (const model of ORDER_MODELS) {
+      result = await generate({
+        apiKey: GEMINI_API_KEY,
+        model,
+        system: SYSTEM,
+        contents: [{ role: "user", parts }],
+        temperature: 0,
+        // Room for newer models that think before answering.
+        maxOutputTokens: 8192,
+        responseSchema: SCHEMA,
+      });
+      if (result.ok || (result.status !== 404 && result.status !== 400)) break;
+    }
     if (!result.ok) {
       if (result.status === 429) return fail({ error: "Rate limit reached. Please wait a minute and try again." }, 429);
       return fail({ error: "Could not read the order. Please try again." }, 502);

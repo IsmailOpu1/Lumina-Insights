@@ -135,22 +135,19 @@ describe('Order form — fill from a chat', () => {
 });
 
 describe('Order form — faster manual entry', () => {
-  it('"Save and add another" keeps the form open, keeping source and delivery cost', async () => {
+  it('saving an order closes the form; there is no "Save and add another"', async () => {
     openNew();
     await screen.findByRole('option', { name: /Saree/ });
     fireEvent.change(screen.getByLabelText('Customer name *'), { target: { value: 'Karim' } });
     fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'p2' } });
     fireEvent.change(screen.getByLabelText(/^Shipping cost/), { target: { value: '120' } });
     fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'WhatsApp' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save and add another' }));
+    expect(screen.queryByRole('button', { name: 'Save and add another' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Save order' }));
 
     await waitFor(() => expect(mocks.insert).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByLabelText('Customer name *')).toHaveValue(''));
-    expect(screen.getByLabelText('Product')).toHaveValue('');
-    expect(screen.getByLabelText('Source')).toHaveValue('WhatsApp');
-    expect(screen.getByLabelText(/^Shipping cost/)).toHaveValue(120);
     expect(mocks.onSaved).toHaveBeenCalledTimes(1);
-    expect(mocks.onClose).not.toHaveBeenCalled();
+    await waitFor(() => expect(mocks.onClose).toHaveBeenCalled());
   });
 
   it('remembers the last source and delivery cost for the next order', async () => {

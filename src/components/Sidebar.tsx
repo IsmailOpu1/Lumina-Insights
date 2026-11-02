@@ -76,7 +76,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
   return (
     <>
       {isMobile && open && (
-        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 z-40 bg-black/70" onClick={onClose} />
       )}
 
       <aside

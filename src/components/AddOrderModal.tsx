@@ -383,7 +383,7 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
     setTouched({});
   }
 
-  async function handleSave(addAnother = false) {
+  async function handleSave() {
     setTouched({ customerName: true, productId: true, quantity: true, sellingPrice: true, source: true, status: true, date: true });
     if (!isValid) return;
     setSubmitting(true);
@@ -424,17 +424,12 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
     }
 
     onSaved?.();
-    // The next product from the same chat, or a fresh order, without closing.
-    if (!isEdit && (addAnother || pending)) {
+    // The next product from the same chat, without closing.
+    if (!isEdit && pending) {
       setSubmitting(false);
-      if (pending) {
-        const [next, ...rest] = pending.items;
-        fillItem(pending.customer, next, rest);
-        setTouched({});
-      } else {
-        clearCustomerAndProduct();
-        nameRef.current?.focus();
-      }
+      const [next, ...rest] = pending.items;
+      fillItem(pending.customer, next, rest);
+      setTouched({});
       loadNextNumber();
       return;
     }
@@ -660,15 +655,10 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
         )}
 
         <div className="mt-2 flex flex-col gap-2">
-          <Button onClick={() => handleSave(false)} disabled={!isValid || submitting} className="h-12 w-full font-bold text-base">
+          <Button onClick={() => handleSave()} disabled={!isValid || submitting} className="h-12 w-full font-bold text-base">
             {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> :
               isEdit ? t('Update order') : pending ? t('Save and fill the next product') : t('Save order')}
           </Button>
-          {!isEdit && !pending && (
-            <Button variant="outline" onClick={() => handleSave(true)} disabled={!isValid || submitting} className="h-11 w-full font-semibold">
-              {t('Save and add another')}
-            </Button>
-          )}
         </div>
       </div>
     </ModalShell>

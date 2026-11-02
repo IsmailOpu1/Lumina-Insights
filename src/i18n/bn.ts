@@ -947,7 +947,6 @@ const bn: Record<string, string> = {
   'Reading...': 'পড়া হচ্ছে...',
   'Remove screenshot': 'স্ক্রিনশট সরান',
   'Returning customer · {n} orders': 'পুরনো কাস্টমার · {n}টি অর্ডার',
-  'Save and add another': 'সেভ করে আরেকটি যোগ করুন',
   'Save and fill the next product': 'সেভ করে পরের পণ্য পূরণ করুন',
   'Screenshot': 'স্ক্রিনশট',
   'That screenshot is too large. Please use one under 5 MB.': 'স্ক্রিনশটটি অনেক বড়। ৫ MB-এর কম একটি দিন।',

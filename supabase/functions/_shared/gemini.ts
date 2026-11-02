@@ -33,8 +33,6 @@ export async function generate(opts: {
   apiKey: string;
   /** Overrides GEMINI_MODEL for this call. */
   model?: string;
-  /** Tokens the model may spend thinking; 0 turns thinking off. */
-  thinkingBudget?: number;
   system: string;
   contents: GeminiTurn[];
   temperature: number;
@@ -48,9 +46,6 @@ export async function generate(opts: {
   if (opts.responseSchema) {
     generationConfig.responseMimeType = "application/json";
     generationConfig.responseSchema = opts.responseSchema;
-  }
-  if (opts.thinkingBudget !== undefined) {
-    generationConfig.thinkingConfig = { thinkingBudget: opts.thinkingBudget };
   }
 
   const res = await fetch(

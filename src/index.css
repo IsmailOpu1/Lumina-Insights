@@ -184,6 +184,17 @@ html[lang='bn'] .font-bold { font-weight: 800; }
   100% { transform: translate3d(-30px, 20px, 0) scale(0.95); }
 }
 
+/* Fades a glow backdrop out towards every edge, so the orbs blend into the
+   page instead of being cut off where the backdrop's box ends. */
+.glow-backdrop {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent),
+    linear-gradient(to bottom, transparent, #000 15%, #000 75%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent),
+    linear-gradient(to bottom, transparent, #000 15%, #000 75%, transparent);
+  mask-composite: intersect;
+}
+
 .orb {
   position: absolute;
   border-radius: 9999px;

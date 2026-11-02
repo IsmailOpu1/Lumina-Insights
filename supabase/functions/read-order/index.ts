@@ -13,7 +13,16 @@ const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 const MAX_PRODUCTS = 400;
 const MAX_ITEMS = 10;
 const SOURCES = ["Facebook", "Instagram", "WhatsApp", "Website", "TikTok"];
-const ORDER_MODEL = Deno.env.get("GEMINI_ORDER_MODEL") || "gemini-2.5-flash";
+// Tested on a Bangla Messenger screenshot: gemini-2.5-flash-lite misread both
+// the price (৬৫০০ as 1600) and the phone number, gemini-flash-latest took
+// over 90 seconds, and gemini-flash-lite-latest read every digit right in
+// about 2 seconds. GEMINI_ORDER_MODEL can try another model; a model Google
+// has retired falls through to the next, and last to the default.
+const ORDER_MODELS: (string | undefined)[] = [
+  ...(Deno.env.get("GEMINI_ORDER_MODEL") ? [Deno.env.get("GEMINI_ORDER_MODEL")] : []),
+  "gemini-flash-lite-latest",
+  undefined,
+];
 
 const SCHEMA = {
   type: "OBJECT",
@@ -88,15 +97,15 @@ const money = (v: unknown) => {
 
 /**
  * The price agreed in the chat, unless it is far from the product's own
- * price. Discounts and small mark-ups are normal; a price at a quarter or
- * double the usual one is almost always a misread number (Bangla digits in
- * a screenshot), so the product's price is used instead.
+ * price. Discounts and small mark-ups are normal; a price more than 30% off
+ * the usual one is almost always a misread number (Bangla digits in a
+ * screenshot), so the product's price is used instead.
  */
 function checkedPrice(read: number, product: Product | undefined) {
   const usual = Number(product?.selling_price) || 0;
   if (!read) return usual;
   if (!usual) return read;
-  return read >= usual * 0.5 && read <= usual * 1.5 ? read : usual;
+  return read >= usual * 0.7 && read <= usual * 1.3 ? read : usual;
 }
 
 Deno.serve(async (req) => {
@@ -149,18 +158,19 @@ Deno.serve(async (req) => {
     }];
     if (image) parts.push({ inline_data: { mime_type: body.image_type, data: image } });
 
-    const result = await generate({
-      apiKey: GEMINI_API_KEY,
-      // Reads Bangla digits in screenshots far more reliably than the
-      // default lite model, for a fraction of a taka per order.
-      model: ORDER_MODEL,
-      thinkingBudget: 0,
-      system: SYSTEM,
-      contents: [{ role: "user", parts }],
-      temperature: 0,
-      maxOutputTokens: 2048,
-      responseSchema: SCHEMA,
-    });
+    let result: Awaited<ReturnType<typeof generate>> = { ok: false, status: 502 };
+    for (const model of ORDER_MODELS) {
+      result = await generate({
+        apiKey: GEMINI_API_KEY,
+        model,
+        system: SYSTEM,
+        contents: [{ role: "user", parts }],
+        temperature: 0,
+        maxOutputTokens: 2048,
+        responseSchema: SCHEMA,
+      });
+      if (result.ok || (result.status !== 404 && result.status !== 400)) break;
+    }
     if (!result.ok) {
       if (result.status === 429) return fail({ error: "Rate limit reached. Please wait a minute and try again." }, 429);
       return fail({ error: "Could not read the order. Please try again." }, 502);

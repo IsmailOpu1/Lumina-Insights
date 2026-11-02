@@ -235,7 +235,6 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
     setShippingCost(d.shippingCost);
     setAdCost(d.adCost);
     setSource(d.source);
-    setStatus(d.status);
     setDate(d.date);
     setPending(d.pending);
     setFromChat(d.fromChat);
@@ -591,8 +590,9 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
           </div>
         </div>
 
-        {/* Source — native select */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Source — native select. A new order always starts as Pending; its
+            status is changed from the orders list, or here when editing. */}
+        <div className={cn('grid gap-3', isEdit && 'grid-cols-2')}>
           <div>
             <Label>{t('Source')} *</Label>
             <select
@@ -612,7 +612,7 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
           </div>
 
           {/* Status — native select */}
-          <div>
+          {isEdit && <div>
             <Label>{t('Status')} *</Label>
             <select
               value={status}
@@ -627,7 +627,7 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
               ))}
             </select>
             {touched.status && errors.status && <p className="mt-1 text-xs font-medium text-destructive">{errors.status}</p>}
-          </div>
+          </div>}
         </div>
 
         <div>

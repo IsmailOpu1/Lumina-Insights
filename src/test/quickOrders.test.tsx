@@ -183,7 +183,8 @@ describe('Order form — faster manual entry', () => {
     );
     expect(await screen.findByText('ORD-008')).toBeInTheDocument();
     expect(screen.getByLabelText('Customer name *')).toHaveValue('Rahim');
-    expect(screen.getByLabelText('Status')).toHaveValue('Pending');
+    // A new order always starts as Pending, so the form doesn't ask.
+    expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Customer chat')).not.toBeInTheDocument();
   });
 });

@@ -962,6 +962,11 @@ const bn: Record<string, string> = {
   'The page reloaded before your content was ready. Please try again.': 'কনটেন্ট তৈরি হওয়ার আগেই পেজটি রিলোড হয়েছে। আবার চেষ্টা করুন।',
   'Your unsaved order is back.': 'আপনার সেভ না করা অর্ডারটি ফিরে এসেছে।',
   'Your unsaved product is back.': 'আপনার সেভ না করা প্রোডাক্টটি ফিরে এসেছে।',
+
+  // Order status from the list
+  'Could not change the status': 'স্ট্যাটাস বদলানো যায়নি',
+  'Status of order {n}': 'অর্ডার {n}-এর স্ট্যাটাস',
+  '{n} marked {status}': '{n} এখন {status}',
 };
 
 export default bn;

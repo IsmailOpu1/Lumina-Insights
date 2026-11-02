@@ -31,7 +31,7 @@ vi.mock('@/hooks/useDashboardData', () => ({
   getCollection: () => ({ delivered: 0, toCollect: 0 }), percentChange: () => null,
 }));
 for (const c of ['DateFilterBar', 'KPICards', 'RevenueGrowthChart', 'ProfitBreakdownPie', 'SalesBySourcePie',
-  'TopSellingProductsBar', 'OrderStatusPie', 'InventoryAlerts', 'BusinessMetrics', 'RecentOrdersTable', 'NeedsAttention', 'MonthForecast', 'ChannelsTable']) {
+  'TopSellingProductsBar', 'OrderStatusPie', 'InventoryAlerts', 'BusinessMetrics', 'RecentOrdersTable', 'NeedsAttention', 'MonthForecast', 'ChannelsTable', 'WeeklySummary']) {
   vi.doMock(`@/components/dashboard/${c}`, () => ({ default: () => null }));
 }
 

@@ -1063,6 +1063,9 @@ const bn: Record<string, string> = {
   'today': 'আজ',
   'yesterday': 'গতকাল',
   '{n} days ago': '{n} দিন আগে',
+  'Your week': 'আপনার সপ্তাহ',
+  'Writing your weekly summary…': 'আপনার সাপ্তাহিক সারাংশ লেখা হচ্ছে…',
+  'Written by AI from your numbers. Check before acting on it.': 'আপনার হিসাব থেকে AI লিখেছে। কাজে লাগানোর আগে একবার মিলিয়ে নিন।',
 };
 
 export default bn;

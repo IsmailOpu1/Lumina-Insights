@@ -15,6 +15,7 @@ import TopSellingProductsBar from '@/components/dashboard/TopSellingProductsBar'
 import OrderStatusPie from '@/components/dashboard/OrderStatusPie';
 import InventoryAlerts from '@/components/dashboard/InventoryAlerts';
 import NeedsAttention from '@/components/dashboard/NeedsAttention';
+import WeeklySummary from '@/components/dashboard/WeeklySummary';
 import ChannelsTable from '@/components/dashboard/ChannelsTable';
 import MonthForecast from '@/components/dashboard/MonthForecast';
 import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
@@ -182,6 +183,8 @@ export default function Dashboard() {
       )}
 
       {!loading && <NeedsAttention products={inventory} reloadKey={orders} />}
+
+      {!loading && <WeeklySummary />}
 
       <KPICards primary={primaryKpis} secondary={secondaryKpis} loading={loading} />
 

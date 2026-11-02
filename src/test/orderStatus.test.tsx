@@ -84,3 +84,17 @@ describe('Changing an order status from the list', () => {
     expect(screen.getAllByText('Pending').length).toBeGreaterThan(0);
   });
 });
+
+describe('Opening orders from a dashboard link', () => {
+  it('/orders?status=Shipped shows only shipped orders', async () => {
+    window.history.pushState({}, '', '/orders?status=Shipped');
+    try {
+      render(<Orders />);
+      expect(await screen.findByText('Shipped', { selector: 'button span' })).toBeInTheDocument();
+      await new Promise((r) => setTimeout(r, 50)); // the order list has loaded
+      expect(screen.queryByText('Rahim')).not.toBeInTheDocument();
+    } finally {
+      window.history.pushState({}, '', '/');
+    }
+  });
+});

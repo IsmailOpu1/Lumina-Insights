@@ -14,6 +14,7 @@ import SalesBySourcePie from '@/components/dashboard/SalesBySourcePie';
 import TopSellingProductsBar from '@/components/dashboard/TopSellingProductsBar';
 import OrderStatusPie from '@/components/dashboard/OrderStatusPie';
 import InventoryAlerts from '@/components/dashboard/InventoryAlerts';
+import NeedsAttention from '@/components/dashboard/NeedsAttention';
 import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -176,6 +177,8 @@ export default function Dashboard() {
           <Button size="sm" variant="outline" onClick={() => setDateFilter('all')}>{t('Show all time')}</Button>
         </div>
       )}
+
+      {!loading && <NeedsAttention products={inventory} reloadKey={orders} />}
 
       <KPICards primary={primaryKpis} secondary={secondaryKpis} loading={loading} />
 

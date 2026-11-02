@@ -21,7 +21,9 @@ const SCHEMA = {
     customer_name: { type: "STRING" },
     customer_phone: { type: "STRING" },
     customer_address: { type: "STRING" },
-    source: { type: "STRING", enum: [...SOURCES, ""] },
+    // Gemini rejects an empty enum value, so the choices are described instead
+    // and checked against SOURCES below.
+    source: { type: "STRING", description: `One of ${SOURCES.join(", ")}, or empty if unknown.` },
     delivery_charge: { type: "NUMBER", description: "Delivery charge stated in the chat, 0 if none." },
     date: { type: "STRING", description: "YYYY-MM-DD, or empty for today." },
     items: {

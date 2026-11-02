@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { tooltipStyle } from '@/lib/chartTheme';
+import { tooltipProps } from '@/lib/chartTheme';
 import { LegendItem } from './ChartCard';
 
 export interface Slice {
@@ -33,7 +33,7 @@ export default function DonutChart({ data, centerValue, centerLabel, formatValue
               {data.map((d) => <Cell key={d.name} fill={d.color} />)}
             </Pie>
             <Tooltip
-              contentStyle={tooltipStyle}
+              {...tooltipProps}
               formatter={(value: number, name: string) => [`${formatValue(value)} · ${Math.round((value / total) * 100)}%`, name]}
             />
           </PieChart>

@@ -981,6 +981,24 @@ const bn: Record<string, string> = {
   'Refresh': 'রিফ্রেশ',
   'Refresh to get the latest changes.': 'সর্বশেষ পরিবর্তনগুলো পেতে রিফ্রেশ করুন।',
   '{open} still to collect': '{open} এখনো পাওয়া বাকি',
+
+  // Needs your attention
+  'Needs your attention': 'যেগুলোতে এখন নজর দিন',
+  'See orders': 'অর্ডার দেখুন',
+  '1 shipped order not delivered after {days} days': '১টি শিপড অর্ডার {days} দিন পরেও ডেলিভারি হয়নি',
+  '{n} shipped orders not delivered after {days} days': '{n}টি শিপড অর্ডার {days} দিন পরেও ডেলিভারি হয়নি',
+  '{amount} cash on delivery at risk. Check with your courier.': '{amount} ক্যাশ অন ডেলিভারি ঝুঁকিতে। কুরিয়ারের সাথে কথা বলুন।',
+  '1 order waiting over {days} days to be sent': '১টি অর্ডার {days} দিনের বেশি পাঠানোর অপেক্ষায়',
+  '{n} orders waiting over {days} days to be sent': '{n}টি অর্ডার {days} দিনের বেশি পাঠানোর অপেক্ষায়',
+  '{amount} · the oldest is {days} days old': '{amount} · সবচেয়ে পুরনোটি {days} দিন আগের',
+  'Cancels and returns are {rate}% of orders': 'বাতিল ও ফেরত এখন অর্ডারের {rate}%',
+  'Up from {prev}% the month before · {bad} of {total} orders in the last 30 days': 'আগের মাসে ছিল {prev}% · গত ৩০ দিনে {total}টির মধ্যে {bad}টি',
+  '{bad} of {total} orders in the last 30 days': 'গত ৩০ দিনে {total}টির মধ্যে {bad}টি',
+  '{name}: about 1 day of stock left': '{name}: প্রায় ১ দিনের স্টক বাকি',
+  '{name}: about {days} days of stock left': '{name}: প্রায় {days} দিনের স্টক বাকি',
+  '{stock} left, selling about {n} a week': '{stock}টি বাকি, সপ্তাহে প্রায় {n}টি বিক্রি হচ্ছে',
+  '{name} is out of stock': '{name} স্টকে নেই',
+  'It sold {n} in the last 30 days': 'গত ৩০ দিনে {n}টি বিক্রি হয়েছে',
 };
 
 export default bn;

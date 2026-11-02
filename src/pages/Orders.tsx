@@ -70,8 +70,13 @@ export default function Orders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('30days');
+  // A link such as /orders?status=Shipped (from the dashboard) opens that status, over all time.
+  const [linkedStatus] = useState(() => {
+    const s = new URLSearchParams(window.location.search).get('status');
+    return s && (ORDER_STATUSES as readonly string[]).includes(s) ? s : null;
+  });
+  const [statusFilter, setStatusFilter] = useState(linkedStatus ?? 'all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>(linkedStatus ? 'custom' : '30days');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);

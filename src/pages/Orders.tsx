@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Download, Pencil, Trash2, ChevronUp, ChevronDown, ShoppingBag, Loader2, Plus, Wallet, TrendingUp, Receipt } from 'lucide-react';
+import { Search, Download, Pencil, Copy, Trash2, ChevronUp, ChevronDown, ShoppingBag, Loader2, Plus, Wallet, TrendingUp, Receipt } from 'lucide-react';
 import PageHeader, { StatStrip } from '@/components/PageHeader';
 import Pager from '@/components/Pager';
 import Segmented from '@/components/dashboard/Segmented';
@@ -30,6 +30,8 @@ interface OrderRow {
   id: string;
   order_number: string;
   customer_name: string;
+  customer_phone: string | null;
+  customer_address: string | null;
   product_id: string | null;
   source: string | null;
   status: string;
@@ -73,6 +75,7 @@ export default function Orders() {
 
   const [editOrder, setEditOrder] = useState<OrderToEdit | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [copyOrder, setCopyOrder] = useState<OrderToEdit | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -98,9 +101,11 @@ export default function Orders() {
     if (statusFilter !== 'all') list = list.filter((o) => o.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
+      const digits = search.replace(/\D/g, '');
       list = list.filter((o) =>
       o.customer_name.toLowerCase().includes(q) ||
-      o.order_number.toLowerCase().includes(q)
+      o.order_number.toLowerCase().includes(q) ||
+      Boolean(digits && o.customer_phone?.includes(digits))
       );
     }
     return list;
@@ -151,11 +156,13 @@ export default function Orders() {
     setDeleteId(null);
   }
 
-  function handleEdit(o: OrderRow) {
-    setEditOrder({
+  function toEditable(o: OrderRow): OrderToEdit {
+    return {
       id: o.id,
       order_number: o.order_number,
       customer_name: o.customer_name,
+      customer_phone: o.customer_phone,
+      customer_address: o.customer_address,
       product_id: o.product_id,
       product_name: o.inventory?.product_name ?? o.product_name,
       quantity: o.quantity,
@@ -166,7 +173,11 @@ export default function Orders() {
       source: o.source,
       status: o.status,
       date: o.date
-    });
+    };
+  }
+
+  function handleEdit(o: OrderRow) {
+    setEditOrder(toEditable(o));
     setEditOpen(true);
   }
 
@@ -174,10 +185,12 @@ export default function Orders() {
     if (!canExport()) return;
     setExporting(true);
     try {
-      const headers = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', 'Unit Price', 'Order Total', 'Shipping', 'Ad Cost', 'Profit', 'Date'];
+      const headers = ['Order #', 'Customer', 'Phone', 'Address', 'Product', 'Source', 'Status', 'Qty', 'Unit Price', 'Order Total', 'Shipping', 'Ad Cost', 'Profit', 'Date'];
       const rows = filtered.map((o) => [
       o.order_number,
       o.customer_name,
+      o.customer_phone || '',
+      o.customer_address || '',
       (o.inventory?.product_name ?? o.product_name) || '',
       o.source || '',
       o.status,
@@ -189,7 +202,7 @@ export default function Orders() {
       o.profit_per_order ?? 0,
       fnsFormat(parseDay(o.date), 'dd/MM/yyyy')]
       );
-      const totals = ['TOTALS', '', '', '', '',
+      const totals = ['TOTALS', '', '', '', '', '', '',
       filtered.reduce((s, o) => s + o.quantity, 0),
       '',
       filtered.reduce((s, o) => s + o.selling_price * o.quantity, 0),
@@ -282,6 +295,7 @@ export default function Orders() {
                 key={o.id}
                 orderNumber={o.order_number}
                 customer={o.customer_name}
+                phone={o.customer_phone}
                 product={(o.inventory?.product_name ?? o.product_name) || ''}
                 source={o.source}
                 status={o.status}
@@ -292,6 +306,9 @@ export default function Orders() {
                 date={o.date}
                 actions={!readOnly &&
                 <>
+                      <button onClick={() => setCopyOrder(toEditable(o))} className="icon-btn" aria-label={t('Duplicate order {n}', { n: o.order_number })}>
+                        <Copy size={16} />
+                      </button>
                       <button onClick={() => handleEdit(o)} className="icon-btn" aria-label={t('Edit order {n}', { n: o.order_number })}>
                         <Pencil size={16} />
                       </button>
@@ -325,7 +342,10 @@ export default function Orders() {
                   return (
                     <tr key={o.id}>
                         <td className="font-medium">{o.order_number}</td>
-                        <td>{o.customer_name}</td>
+                        <td>
+                          {o.customer_name}
+                          {o.customer_phone && <span className="block text-xs text-muted-foreground tabular-nums">{o.customer_phone}</span>}
+                        </td>
                         <td className="text-muted-foreground">{(o.inventory?.product_name ?? o.product_name) || '—'}</td>
                         <td>
                           {o.source ?
@@ -343,6 +363,9 @@ export default function Orders() {
                         {!readOnly && (
                           <td>
                             <div className="flex items-center justify-end gap-1">
+                              <button onClick={() => setCopyOrder(toEditable(o))} className="icon-btn" aria-label={t('Duplicate order {n}', { n: o.order_number })} title={t('Duplicate')}>
+                                <Copy size={16} />
+                              </button>
                               <button onClick={() => handleEdit(o)} className="icon-btn" aria-label={t('Edit order {n}', { n: o.order_number })}>
                                 <Pencil size={16} />
                               </button>
@@ -367,7 +390,14 @@ export default function Orders() {
       <AddOrderModal
         externalOpen={addOpen}
         onClose={() => setAddOpen(false)}
-        onSaved={() => {setAddOpen(false);fetchOrders();}} />
+        onSaved={fetchOrders} />
+
+      {/* Duplicate Order Modal: a new order from an existing one */}
+      <AddOrderModal
+        copyFrom={copyOrder}
+        externalOpen={!!copyOrder}
+        onClose={() => setCopyOrder(null)}
+        onSaved={fetchOrders} />
       
 
       {/* Edit Order Modal */}

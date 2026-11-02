@@ -927,6 +927,32 @@ const bn: Record<string, string> = {
   'This reset link has expired or was already used': 'এই রিসেট লিংকের মেয়াদ শেষ বা এটি আগেই ব্যবহার হয়েছে',
   'Use a different email': 'অন্য ইমেইল ব্যবহার করুন',
   'We sent a {n}-digit code to {email}': '{email}-এ {n} সংখ্যার একটি কোড পাঠানো হয়েছে',
+
+  // Quick orders: chat reader, phone, duplicate
+  '"{product}" is not in your products. Pick the right one below.': '"{product}" আপনার পণ্যের তালিকায় নেই। নিচে থেকে সঠিকটি বেছে নিন।',
+  'Chat screenshot': 'চ্যাটের স্ক্রিনশট',
+  'Could not open that image.': 'ছবিটি খোলা যায়নি।',
+  'Could not read the order. Please try again.': 'অর্ডারটি পড়া যায়নি। আবার চেষ্টা করুন।',
+  'Customer chat': 'কাস্টমারের চ্যাট',
+  'Delivery address': 'ডেলিভারি ঠিকানা',
+  'Duplicate': 'কপি করুন',
+  'Duplicate order {n}': 'অর্ডার {n} কপি করুন',
+  'Fill from a chat': 'চ্যাট থেকে পূরণ করুন',
+  'Filled from the chat. Check everything before saving.': 'চ্যাট থেকে পূরণ করা হয়েছে। সেভ করার আগে সব মিলিয়ে দেখুন।',
+  'House, road, area, district': 'বাসা, রোড, এলাকা, জেলা',
+  'Paste the Messenger or WhatsApp chat here, or add a screenshot': 'Messenger বা WhatsApp চ্যাট এখানে পেস্ট করুন, অথবা একটি স্ক্রিনশট দিন',
+  'Phone': 'ফোন',
+  'Please use a JPG, PNG, WebP or HEIC screenshot.': 'JPG, PNG, WebP বা HEIC স্ক্রিনশট দিন।',
+  'Read order': 'অর্ডার পড়ুন',
+  'Reading...': 'পড়া হচ্ছে...',
+  'Remove screenshot': 'স্ক্রিনশট সরান',
+  'Returning customer · {n} orders': 'পুরনো কাস্টমার · {n}টি অর্ডার',
+  'Save and add another': 'সেভ করে আরেকটি যোগ করুন',
+  'Save and fill the next product': 'সেভ করে পরের পণ্য পূরণ করুন',
+  'Screenshot': 'স্ক্রিনশট',
+  'That screenshot is too large. Please use one under 5 MB.': 'স্ক্রিনশটটি অনেক বড়। ৫ MB-এর কম একটি দিন।',
+  "We couldn't find an order in that. Paste the part of the chat with the customer's details.": 'এতে কোনো অর্ডার পাওয়া যায়নি। চ্যাটের যে অংশে কাস্টমারের তথ্য আছে সেটি পেস্ট করুন।',
+  '{n} more from this chat': 'এই চ্যাট থেকে আরও {n}টি',
 };
 
 export default bn;

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   orderNumber: string;
   customer: string;
+  phone?: string | null;
   product: string;
   source: string | null;
   status: string;
@@ -21,7 +22,7 @@ interface Props {
 }
 
 /** One order as a card, for phones, where the orders table would need sideways scrolling. */
-export default function OrderCard({ orderNumber, customer, product, source, status, quantity, price, shipping, profit, date, actions }: Props) {
+export default function OrderCard({ orderNumber, customer, phone, product, source, status, quantity, price, shipping, profit, date, actions }: Props) {
   const { t } = useT();
   const { formatCurrency } = useCurrency();
   return (
@@ -30,7 +31,7 @@ export default function OrderCard({ orderNumber, customer, product, source, stat
         <div className="min-w-0">
           <p className="truncate font-medium">{customer}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {orderNumber} · {format(parseDay(date), 'dd MMM yyyy', { locale: currentDateLocale() })}
+            {[orderNumber, phone].filter(Boolean).join(' · ')} · {format(parseDay(date), 'dd MMM yyyy', { locale: currentDateLocale() })}
           </p>
         </div>
         <StatusBadge status={status} />

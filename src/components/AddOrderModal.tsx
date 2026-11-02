@@ -1,13 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFAB } from '@/context/FABContext';
 import { useAuth } from '@/context/AuthContext';
-import { SOURCES, ORDER_STATUSES, STATUS_COLORS, holdsStock } from '@/lib/constants';
+import { SOURCES, ORDER_STATUSES, holdsStock } from '@/lib/constants';
 import ModalShell from '@/components/ModalShell';
+import OrderReader, { type ReadOrder, type ReadOrderItem } from '@/components/orders/OrderReader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -29,6 +30,8 @@ export interface OrderToEdit {
   id: string;
   order_number: string;
   customer_name: string;
+  customer_phone?: string | null;
+  customer_address?: string | null;
   /** null when the product was deleted after the order was placed. */
   product_id: string | null;
   product_name?: string | null;
@@ -45,15 +48,43 @@ export interface OrderToEdit {
 
 interface Props {
   editOrder?: OrderToEdit | null;
+  /** Starts a new order from an existing one ("Duplicate"). */
+  copyFrom?: OrderToEdit | null;
   onClose?: () => void;
   onSaved?: () => void;
   externalOpen?: boolean;
 }
 
+/** The rest of an order read from a chat, filled in after each save. */
+interface Pending {
+  customer: { name: string; phone: string; address: string };
+  items: ReadOrderItem[];
+}
+
 const nativeSelectClass =
   'w-full h-[44px] px-3 rounded-lg border border-border bg-background text-foreground text-[15px] font-semibold cursor-pointer appearance-auto md:h-[44px] max-md:h-[48px] max-md:text-[16px]';
 
-export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpen }: Props) {
+// The source and delivery cost of the last order, so a shop that sells on
+// one channel with one courier doesn't pick them every time.
+const DEFAULTS_KEY = 'lumina-order-defaults';
+function loadDefaults(): { source: string; shippingCost: string } {
+  try {
+    const d = JSON.parse(localStorage.getItem(DEFAULTS_KEY) || '{}');
+    return {
+      source: (SOURCES as readonly string[]).includes(d.source) ? d.source : '',
+      shippingCost: typeof d.shippingCost === 'string' && d.shippingCost ? d.shippingCost : '0',
+    };
+  } catch {
+    return { source: '', shippingCost: '0' };
+  }
+}
+function saveDefaults(source: string, shippingCost: string) {
+  try { localStorage.setItem(DEFAULTS_KEY, JSON.stringify({ source, shippingCost })); } catch { /* private mode */ }
+}
+
+const phoneDigits = (v: string) => v.replace(/[^\d+]/g, '');
+
+export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, externalOpen }: Props) {
   const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
@@ -67,6 +98,8 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   const [productsError, setProductsError] = useState(false);
 
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
   const [productId, setProductId] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [sellingPrice, setSellingPrice] = useState('');
@@ -78,6 +111,27 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   const [orderNumber, setOrderNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Set when the form was filled from a chat, until the seller saves.
+  const [fromChat, setFromChat] = useState<{ unmatched: string | null } | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [returning, setReturning] = useState<{ orders: number } | null>(null);
+  const customerTouched = useRef(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  async function loadNextNumber() {
+    const { data } = await supabase
+      .from('orders')
+      .select('order_number')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    let next = 1;
+    if (data && data.length > 0) {
+      const match = data[0].order_number.match(/(\d+)/);
+      if (match) next = parseInt(match[1]) + 1;
+    }
+    setOrderNumber(`ORD-${String(next).padStart(3, '0')}`);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -99,6 +153,8 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
 
     if (editOrder) {
       setCustomerName(editOrder.customer_name);
+      setCustomerPhone(editOrder.customer_phone ?? '');
+      setCustomerAddress(editOrder.customer_address ?? '');
       setProductId(editOrder.product_id ?? '');
       setQuantity(editOrder.quantity.toString());
       setSellingPrice(editOrder.selling_price.toString());
@@ -110,21 +166,46 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
       setOrderNumber(editOrder.order_number);
     } else {
       resetForm();
-      (async () => {
-        const { data } = await supabase
-          .from('orders')
-          .select('order_number')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        let next = 1;
-        if (data && data.length > 0) {
-          const match = data[0].order_number.match(/(\d+)/);
-          if (match) next = parseInt(match[1]) + 1;
-        }
-        setOrderNumber(`ORD-${String(next).padStart(3, '0')}`);
-      })();
+      if (copyFrom) {
+        // A repeat order: same customer and product, new date and status.
+        setCustomerName(copyFrom.customer_name);
+        setCustomerPhone(copyFrom.customer_phone ?? '');
+        setCustomerAddress(copyFrom.customer_address ?? '');
+        setProductId(copyFrom.product_id ?? '');
+        setQuantity(copyFrom.quantity.toString());
+        setSellingPrice(copyFrom.selling_price.toString());
+        setShippingCost(copyFrom.shipping_cost.toString());
+        setAdCost((copyFrom.ad_cost ?? 0).toString());
+        setSource(copyFrom.source || '');
+      }
+      loadNextNumber();
     }
-  }, [isOpen, editOrder]);
+  }, [isOpen, editOrder, copyFrom]);
+
+  // A phone number the shop has seen before fills in the customer, unless
+  // the seller already typed a name for this order.
+  useEffect(() => {
+    setReturning(null);
+    if (!isOpen || isEdit) return;
+    const phone = phoneDigits(customerPhone);
+    if (phone.replace(/\D/g, '').length < 10) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data, count } = await supabase
+        .from('orders')
+        .select('customer_name, customer_address', { count: 'exact' })
+        .eq('customer_phone', phone)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (cancelled || !data?.length) return;
+      setReturning({ orders: count ?? data.length });
+      if (!customerTouched.current) {
+        setCustomerName((name) => name || data[0].customer_name);
+        setCustomerAddress((address) => address || data[0].customer_address || '');
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [customerPhone, isOpen, isEdit]);
 
   const selectedProduct = useMemo(
     () => products.find((p) => p.id === productId),
@@ -171,17 +252,28 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
   const margin = !returned && revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0.0';
   const breakevenAd = revenue - cogs - sc;
 
-  function resetForm() {
+  function clearCustomerAndProduct() {
     setCustomerName('');
+    setCustomerPhone('');
+    setCustomerAddress('');
     setProductId('');
     setQuantity('1');
     setSellingPrice('');
-    setShippingCost('0');
     setAdCost('0');
-    setSource('');
+    setTouched({});
+    setFromChat(null);
+    setReturning(null);
+    customerTouched.current = false;
+  }
+
+  function resetForm() {
+    clearCustomerAndProduct();
+    const defaults = loadDefaults();
+    setShippingCost(defaults.shippingCost);
+    setSource(defaults.source);
     setStatus('Pending');
     setDate(format(new Date(), 'yyyy-MM-dd'));
-    setTouched({});
+    setPending(null);
     setSubmitting(false);
   }
 
@@ -200,13 +292,40 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
     touch('productId');
   }
 
-  async function handleSave() {
+  function fillItem(customer: Pending['customer'], item: ReadOrderItem, rest: ReadOrderItem[]) {
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setCustomerAddress(customer.address);
+    setProductId(item.product_id ?? '');
+    setQuantity(String(item.quantity || 1));
+    const price = item.unit_price || products.find((p) => p.id === item.product_id)?.selling_price || 0;
+    setSellingPrice(price ? String(price) : '');
+    setFromChat({ unmatched: item.product_id ? null : item.product_text || null });
+    setPending(rest.length ? { customer, items: rest } : null);
+    customerTouched.current = Boolean(customer.name);
+  }
+
+  function applyRead(order: ReadOrder) {
+    const customer = { name: order.customer_name, phone: order.customer_phone, address: order.customer_address };
+    if (order.source) setSource(order.source);
+    if (order.delivery_charge > 0) setShippingCost(String(order.delivery_charge));
+    if (order.date) setDate(order.date);
+    const [first, ...rest] = order.items.length
+      ? order.items
+      : [{ product_id: null, product_text: '', quantity: 1, unit_price: 0 }];
+    fillItem(customer, first, rest);
+    setTouched({});
+  }
+
+  async function handleSave(addAnother = false) {
     setTouched({ customerName: true, productId: true, quantity: true, sellingPrice: true, source: true, status: true, date: true });
     if (!isValid) return;
     setSubmitting(true);
 
     const payload = {
       customer_name: customerName.trim(),
+      customer_phone: phoneDigits(customerPhone) || null,
+      customer_address: customerAddress.trim() || null,
       product_id: productId || null,
       quantity: qtyNum,
       selling_price: parseFloat(sellingPrice),
@@ -232,25 +351,96 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
         setSubmitting(false);
         return;
       }
+      saveDefaults(source, shippingCost);
       toast.success(t('Order saved ✓'));
     }
 
-    handleClose();
     onSaved?.();
+    // The next product from the same chat, or a fresh order, without closing.
+    if (!isEdit && (addAnother || pending)) {
+      setSubmitting(false);
+      if (pending) {
+        const [next, ...rest] = pending.items;
+        fillItem(pending.customer, next, rest);
+        setTouched({});
+      } else {
+        clearCustomerAndProduct();
+        nameRef.current?.focus();
+      }
+      loadNextNumber();
+      return;
+    }
+    handleClose();
   }
 
+  const title = isEdit ? t('Edit order') : t('Add order');
+
   return (
-    <ModalShell isOpen={isOpen} onClose={handleClose} title={isEdit ? t('Edit order') : t('Add order')}>
+    <ModalShell isOpen={isOpen} onClose={handleClose} title={title}>
       <div className="flex flex-col gap-4">
-        <div>
-          <Label className="text-xs text-muted-foreground">{t('Order #')}</Label>
-          <p className="text-sm font-semibold text-foreground">{orderNumber}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <Label className="text-xs text-muted-foreground">{t('Order #')}</Label>
+            <p className="text-sm font-semibold text-foreground">{orderNumber}</p>
+          </div>
+          {pending && (
+            <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+              {t('{n} more from this chat', { n: pending.items.length })}
+            </span>
+          )}
+        </div>
+
+        {!isEdit && !copyFrom && <OrderReader onRead={applyRead} />}
+
+        {fromChat && (
+          <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
+            <p className="flex items-center gap-1.5 font-semibold"><Sparkles size={13} className="text-warning" /> {t('Filled from the chat. Check everything before saving.')}</p>
+            {fromChat.unmatched && (
+              <p className="mt-1 text-muted-foreground">{t('"{product}" is not in your products. Pick the right one below.', { product: fromChat.unmatched })}</p>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="customerPhone">{t('Phone')}</Label>
+            <Input
+              id="customerPhone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="01XXXXXXXXX"
+            />
+            {returning && (
+              <p className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
+                <UserCheck size={13} /> {t('Returning customer · {n} orders', { n: returning.orders })}
+              </p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="customerName">{t('Customer name')} *</Label>
+            <Input
+              id="customerName"
+              ref={nameRef}
+              value={customerName}
+              onChange={(e) => { setCustomerName(e.target.value); customerTouched.current = true; }}
+              onBlur={() => touch('customerName')}
+              placeholder={t('Enter customer name')}
+            />
+            {touched.customerName && errors.customerName && <p className="mt-1 text-xs font-medium text-destructive">{errors.customerName}</p>}
+          </div>
         </div>
 
         <div>
-          <Label htmlFor="customerName">{t('Customer name')} *</Label>
-          <Input id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} onBlur={() => touch('customerName')} placeholder={t('Enter customer name')} />
-          {touched.customerName && errors.customerName && <p className="mt-1 text-xs font-medium text-destructive">{errors.customerName}</p>}
+          <Label htmlFor="customerAddress">{t('Delivery address')}</Label>
+          <Input
+            id="customerAddress"
+            value={customerAddress}
+            onChange={(e) => setCustomerAddress(e.target.value)}
+            placeholder={t('House, road, area, district')}
+          />
         </div>
 
         {/* Product — native select */}
@@ -266,6 +456,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               onChange={(e) => handleProductSelect(e.target.value)}
               onBlur={() => touch('productId')}
               required
+              aria-label={t('Product')}
               className={nativeSelectClass}
             >
               {products.length === 0 ? (
@@ -332,6 +523,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               onChange={(e) => { setSource(e.target.value); touch('source'); }}
               onBlur={() => touch('source')}
               required
+              aria-label={t('Source')}
               className={nativeSelectClass}
             >
               <option value="">{t('Select Source')}</option>
@@ -350,6 +542,7 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
               onChange={(e) => { setStatus(e.target.value); touch('status'); }}
               onBlur={() => touch('status')}
               required
+              aria-label={t('Status')}
               className={nativeSelectClass}
             >
               {ORDER_STATUSES.map((s) => (
@@ -389,9 +582,17 @@ export default function AddOrderModal({ editOrder, onClose, onSaved, externalOpe
           </div>
         )}
 
-        <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full font-bold text-base">
-          {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> : isEdit ? t('Update order') : t('Save order')}
-        </Button>
+        <div className="mt-2 flex flex-col gap-2">
+          <Button onClick={() => handleSave(false)} disabled={!isValid || submitting} className="h-12 w-full font-bold text-base">
+            {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> :
+              isEdit ? t('Update order') : pending ? t('Save and fill the next product') : t('Save order')}
+          </Button>
+          {!isEdit && !pending && (
+            <Button variant="outline" onClick={() => handleSave(true)} disabled={!isValid || submitting} className="h-11 w-full font-semibold">
+              {t('Save and add another')}
+            </Button>
+          )}
+        </div>
       </div>
     </ModalShell>
   );

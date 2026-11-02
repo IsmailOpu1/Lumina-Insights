@@ -31,6 +31,45 @@ export function setupPwa() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
+  if (import.meta.env.PROD) watchForUpdates();
+}
+
+const APP_SCRIPT = /\/assets\/index-[\w-]+\.js/;
+const CHECK_EVERY_MS = 15 * 60 * 1000;
+
+/** The app script a fresh copy of the site would load, if it differs from the running one. */
+export function newerScript(freshHtml: string, running: string | null): string | null {
+  const fresh = freshHtml.match(APP_SCRIPT)?.[0] ?? null;
+  return fresh && running && fresh !== running ? fresh : null;
+}
+
+/**
+ * A tab or installed app left open keeps running the version it loaded, so
+ * a release never reached it until a reload. Check for a newer build when
+ * the seller comes back to the app and every so often, and offer a refresh.
+ */
+function watchForUpdates() {
+  const running = document.querySelector<HTMLScriptElement>('script[type="module"][src*="/assets/"]')
+    ?.getAttribute('src')?.match(APP_SCRIPT)?.[0] ?? null;
+  if (!running) return;
+  let offered = false;
+
+  async function check() {
+    if (offered || document.visibilityState !== 'visible') return;
+    try {
+      const res = await fetch('/', { cache: 'no-store' });
+      if (!res.ok || !newerScript(await res.text(), running)) return;
+      offered = true;
+      toast(tr('A new version of Lumina is ready'), {
+        description: tr('Refresh to get the latest changes.'),
+        duration: Infinity,
+        action: { label: tr('Refresh'), onClick: () => window.location.reload() },
+      });
+    } catch { /* offline: try again later */ }
+  }
+
+  document.addEventListener('visibilitychange', check);
+  window.setInterval(check, CHECK_EVERY_MS);
 }
 
 export function isStandalone() {

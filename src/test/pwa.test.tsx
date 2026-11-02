@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const mocks = vi.hoisted(() => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
 vi.mock('sonner', () => ({ toast: mocks.toast }));
 
-import { setupPwa, useInstallApp } from '@/lib/pwa';
+import { newerScript, setupPwa, useInstallApp } from '@/lib/pwa';
 
 function offerInstall(outcome: 'accepted' | 'dismissed' = 'accepted') {
   const event = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
@@ -67,5 +67,19 @@ describe('manifest', () => {
     const sizes = manifest.icons.map((i: { sizes: string }) => i.sizes);
     expect(sizes).toEqual(expect.arrayContaining(['192x192', '512x512']));
     expect(manifest.icons.some((i: { purpose?: string }) => i.purpose === 'maskable')).toBe(true);
+  });
+});
+
+describe('New version notice', () => {
+  const html = (script: string) => `<html><head><script type="module" crossorigin src="${script}"></script></head></html>`;
+
+  it('spots a newer build of the app', () => {
+    expect(newerScript(html('/assets/index-NEW123.js'), '/assets/index-OLD456.js')).toBe('/assets/index-NEW123.js');
+  });
+
+  it("stays quiet when the build is the same, or the page can't be read", () => {
+    expect(newerScript(html('/assets/index-OLD456.js'), '/assets/index-OLD456.js')).toBeNull();
+    expect(newerScript('<html>offline</html>', '/assets/index-OLD456.js')).toBeNull();
+    expect(newerScript(html('/assets/index-NEW123.js'), null)).toBeNull();
   });
 });

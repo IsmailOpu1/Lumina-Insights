@@ -26,6 +26,7 @@ import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll } from '@/lib/fetchAll';
+import { getCollection } from '@/hooks/useDashboardData';
 import { currentDateLocale, msg, useT } from '@/i18n';
 
 interface OrderRow {
@@ -268,7 +269,8 @@ export default function Orders() {
     const revenue = live.reduce((s, o) => s + o.selling_price * o.quantity, 0);
     // Returned orders count here: their delivery and ad cost were lost.
     const profit = filtered.filter((o) => countsForProfit(o.status)).reduce((s, o) => s + (o.profit_per_order ?? 0), 0);
-    return { revenue, profit, avg: live.length ? revenue / live.length : 0, pending: filtered.filter((o) => o.status === 'Pending').length };
+    const { toCollect } = getCollection(filtered);
+    return { revenue, profit, toCollect, avg: live.length ? revenue / live.length : 0, pending: filtered.filter((o) => o.status === 'Pending').length };
   }, [filtered]);
 
   const th = (key: SortKey, label: string) => (
@@ -301,7 +303,13 @@ export default function Orders() {
       <StatStrip
         stats={[
           { label: t('Orders'), value: filtered.length, icon: ShoppingBag, hint: totals.pending ? t('{n} pending', { n: totals.pending }) : t('None pending') },
-          { label: t('Revenue'), value: formatCurrency(totals.revenue), icon: Wallet, hint: t('Cancelled and returned excluded') },
+          {
+            label: t('Revenue'),
+            value: formatCurrency(totals.revenue),
+            icon: Wallet,
+            // Most orders are cash on delivery: say how much is still to come.
+            hint: totals.toCollect > 0 ? t('{open} still to collect', { open: formatCurrency(totals.toCollect) }) : t('Cancelled and returned excluded'),
+          },
           { label: t('Profit'), value: formatCurrency(totals.profit), icon: TrendingUp, tone: totals.profit >= 0 ? 'positive' : 'negative' },
           { label: t('Average order'), value: formatCurrency(totals.avg), icon: Receipt },
         ]}

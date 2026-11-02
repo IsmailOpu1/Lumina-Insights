@@ -17,6 +17,7 @@ import { LanguageProvider } from '@/i18n';
 
 // Each page is its own chunk, downloaded the first time it is opened.
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Insights = lazy(() => import('@/pages/Insights'));
 const Orders = lazy(() => import('@/pages/Orders'));
 const Inventory = lazy(() => import('@/pages/Inventory'));
 const Expenses = lazy(() => import('@/pages/Expenses'));
@@ -94,6 +95,7 @@ const App = () => (
                       {/* Protected routes */}
                       <Route element={<ProtectedRoute publicHome={<Landing />}><AppShell /></ProtectedRoute>}>
                         <Route path="/" element={<Dashboard />} />
+                        <Route path="/insights" element={<Insights />} />
                         <Route path="/orders" element={<Orders />} />
                         <Route path="/inventory" element={<Inventory />} />
                         <Route path="/expenses" element={<Expenses />} />

@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, Package, Receipt, Sparkles,
-  Bot, StickyNote, Bell, Settings, CreditCard, ChevronLeft, ChevronRight, FileUp, Calculator
+  Bot, StickyNote, Bell, Settings, CreditCard, ChevronLeft, ChevronRight, FileUp, Calculator, Lightbulb
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
@@ -16,6 +16,7 @@ export const NAV_GROUPS = [
     label: 'Business',
     items: [
       { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+      { label: 'Insights', path: '/insights', icon: Lightbulb },
       { label: 'Orders', path: '/orders', icon: ShoppingBag },
       { label: 'Inventory', path: '/inventory', icon: Package },
       { label: 'Expenses', path: '/expenses', icon: Receipt },

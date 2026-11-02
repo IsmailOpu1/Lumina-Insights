@@ -953,6 +953,15 @@ const bn: Record<string, string> = {
   'That screenshot is too large. Please use one under 5 MB.': 'স্ক্রিনশটটি অনেক বড়। ৫ MB-এর কম একটি দিন।',
   "We couldn't find an order in that. Paste the part of the chat with the customer's details.": 'এতে কোনো অর্ডার পাওয়া যায়নি। চ্যাটের যে অংশে কাস্টমারের তথ্য আছে সেটি পেস্ট করুন।',
   '{n} more from this chat': 'এই চ্যাট থেকে আরও {n}টি',
+
+  // Kept work: chats and drafts survive page changes and reloads
+  'Ask again': 'আবার জিজ্ঞেস করুন',
+  'New chat': 'নতুন চ্যাট',
+  'Start fresh': 'নতুন করে শুরু করুন',
+  'The page reloaded before the answer came.': 'উত্তর আসার আগেই পেজটি রিলোড হয়েছে।',
+  'The page reloaded before your content was ready. Please try again.': 'কনটেন্ট তৈরি হওয়ার আগেই পেজটি রিলোড হয়েছে। আবার চেষ্টা করুন।',
+  'Your unsaved order is back.': 'আপনার সেভ না করা অর্ডারটি ফিরে এসেছে।',
+  'Your unsaved product is back.': 'আপনার সেভ না করা প্রোডাক্টটি ফিরে এসেছে।',
 };
 
 export default bn;

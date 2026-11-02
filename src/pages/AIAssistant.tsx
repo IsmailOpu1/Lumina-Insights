@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import {
   Send, RefreshCw, ChevronDown, ChevronUp,
-  BookmarkPlus, Check, ImageIcon, X, Mic, MicOff, Sparkles, BarChart3
+  BookmarkPlus, Check, ImageIcon, X, Mic, MicOff, Sparkles, BarChart3, SquarePen, RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +14,8 @@ import { fetchRecentSnapshot } from '@/lib/businessSnapshot';
 import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
 import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
 import { useT, tr } from '@/i18n';
+import { createKeptStore } from '@/lib/keptWork';
+import { useKept } from '@/hooks/useKept';
 
 interface ChatMessage {
   id: string;
@@ -37,6 +39,34 @@ interface BusinessContext {
 // The AI and the context panel both look at this many recent days.
 const CONTEXT_DAYS = 30;
 
+interface ChatState {
+  messages: ChatMessage[];
+  /** What is typed in the box but not sent yet. */
+  input: string;
+  /** The question waiting for an answer. */
+  pending: string | null;
+  /** True only while this page load is waiting for the answer. */
+  generating: boolean;
+}
+
+// The conversation lives outside the page, so an answer still lands when the
+// seller has moved to another page, and it is saved in this browser so a
+// reload (which phones do on their own) doesn't lose it. A day old, or on
+// "New chat" or sign-out, it is gone. Photos are not saved: they would fill
+// the browser's storage.
+const chatStore = createKeptStore<ChatState>(
+  'ai-chat',
+  () => ({ messages: [], input: '', pending: null, generating: false }),
+  {
+    maxAgeMs: 24 * 60 * 60 * 1000,
+    toSaved: (s) => ({
+      messages: s.messages.slice(-60).map(({ imagePreview: _image, ...m }) => m),
+      input: s.input,
+      pending: s.pending,
+    }),
+  }
+);
+
 const EXAMPLES = [
   "What's my most profitable product?",
   'How is my business this week?',
@@ -47,13 +77,17 @@ export default function AIAssistant() {
   const { t, lang } = useT();
   const { ownerIdForQueries } = useAuth();
   const { formatCurrency } = useCurrency();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [chat, setChat] = useKept(chatStore);
+  const { messages, input, pending } = chat;
+  const isGenerating = chat.generating;
+  // Asked, but the page was reloaded before the answer came.
+  const interrupted = pending !== null && !isGenerating;
+  const setInput = (value: string) => setChat({ input: value });
+  const setMessages = (update: (prev: ChatMessage[]) => ChatMessage[]) =>
+    setChat((s) => ({ messages: update(s.messages) }));
   const [context, setContext] = useState<BusinessContext | null>(null);
   const [contextLoading, setContextLoading] = useState(true);
   const [contextOpen, setContextOpen] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
@@ -90,39 +124,8 @@ export default function AIAssistant() {
     setContextLoading(false);
   }
 
-  async function loadHistory() {
-    const { data } = await supabase
-      .from('notes')
-      .select('title, transcript, created_at')
-      .eq('source_module', 'business_ai')
-      .eq('type', 'ai_output')
-      .order('created_at', { ascending: true })
-      .limit(20);
-    if (data && data.length > 0) {
-      const history: ChatMessage[] = [];
-      data.forEach((n) => {
-        history.push({
-          id: crypto.randomUUID(),
-          role: 'user',
-          content: n.title,
-        });
-        if (n.transcript) {
-          history.push({
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: n.transcript,
-            savedToNotes: true,
-          });
-        }
-      });
-      setMessages(history);
-    }
-    setHistoryLoaded(true);
-  }
-
   useEffect(() => {
     fetchContext();
-    loadHistory();
 
     // orders/expenses/inventory are not in the realtime publication, so poll.
     const interval = setInterval(fetchContext, 60000);
@@ -241,7 +244,7 @@ export default function AIAssistant() {
     }
   }
 
-  async function sendMessage(text?: string) {
+  async function sendMessage(text?: string, retry = false) {
     const msg = (text || input).trim();
     if (!msg || isGenerating) return;
 
@@ -257,11 +260,12 @@ export default function AIAssistant() {
       content: msg,
       imagePreview: imagePreview || undefined,
     };
-    setMessages((prev) => [...prev, userMsg]);
-    setIsGenerating(true);
+    // A retry asks again without adding the question a second time.
+    const before = retry ? messages.slice(0, -1) : messages;
+    setChat({ messages: retry ? messages : [...messages, userMsg], pending: msg, generating: true });
 
     try {
-      const history = messages.slice(-10).map((m) => ({
+      const history = before.slice(-10).map((m) => ({
         role: m.role,
         content: m.content,
       }));
@@ -309,13 +313,21 @@ export default function AIAssistant() {
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
-      setIsGenerating(false);
+      setChat({ pending: null, generating: false });
     }
   }
 
+  function retryInterrupted() {
+    if (pending) sendMessage(pending, true);
+  }
+
+  function newChat() {
+    chatStore.reset();
+    removeImage();
+  }
+
   async function saveToNotes(msg: ChatMessage) {
-    // loadHistory() shows the title as the user's question, so store the
-    // question this answer replied to.
+    // The note's title is the question this answer replied to.
     const index = messages.findIndex((m) => m.id === msg.id);
     const question = messages
       .slice(0, index)
@@ -414,7 +426,7 @@ export default function AIAssistant() {
 
         <div ref={messagesContainerRef} className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6">
-            {messages.length === 0 && !isGenerating && historyLoaded && (
+            {messages.length === 0 && !isGenerating && (
               <div className="flex flex-col items-center py-10 text-center md:py-16">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-2xl bg-primary/30 blur-xl" />
@@ -484,6 +496,15 @@ export default function AIAssistant() {
                   )}
                 </div>
               ))}
+
+              {interrupted && (
+                <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+                  <span className="flex-1">{t('The page reloaded before the answer came.')}</span>
+                  <button onClick={retryInterrupted} className="flex items-center gap-1.5 font-medium text-primary hover:underline">
+                    <RotateCcw size={14} /> {t('Ask again')}
+                  </button>
+                </div>
+              )}
 
               {isGenerating && (
                 <div className="flex gap-3 animate-in fade-in duration-200">
@@ -567,7 +588,14 @@ export default function AIAssistant() {
                 </div>
               )}
             </div>
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">{t('AI can make mistakes. Check important numbers on your Dashboard.')}</p>
+            <div className="mt-2 flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
+              {messages.length > 0 && (
+                <button onClick={newChat} disabled={isGenerating} className="flex shrink-0 items-center gap-1 font-medium text-foreground/80 hover:text-foreground disabled:opacity-40">
+                  <SquarePen size={12} /> {t('New chat')}
+                </button>
+              )}
+              <p className="text-center">{t('AI can make mistakes. Check important numbers on your Dashboard.')}</p>
+            </div>
           </div>
         </div>
       </div>

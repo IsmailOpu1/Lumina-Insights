@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useT } from '@/i18n';
+import { createKeptStore } from '@/lib/keptWork';
+import { History } from 'lucide-react';
 
 export interface ProductToEdit {
   id: string;
@@ -29,11 +31,25 @@ interface Props {
   externalOpen?: boolean;
 }
 
+interface ProductDraft {
+  name: string; sku: string; costPrice: string; sellingPrice: string;
+  stockQty: string; threshold: string; supplier: string;
+}
+
+// A half-typed new product survives closing the form, leaving the page and
+// reloads, until it is saved or the seller starts fresh (like order drafts).
+const productDraft = createKeptStore<{ draft: ProductDraft | null }>(
+  'product-draft',
+  () => ({ draft: null }),
+  { maxAgeMs: 7 * 24 * 60 * 60 * 1000 }
+);
+
 export default function AddProductModal({ editProduct, onClose, onSaved, externalOpen }: Props) {
   const { t } = useT();
   const { symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
-  const { ownerIdForQueries } = useAuth();
+  const { ownerIdForQueries, user } = useAuth();
+  productDraft.load(user?.id ?? null);
   const fabOpen = activeModal === 'product';
   const isOpen = externalOpen ?? fabOpen;
   const isEdit = !!editProduct;
@@ -47,9 +63,19 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
   const [supplier, setSupplier] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
+    if (!editProduct) {
+      resetForm();
+      const d = productDraft.get().draft;
+      if (d) {
+        setName(d.name); setSku(d.sku); setCostPrice(d.costPrice); setSellingPrice(d.sellingPrice);
+        setStockQty(d.stockQty); setThreshold(d.threshold); setSupplier(d.supplier);
+        setRestored(true);
+      }
+    }
     if (editProduct) {
       setName(editProduct.product_name);
       setSku(editProduct.sku || '');
@@ -69,17 +95,32 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
     threshold: threshold === '' || parseInt(threshold) < 0 ? t('Threshold cannot be negative') : '',
   };
 
+  // Every change to a new product is kept as its draft; an empty form has none.
+  useEffect(() => {
+    if (!isOpen || isEdit) return;
+    const typed = name || sku || costPrice || sellingPrice || supplier;
+    productDraft.setter()({
+      draft: typed ? { name, sku, costPrice, sellingPrice, stockQty, threshold, supplier } : null,
+    });
+  }, [isOpen, isEdit, name, sku, costPrice, sellingPrice, stockQty, threshold, supplier]);
+
   const isValid = Object.values(errors).every((e) => !e);
   const touch = (f: string) => setTouched((t) => ({ ...t, [f]: true }));
 
   function resetForm() {
     setName(''); setSku(''); setCostPrice(''); setSellingPrice('');
     setStockQty('0'); setThreshold('10'); setSupplier('');
-    setTouched({}); setSubmitting(false);
+    setTouched({}); setSubmitting(false); setRestored(false);
   }
 
-  function handleClose() {
+  function startFresh() {
+    productDraft.reset();
     resetForm();
+  }
+
+  // Closing keeps a new product's draft; the form is reset when it next opens.
+  function handleClose() {
+    if (isEdit) resetForm();
     if (onClose) onClose(); else closeModal();
   }
 
@@ -105,8 +146,10 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
     } else {
       const { error } = await supabase.from('inventory').insert({ ...payload, owner_id: ownerIdForQueries });
       if (error) { toast.error(t('Failed to add product'), { description: dbErrorMessage(error.message) }); setSubmitting(false); return; }
+      productDraft.reset();
       toast.success(t('Product saved ✓'));
     }
+    resetForm();
     handleClose();
     onSaved?.();
   }
@@ -114,6 +157,13 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
   return (
     <ModalShell isOpen={isOpen} onClose={handleClose} title={isEdit ? t('Edit product') : t('Add product')}>
       <div className="flex flex-col gap-4">
+        {restored && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+            <span className="flex items-center gap-1.5 font-medium"><History size={13} className="text-primary" /> {t('Your unsaved product is back.')}</span>
+            <button type="button" onClick={startFresh} className="shrink-0 font-semibold text-primary hover:underline">{t('Start fresh')}</button>
+          </div>
+        )}
+
         <div>
           <Label htmlFor="pname">{t('Product name')} *</Label>
           <Input id="pname" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => touch('name')} placeholder={t('e.g. Premium T-Shirt')} />

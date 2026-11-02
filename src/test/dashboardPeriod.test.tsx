@@ -22,15 +22,16 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ ownerIdForQueries: null, userSettings: null }) }));
 vi.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ formatCurrency: String, symbol: '৳' }) }));
 vi.mock('@/hooks/useDashboardData', () => ({
-  useDashboardData: () => ({ orders: mocks.orders, inventory: [], expenses: [], loading: false, refetch: vi.fn() }),
+  useDashboardData: () => ({ orders: mocks.orders, inventory: [], expenses: [], previous: null, loading: false, refetch: vi.fn() }),
   computeKPIs: () => ({
     totalRevenue: 0, netProfit: 0, profitMargin: 0, totalOrders: 0, repeatCustomers: 0, inventoryValue: 0,
     lowStockItems: [], topCustomer: null, totalAdSpend: 0, cogs: 0, totalShipping: 0, adSpend: 0, orderAdCost: 0,
   }),
   getRevenueBySource: () => [], getOrdersByStatus: () => [], getTopProducts: () => [],
+  getCollection: () => ({ delivered: 0, toCollect: 0 }), percentChange: () => null,
 }));
 for (const c of ['DateFilterBar', 'KPICards', 'RevenueGrowthChart', 'ProfitBreakdownPie', 'SalesBySourcePie',
-  'TopSellingProductsBar', 'OrderStatusPie', 'InventoryAlerts', 'BusinessMetrics', 'RecentOrdersTable', 'ProfitCalculator']) {
+  'TopSellingProductsBar', 'OrderStatusPie', 'InventoryAlerts', 'BusinessMetrics', 'RecentOrdersTable']) {
   vi.doMock(`@/components/dashboard/${c}`, () => ({ default: () => null }));
 }
 

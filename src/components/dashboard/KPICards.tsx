@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,8 @@ export interface KPI {
   subValue?: string;
   nameValue?: string;
   tooltip?: string;
+  /** Change against the period before, e.g. "vs previous 7 days". */
+  change?: { pct: number | null; label: string };
 }
 
 interface KPICardsProps {
@@ -56,6 +58,22 @@ function AnimatedNumber({ value, format }: { value: number; format: KPI['format'
         : format === 'roas' ? `${displayed.toFixed(1)}x`
         : Math.round(displayed).toLocaleString()}
     </>
+  );
+}
+
+/** "↑ 12% vs previous 7 days", green when up and red when down. */
+function Change({ change }: { change: NonNullable<KPI['change']> }) {
+  if (change.pct === null || !Number.isFinite(change.pct)) return null;
+  const pct = Math.round(change.pct);
+  const Arrow = pct >= 0 ? ArrowUpRight : ArrowDownRight;
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+      <span className={cn('inline-flex items-center font-medium tabular-nums', pct === 0 ? 'text-muted-foreground' : pct > 0 ? 'text-success' : 'text-destructive')}>
+        <Arrow size={13} aria-hidden />
+        {Math.abs(pct).toLocaleString()}%
+      </span>
+      {change.label}
+    </p>
   );
 }
 
@@ -102,6 +120,7 @@ export default function KPICards({ primary, secondary, loading }: KPICardsProps)
               )}>
                 <KPIValue kpi={kpi} />
               </p>
+              {kpi.change && <Change change={kpi.change} />}
               {kpi.subValue && <p className="mt-2 text-xs text-muted-foreground">{kpi.subValue}</p>}
             </div>
           );

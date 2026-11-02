@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFilter } from '@/context/FilterContext';
-import { format } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, startOfDay } from 'date-fns';
 import { parseDay } from '@/lib/dates';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { fetchAll } from '@/lib/fetchAll';
@@ -51,15 +51,47 @@ export interface DashboardData {
   orders: Order[];
   inventory: InventoryItem[];
   expenses: Expense[];
+  /** The same number of days just before the period, to compare with; null for today and all time. */
+  previous: { orders: Order[]; expenses: Expense[]; days: number } | null;
   loading: boolean;
   refetch: () => void;
 }
 
+/** The days just before [from, to], as many as the period has. */
+export function previousPeriod(from: Date, to: Date) {
+  const days = differenceInCalendarDays(to, from) + 1;
+  const start = startOfDay(from);
+  return { from: addDays(start, -days), to: addDays(start, -1), days };
+}
+
+/** Change from prev to cur in percent, or null when there is nothing to compare with. */
+export function percentChange(cur: number, prev: number): number | null {
+  if (!prev) return null;
+  return ((cur - prev) / Math.abs(prev)) * 100;
+}
+
+/**
+ * Sales already delivered, and sales whose cash (mostly cash on delivery)
+ * is still to come: pending, processing and shipped orders.
+ */
+export function getCollection(orders: { status: string; selling_price: number; quantity: number }[]) {
+  let delivered = 0;
+  let toCollect = 0;
+  for (const o of orders) {
+    if (!isSale(o.status)) continue;
+    const amount = o.selling_price * o.quantity;
+    if (o.status === 'Delivered') delivered += amount;
+    else toCollect += amount;
+  }
+  return { delivered, toCollect };
+}
+
 export function useDashboardData(): DashboardData {
-  const { getDateRange } = useFilter();
+  const { getDateRange, dateFilter } = useFilter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [previous, setPrevious] = useState<DashboardData['previous']>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -67,19 +99,28 @@ export function useDashboardData(): DashboardData {
     const { from, to } = getDateRange();
     const fromStr = format(from, 'yyyy-MM-dd');
     const toStr = format(to, 'yyyy-MM-dd');
+    // Today is half a day against a whole one, and all time has nothing before it.
+    const prev = dateFilter === 'today' || dateFilter === 'all' ? null : previousPeriod(from, to);
+    const prevFrom = prev && format(prev.from, 'yyyy-MM-dd');
+    const prevTo = prev && format(prev.to, 'yyyy-MM-dd');
 
-    const [ordersRes, inventoryRes, expensesRes] = await Promise.all([
+    const [ordersRes, inventoryRes, expensesRes, prevOrdersRes, prevExpensesRes] = await Promise.all([
       fetchAll((a, b) => supabase.from('orders').select('*').gte('date', fromStr).lte('date', toStr)
         .order('created_at', { ascending: false }).order('id').range(a, b)),
       fetchAll((a, b) => supabase.from('inventory').select('*').order('id').range(a, b)),
       fetchAll((a, b) => supabase.from('expenses').select('*').gte('date', fromStr).lte('date', toStr).order('id').range(a, b)),
+      prev ? fetchAll((a, b) => supabase.from('orders').select('*').gte('date', prevFrom).lte('date', prevTo).order('id').range(a, b)) : null,
+      prev ? fetchAll((a, b) => supabase.from('expenses').select('*').gte('date', prevFrom).lte('date', prevTo).order('id').range(a, b)) : null,
     ]);
 
     setOrders((ordersRes.data as Order[]) || []);
     setInventory((inventoryRes.data as InventoryItem[]) || []);
     setExpenses((expensesRes.data as Expense[]) || []);
+    setPrevious(prev && prevOrdersRes && prevExpensesRes && !prevOrdersRes.error && !prevExpensesRes.error
+      ? { orders: (prevOrdersRes.data as Order[]) || [], expenses: (prevExpensesRes.data as Expense[]) || [], days: prev.days }
+      : null);
     setLoading(false);
-  }, [getDateRange]);
+  }, [getDateRange, dateFilter]);
 
   useEffect(() => {
     fetchData();
@@ -88,7 +129,7 @@ export function useDashboardData(): DashboardData {
   useRefreshOnSave('expense', fetchData);
   useRefreshOnSave('product', fetchData);
 
-  return { orders, inventory, expenses, loading, refetch: fetchData };
+  return { orders, inventory, expenses, previous, loading, refetch: fetchData };
 }
 
 // Sales only: cancelled and returned orders earn nothing.

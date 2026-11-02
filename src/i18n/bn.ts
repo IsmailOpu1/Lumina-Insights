@@ -966,6 +966,15 @@ const bn: Record<string, string> = {
   'Could not change the status': 'স্ট্যাটাস বদলানো যায়নি',
   'Status of order {n}': 'অর্ডার {n}-এর স্ট্যাটাস',
   '{n} marked {status}': '{n} এখন {status}',
+
+  // Dashboard compared with the period before, and cash still to collect
+  'One unit': 'এক পিস',
+  'The result updates as you type': 'লিখতে লিখতেই ফলাফল বদলাবে',
+  'vs previous 7 days': 'আগের ৭ দিনের তুলনায়',
+  'vs previous 30 days': 'আগের ৩০ দিনের তুলনায়',
+  'vs previous {n} days': 'আগের {n} দিনের তুলনায়',
+  '{delivered} delivered · {open} still to collect': '{delivered} ডেলিভারি হয়েছে · {open} এখনো পাওয়া বাকি',
+  'Still to collect: pending, processing and shipped orders not yet delivered': 'পাওয়া বাকি: পেন্ডিং, প্রসেসিং ও শিপড অর্ডার, যা এখনো ডেলিভারি হয়নি',
 };
 
 export default bn;

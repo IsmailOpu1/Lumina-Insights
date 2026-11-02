@@ -4,7 +4,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import ChartCard from './ChartCard';
+import ChartCard from '@/components/dashboard/ChartCard';
 import { useT } from '@/i18n';
 
 /** Quick "what if" for pricing a single unit. */
@@ -31,9 +31,8 @@ export default function ProfitCalculator() {
 
   return (
     <ChartCard
-      title={t('Profit calculator')}
-      subtitle={t('Check a price before you list it')}
-      className="mb-6"
+      title={t('One unit')}
+      subtitle={t('The result updates as you type')}
       action={<Calculator size={16} className="text-muted-foreground" />}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">

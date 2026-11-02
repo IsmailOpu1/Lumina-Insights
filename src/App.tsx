@@ -20,6 +20,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Orders = lazy(() => import('@/pages/Orders'));
 const Inventory = lazy(() => import('@/pages/Inventory'));
 const Expenses = lazy(() => import('@/pages/Expenses'));
+const ProfitCalculatorPage = lazy(() => import('@/pages/ProfitCalculator'));
 const MarketingAI = lazy(() => import('@/pages/MarketingAI'));
 const AIAssistant = lazy(() => import('@/pages/AIAssistant'));
 const Notes = lazy(() => import('@/pages/Notes'));
@@ -96,6 +97,7 @@ const App = () => (
                         <Route path="/orders" element={<Orders />} />
                         <Route path="/inventory" element={<Inventory />} />
                         <Route path="/expenses" element={<Expenses />} />
+                        <Route path="/profit-calculator" element={<ProfitCalculatorPage />} />
                         <Route path="/marketing-ai" element={<MarketingAI />} />
                         <Route path="/ai-assistant" element={<AIAssistant />} />
                         <Route path="/notes" element={<Notes />} />

@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useFilter } from '@/context/FilterContext';
 import { Button } from '@/components/ui/button';
-import { useDashboardData, computeKPIs, getRevenueBySource, getOrdersByStatus, getTopProducts } from '@/hooks/useDashboardData';
+import {
+  useDashboardData, computeKPIs, getCollection, getRevenueBySource, getOrdersByStatus, getTopProducts, percentChange,
+} from '@/hooks/useDashboardData';
 import DateFilterBar from '@/components/dashboard/DateFilterBar';
 import KPICards, { type KPI } from '@/components/dashboard/KPICards';
 import RevenueGrowthChart from '@/components/dashboard/RevenueGrowthChart';
@@ -14,7 +16,6 @@ import OrderStatusPie from '@/components/dashboard/OrderStatusPie';
 import InventoryAlerts from '@/components/dashboard/InventoryAlerts';
 import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
-import ProfitCalculator from '@/components/dashboard/ProfitCalculator';
 import { useCurrency } from '@/hooks/useCurrency';
 import { fetchAll } from '@/lib/fetchAll';
 import { format, min, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns';
@@ -26,7 +27,7 @@ import { currentDateLocale, tr, useT } from '@/i18n';
 export default function Dashboard() {
   const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
-  const { orders, inventory, expenses, loading, refetch } = useDashboardData();
+  const { orders, inventory, expenses, previous, loading } = useDashboardData();
   const { ownerIdForQueries, userSettings } = useAuth();
   const [allOrders, setAllOrders] = useState<typeof orders>([]);
   const [deadProductDays, setDeadProductDays] = useState(30);
@@ -81,6 +82,10 @@ export default function Dashboard() {
   }, [ownerIdForQueries]);
 
   const kpis = computeKPIs(orders, inventory, expenses);
+  const before = previous && computeKPIs(previous.orders, inventory, previous.expenses);
+  const changeLabel = previous && (previous.days === 7 ? t('vs previous 7 days') : previous.days === 30 ? t('vs previous 30 days') : t('vs previous {n} days', { n: previous.days }));
+  const change = (cur: number, prev: number) => (before && changeLabel ? { pct: percentChange(cur, prev), label: changeLabel } : undefined);
+  const collection = getCollection(orders);
   const sourceData = getRevenueBySource(orders);
   const statusData = getOrdersByStatus(orders);
   const topProducts = getTopProducts(orders, inventory);
@@ -90,16 +95,28 @@ export default function Dashboard() {
   const roas = kpis.totalAdSpend > 0 ? kpis.totalRevenue / kpis.totalAdSpend : Infinity;
 
   const primaryKpis: KPI[] = [
-    { label: t('Revenue'), value: kpis.totalRevenue, format: 'taka', icon: TrendingUp },
+    {
+      label: t('Revenue'),
+      value: kpis.totalRevenue,
+      format: 'taka',
+      icon: TrendingUp,
+      change: before ? change(kpis.totalRevenue, before.totalRevenue) : undefined,
+      // Most orders are cash on delivery: say how much of it is still to come.
+      subValue: collection.toCollect > 0
+        ? t('{delivered} delivered · {open} still to collect', { delivered: formatCurrency(collection.delivered), open: formatCurrency(collection.toCollect) })
+        : undefined,
+      tooltip: t('Still to collect: pending, processing and shipped orders not yet delivered'),
+    },
     {
       label: t('Net profit'),
       value: kpis.netProfit,
       format: 'taka',
       icon: Wallet,
       tone: kpis.netProfit >= 0 ? 'positive' : 'negative',
+      change: before ? change(kpis.netProfit, before.netProfit) : undefined,
       subValue: t('{pct}% margin', { pct: kpis.profitMargin.toFixed(1) }),
     },
-    { label: t('Orders'), value: kpis.totalOrders, format: 'number', icon: ShoppingBag, subValue: kpis.repeatCustomers === 1 ? t('{n} repeat customer', { n: 1 }) : t('{n} repeat customers', { n: kpis.repeatCustomers }) },
+    { label: t('Orders'), value: kpis.totalOrders, format: 'number', icon: ShoppingBag, change: before ? change(kpis.totalOrders, before.totalOrders) : undefined, subValue: kpis.repeatCustomers === 1 ? t('{n} repeat customer', { n: 1 }) : t('{n} repeat customers', { n: kpis.repeatCustomers }) },
     { label: t('Inventory value'), value: kpis.inventoryValue, format: 'taka', icon: Package, subValue: t('At cost price') },
   ];
 
@@ -196,8 +213,6 @@ export default function Dashboard() {
         loading={loading}
         deadProductDays={deadProductDays}
       />
-
-      <ProfitCalculator />
     </div>
   );
 }

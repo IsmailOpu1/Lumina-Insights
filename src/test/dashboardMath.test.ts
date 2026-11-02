@@ -2,8 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   activeOrders,
   computeKPIs,
+  getCollection,
   getRevenueBySource,
   getTopProducts,
+  percentChange,
+  previousPeriod,
 } from '@/hooks/useDashboardData';
 import { formatCurrency } from '@/hooks/useCurrency';
 
@@ -145,5 +148,39 @@ describe('formatCurrency', () => {
 
   it('handles negatives and rounding', () => {
     expect(formatCurrency(-1500.6, 'BDT')).toBe('-৳1,501');
+  });
+});
+
+describe('Compared with the period before', () => {
+  it('takes the same number of days just before the period', () => {
+    // "7 days" on 2 Nov is 27 Oct to 2 Nov; before it, 20 to 26 Oct.
+    const p = previousPeriod(new Date(2026, 9, 27), new Date(2026, 10, 2, 15, 30));
+    expect(p.days).toBe(7);
+    expect(p.from).toEqual(new Date(2026, 9, 20));
+    expect(p.to).toEqual(new Date(2026, 9, 26));
+  });
+
+  it('gives the change in percent, and nothing when there was nothing before', () => {
+    expect(percentChange(120, 100)).toBe(20);
+    expect(percentChange(50, 100)).toBe(-50);
+    // A loss that shrank is an improvement.
+    expect(percentChange(-50, -100)).toBe(50);
+    expect(percentChange(500, 0)).toBeNull();
+  });
+});
+
+describe('Money still to collect', () => {
+  it('splits sales into delivered and still to come, leaving out cancelled and returned', () => {
+    const orders = [
+      order({ status: 'Delivered', selling_price: 1000, quantity: 2 }),
+      order({ status: 'Pending', selling_price: 500, quantity: 1 }),
+      order({ status: 'Shipped', selling_price: 300, quantity: 1 }),
+      order({ status: 'Processing', selling_price: 200, quantity: 1 }),
+      order({ status: 'Cancelled', selling_price: 900, quantity: 1 }),
+      order({ status: 'Returned', selling_price: 700, quantity: 1 }),
+    ];
+    expect(getCollection(orders)).toEqual({ delivered: 2000, toCollect: 1000 });
+    // Together they are the revenue.
+    expect(computeKPIs(orders, [], []).totalRevenue).toBe(3000);
   });
 });

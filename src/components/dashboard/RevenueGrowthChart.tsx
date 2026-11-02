@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { axisTick, chartTheme, tooltipStyle } from '@/lib/chartTheme';
+import { axisTick, chartTheme, tooltipProps } from '@/lib/chartTheme';
 import { getRevenueOverTime } from '@/hooks/useDashboardData';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -57,7 +57,7 @@ export default function RevenueGrowthChart({ orders, loading, className }: Props
             <XAxis dataKey="date" tick={axisTick} axisLine={false} tickLine={false} dy={6} />
             <YAxis tick={axisTick} axisLine={false} tickLine={false} width={72} tickFormatter={(v) => formatCurrency(v)} />
             <Tooltip
-              contentStyle={tooltipStyle}
+              {...tooltipProps}
               cursor={{ stroke: chartTheme.axisColor }}
               formatter={(value: number) => [formatCurrency(value), t('Revenue')]}
             />

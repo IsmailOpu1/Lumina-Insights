@@ -25,5 +25,15 @@ export const tooltipStyle = {
   boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
 };
 
+/**
+ * Props for every chart's Tooltip. Recharts colors each line by its series,
+ * which pie slices don't set, so it fell back to black on the dark box.
+ */
+export const tooltipProps = {
+  contentStyle: tooltipStyle,
+  itemStyle: { color: chartTheme.tooltipText },
+  labelStyle: { color: chartTheme.labelColor, marginBottom: 2 },
+};
+
 /** Axis tick text shared by every chart. */
 export const axisTick = { fill: chartTheme.labelColor, fontSize: 12 };

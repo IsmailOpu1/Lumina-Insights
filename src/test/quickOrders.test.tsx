@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AddOrderModal from '@/components/AddOrderModal';
+import { clearKeptWork } from '@/lib/keptWork';
 import type { ReadOrder } from '@/components/orders/OrderReader';
 
 const mocks = vi.hoisted(() => ({
@@ -71,6 +72,7 @@ function openNew() {
 }
 
 beforeEach(() => {
+  clearKeptWork();
   vi.clearAllMocks();
   mocks.byPhone = {};
   try { localStorage.clear(); } catch { /* ignore */ }

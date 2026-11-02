@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { tr } from '@/i18n';
 import { acceptInvite } from '@/lib/invites';
 import { setMonitoringUser } from '@/lib/monitoring';
+import { clearKeptWork } from '@/lib/keptWork';
 
 export type UserRole = 'owner' | 'manager' | 'viewer';
 
@@ -117,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     setMonitoringUser(null);
     await supabase.auth.signOut();
+    clearKeptWork();
     setUser(null);
     setSession(null);
     setUserSettings(null);
@@ -154,6 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loadUser(u).finally(() => setLoading(false));
           }, 0);
         } else {
+          // Chats and drafts are kept per user in this browser; a sign-out
+          // (here or in another tab) must not leave them for the next person.
+          if (event === 'SIGNED_OUT') clearKeptWork();
           setUserSettings(null);
           setOwnerIdForQueries(null);
           setWorkspace(null);

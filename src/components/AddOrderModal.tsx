@@ -8,7 +8,7 @@ import OrderReader, { type ReadOrder, type ReadOrderItem } from '@/components/or
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, UserCheck } from 'lucide-react';
+import { History, Loader2, Sparkles, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useT } from '@/i18n';
+import { createKeptStore } from '@/lib/keptWork';
 
 interface InventoryItem {
   id: string;
@@ -84,11 +85,38 @@ function saveDefaults(source: string, shippingCost: string) {
 
 const phoneDigits = (v: string) => v.replace(/[^\d+]/g, '');
 
+/** A new order typed but not saved yet. */
+interface OrderDraft {
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  productId: string;
+  quantity: string;
+  sellingPrice: string;
+  shippingCost: string;
+  adCost: string;
+  source: string;
+  status: string;
+  date: string;
+  pending: Pending | null;
+  fromChat: { unmatched: string | null } | null;
+}
+
+// A half-typed new order survives closing the form, leaving the page and
+// reloads (phones reload pages they put in the background), until it is
+// saved or the seller starts fresh. Edits and duplicates aren't drafted.
+const orderDraft = createKeptStore<{ draft: OrderDraft | null }>(
+  'order-draft',
+  () => ({ draft: null }),
+  { maxAgeMs: 7 * 24 * 60 * 60 * 1000 }
+);
+
 export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, externalOpen }: Props) {
   const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
   const { activeModal, closeModal } = useFAB();
-  const { ownerIdForQueries } = useAuth();
+  const { ownerIdForQueries, user } = useAuth();
+  orderDraft.load(user?.id ?? null);
   const fabOpen = activeModal === 'order';
   const isOpen = externalOpen ?? fabOpen;
   const isEdit = !!editOrder;
@@ -116,6 +144,8 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
   const [fromChat, setFromChat] = useState<{ unmatched: string | null } | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [returning, setReturning] = useState<{ orders: number } | null>(null);
+  const [restored, setRestored] = useState(false);
+  const drafts = !isEdit && !copyFrom;
   const customerTouched = useRef(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -166,6 +196,8 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
       setOrderNumber(editOrder.order_number);
     } else {
       resetForm();
+      const draft = drafts ? orderDraft.get().draft : null;
+      if (draft) applyDraft(draft);
       if (copyFrom) {
         // A repeat order: same customer and product, new date and status.
         setCustomerName(copyFrom.customer_name);
@@ -181,6 +213,40 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
       loadNextNumber();
     }
   }, [isOpen, editOrder, copyFrom]);
+
+  // Every change to a new order is kept as its draft; an empty form has none.
+  useEffect(() => {
+    if (!isOpen || !drafts) return;
+    const typed = customerName || customerPhone || customerAddress || productId || pending;
+    orderDraft.setter()({
+      draft: typed
+        ? { customerName, customerPhone, customerAddress, productId, quantity, sellingPrice, shippingCost, adCost, source, status, date, pending, fromChat }
+        : null,
+    });
+  }, [isOpen, drafts, customerName, customerPhone, customerAddress, productId, quantity, sellingPrice, shippingCost, adCost, source, status, date, pending, fromChat]);
+
+  function applyDraft(d: OrderDraft) {
+    setCustomerName(d.customerName);
+    setCustomerPhone(d.customerPhone);
+    setCustomerAddress(d.customerAddress);
+    setProductId(d.productId);
+    setQuantity(d.quantity);
+    setSellingPrice(d.sellingPrice);
+    setShippingCost(d.shippingCost);
+    setAdCost(d.adCost);
+    setSource(d.source);
+    setStatus(d.status);
+    setDate(d.date);
+    setPending(d.pending);
+    setFromChat(d.fromChat);
+    customerTouched.current = Boolean(d.customerName);
+    setRestored(true);
+  }
+
+  function startFresh() {
+    orderDraft.reset();
+    resetForm();
+  }
 
   // A phone number the shop has seen before fills in the customer, unless
   // the seller already typed a name for this order.
@@ -275,10 +341,11 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
     setDate(format(new Date(), 'yyyy-MM-dd'));
     setPending(null);
     setSubmitting(false);
+    setRestored(false);
   }
 
+  // Closing keeps a new order's draft; the form is reset when it next opens.
   function handleClose() {
-    resetForm();
     if (onClose) onClose();
     else closeModal();
   }
@@ -352,6 +419,8 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
         return;
       }
       saveDefaults(source, shippingCost);
+      orderDraft.reset();
+      setRestored(false);
       toast.success(t('Order saved ✓'));
     }
 
@@ -370,6 +439,7 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
       loadNextNumber();
       return;
     }
+    resetForm();
     handleClose();
   }
 
@@ -389,6 +459,13 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
             </span>
           )}
         </div>
+
+        {restored && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+            <span className="flex items-center gap-1.5 font-medium"><History size={13} className="text-primary" /> {t('Your unsaved order is back.')}</span>
+            <button type="button" onClick={startFresh} className="shrink-0 font-semibold text-primary hover:underline">{t('Start fresh')}</button>
+          </div>
+        )}
 
         {!isEdit && !copyFrom && <OrderReader onRead={applyRead} />}
 

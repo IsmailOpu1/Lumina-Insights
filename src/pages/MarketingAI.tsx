@@ -15,6 +15,8 @@ import PageHeader from '@/components/PageHeader';
 import { cn } from '@/lib/utils';
 import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
 import { useT, tr } from '@/i18n';
+import { createKeptStore } from '@/lib/keptWork';
+import { useKept } from '@/hooks/useKept';
 
 const PLATFORMS = ['Facebook', 'Instagram', 'TikTok'] as const;
 type Platform = typeof PLATFORMS[number];
@@ -34,16 +36,44 @@ interface MarketingOutput {
   hashtags: string[] | null;
 }
 
+interface MarketingState {
+  productName: string;
+  platform: Platform;
+  features: string;
+  audience: string;
+  output: MarketingOutput | null;
+  error: string;
+  /** Set while the content is being written, and saved, so a reload can tell. */
+  pending: boolean;
+  /** True only while this page load is waiting for the content. */
+  loading: boolean;
+}
+
+// The brief and the result live outside the page and in this browser, like
+// the AI chat: content still arrives after the seller moves to another page,
+// and survives a reload. Cleared by "Clear", after a day, or on sign-out.
+const marketingStore = createKeptStore<MarketingState>(
+  'marketing-ai',
+  () => ({ productName: '', platform: 'Instagram', features: '', audience: '', output: null, error: '', pending: false, loading: false }),
+  {
+    maxAgeMs: 24 * 60 * 60 * 1000,
+    toSaved: ({ loading: _loading, ...rest }) => rest,
+    // Writing was cut off by a reload: say so instead of waiting forever.
+    fromSaved: (s) => (s.pending ? { ...s, pending: false, error: tr('The page reloaded before your content was ready. Please try again.') } : s),
+  }
+);
+
 export default function MarketingAI() {
   const { t, lang } = useT();
   const { ownerIdForQueries } = useAuth();
-  const [productName, setProductName] = useState('');
-  const [platform, setPlatform] = useState<Platform>('Instagram');
-  const [features, setFeatures] = useState('');
-  const [audience, setAudience] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [output, setOutput] = useState<MarketingOutput | null>(null);
-  const [error, setError] = useState('');
+  const [brief, setBrief] = useKept(marketingStore);
+  const { productName, platform, features, audience, output, error, loading } = brief;
+  const setProductName = (productName: string) => setBrief({ productName });
+  const setPlatform = (platform: Platform) => setBrief({ platform });
+  const setFeatures = (features: string) => setBrief({ features });
+  const setAudience = (audience: string) => setBrief({ audience });
+  const setError = (error: string) => setBrief({ error });
+  const setOutput = (output: MarketingOutput | null) => setBrief({ output });
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<string[]>([]);
   const { subscription } = useSubscription();
@@ -58,9 +88,7 @@ export default function MarketingAI() {
       toast({ title: t('Product name is required'), variant: 'destructive' });
       return;
     }
-    setLoading(true);
-    setError('');
-    setOutput(null);
+    setBrief({ loading: true, pending: true, error: '', output: null });
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke(
@@ -92,7 +120,7 @@ export default function MarketingAI() {
       console.error(e);
       setError((e instanceof Error && e.message) || t('Generation failed. Check API key or try again.'));
     } finally {
-      setLoading(false);
+      setBrief({ loading: false, pending: false });
     }
   };
 

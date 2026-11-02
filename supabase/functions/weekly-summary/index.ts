@@ -1,6 +1,8 @@
 import { adminClient, corsHeaders, currencySymbol, describeKeyFigures, describeSnapshot, fetchSnapshot, getCaller, json } from "../_shared/business.ts";
 import { generate } from "../_shared/gemini.ts";
 
+type Snapshot = Awaited<ReturnType<typeof fetchSnapshot>>;
+
 /**
  * The dashboard's weekly summary: a few plain sentences on how last week
  * (Monday to Sunday, Dhaka time) went against the week before, the likely
@@ -21,6 +23,28 @@ export function weeks(now = new Date()) {
   return { weekStart: iso(monday), last: { from: at(-7), to: at(-1) }, before: { from: at(-14), to: at(-8) } };
 }
 
+/**
+ * What moved net profit between the two weeks, worked out here so the AI
+ * names the real cause: more or less profit from sales, or more or less
+ * spent on expenses, whichever moved it most.
+ */
+function profitDrivers(now: Snapshot, before: Snapshot, sym: string) {
+  const money = (n: number) => `${n < 0 ? "-" : ""}${sym}${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
+  const signed = (n: number) => `${n >= 0 ? "+" : "-"}${sym}${Math.abs(Math.round(n)).toLocaleString("en-US")}`;
+  const lost = (s: Snapshot) => s.cancelled_orders + (s.returned_orders ?? 0);
+  const salesProfit = (s: Snapshot) => s.net_profit + s.expenses;
+  const effects = [
+    { what: "Profit from sales (before expenses)", then: salesProfit(before), now: salesProfit(now), effect: salesProfit(now) - salesProfit(before) },
+    { what: "Expenses", then: before.expenses, now: now.expenses, effect: before.expenses - now.expenses },
+  ].sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect));
+  const main = effects[0];
+  return `WHAT MOVED NET PROFIT (already calculated, use as given):
+Net profit: ${money(before.net_profit)} then, ${money(now.net_profit)} now (${signed(now.net_profit - before.net_profit)})
+${effects.map((e) => `${e.what}: ${money(e.then)} then, ${money(e.now)} now (effect on net profit ${signed(e.effect)})`).join("\n")}
+Cancelled or returned orders: ${lost(before)} then, ${lost(now)} now
+MAIN REASON: ${main.effect === 0 ? "no change" : `${main.what.toLowerCase()} (${signed(main.effect)} on net profit)`}`;
+}
+
 const LANGUAGE = {
   en: "Write in plain English.",
   bn: "Write in natural, everyday Bangla (বাংলা script) that a shop owner in Bangladesh speaks. Keep product names and common business words people say in English (profit, margin, ROAS, Facebook, courier) in English. Write numbers as digits.",
@@ -30,12 +54,14 @@ function systemPrompt(sym: string, language: "en" | "bn") {
   return `You write the weekly business summary that opens the dashboard of Lumina Insights, for the owner of a small online shop in Bangladesh.
 
 Write 3 or 4 short sentences, as one paragraph. No greeting, no heading, no bullet points, no markdown.
-1. How last week went: revenue, net profit and orders, and how they moved against the week before.
-2. The most likely reason, from the data (a product, a channel, cancels or returns, expenses or ad spend).
-3. One concrete thing to do this week, specific to this shop.
+1. How last week went, with the real figures: revenue, net profit and orders, each with the week before's figure, for example "Revenue rose from ${sym}4,000 to ${sym}10,000".
+2. Why net profit moved: start from the MAIN REASON in WHAT MOVED NET PROFIT, with its figures, and add the biggest order or product behind it if it matters.
+3. One concrete thing to do this week, specific to this shop. If the good week came mostly from spending less, say so plainly and don't call the week strong.
 
 Rules:
-- Use only the figures in the data below, exactly as given. Never invent a number. Use the KEY FIGURES instead of doing arithmetic.
+- Every sentence about the week carries at least one figure from the data. Never write vague words like "significant" or "strong" without the figure.
+- Use only the figures in the data below, exactly as given. Never invent a number. Use the KEY FIGURES and WHAT MOVED NET PROFIT instead of doing arithmetic.
+- Mention cancels and returns when they changed.
 - If last week had very few orders, say the week was quiet and keep it short.
 - Be direct and honest about bad news, without drama.
 - Money as ${sym} with thousands separators, for example ${sym}12,500.
@@ -88,7 +114,7 @@ Deno.serve(async (req) => {
       system: systemPrompt(sym, language),
       contents: [{
         role: "user",
-        parts: [{ text: `${describeSnapshot(now)}\n\n${describeKeyFigures(now, previous)}\n\nWrite last week's summary.` }],
+        parts: [{ text: `${describeSnapshot(now)}\n\n${describeKeyFigures(now, previous)}\n\n${profitDrivers(now, previous, sym)}\n\nWrite last week's summary.` }],
       }],
       temperature: 0.4,
       maxOutputTokens: 400,

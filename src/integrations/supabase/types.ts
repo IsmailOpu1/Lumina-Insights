@@ -557,6 +557,7 @@ export type Database = {
           onboarding_complete: boolean | null
           owner_id: string | null
           roas_threshold: number | null
+          monthly_revenue_goal: number | null
           role: string | null
           theme: string | null
           updated_at: string | null
@@ -580,6 +581,7 @@ export type Database = {
           onboarding_complete?: boolean | null
           owner_id?: string | null
           roas_threshold?: number | null
+          monthly_revenue_goal?: number | null
           role?: string | null
           theme?: string | null
           updated_at?: string | null
@@ -603,6 +605,7 @@ export type Database = {
           onboarding_complete?: boolean | null
           owner_id?: string | null
           roas_threshold?: number | null
+          monthly_revenue_goal?: number | null
           role?: string | null
           theme?: string | null
           updated_at?: string | null

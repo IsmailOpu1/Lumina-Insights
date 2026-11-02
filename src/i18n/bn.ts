@@ -999,6 +999,27 @@ const bn: Record<string, string> = {
   '{stock} left, selling about {n} a week': '{stock}টি বাকি, সপ্তাহে প্রায় {n}টি বিক্রি হচ্ছে',
   '{name} is out of stock': '{name} স্টকে নেই',
   'It sold {n} in the last 30 days': 'গত ৩০ দিনে {n}টি বিক্রি হয়েছে',
+
+  // This month: forecast and goal
+  '{month} so far': '{month} মাসে এখন পর্যন্ত',
+  'This calendar month, whatever the date filter above': 'চলতি মাসের হিসাব, উপরের তারিখ ফিল্টার যা-ই হোক',
+  'At this pace, by month end': 'এই গতিতে চললে মাস শেষে',
+  '1 day left': '১ দিন বাকি',
+  '{n} days left': '{n} দিন বাকি',
+  'A forecast appears after a week with at least 5 sales.': 'অন্তত ৫টি বিক্রিসহ এক সপ্তাহ পর পূর্বাভাস দেখা যাবে।',
+  'Set a monthly goal': 'মাসিক লক্ষ্য ঠিক করুন',
+  'Change goal': 'লক্ষ্য বদলান',
+  'Monthly revenue goal': 'মাসিক বিক্রির লক্ষ্য',
+  'Monthly goal': 'মাসিক লক্ষ্য',
+  'Save goal': 'লক্ষ্য সেভ করুন',
+  'Remove goal': 'লক্ষ্য মুছুন',
+  'Could not save the goal': 'লক্ষ্য সেভ করা যায়নি',
+  'Goal': 'লক্ষ্য',
+  '{pct}% there': '{pct}% পূরণ হয়েছে',
+  'Goal reached. Well done!': 'লক্ষ্য পূরণ হয়েছে। দারুণ!',
+  'Sell about {amount} a day to reach it.': 'লক্ষ্যে পৌঁছাতে দিনে প্রায় {amount} বিক্রি করুন।',
+  'On track: your pace reaches it. About {amount} a day keeps it safe.': 'ঠিক পথে আছেন: এই গতিতে লক্ষ্য পূরণ হবে। দিনে প্রায় {amount} বিক্রি হলে নিশ্চিত থাকবেন।',
+  'Behind: you need about {amount} a day to reach it.': 'পিছিয়ে আছেন: লক্ষ্যে পৌঁছাতে দিনে প্রায় {amount} বিক্রি দরকার।',
 };
 
 export default bn;

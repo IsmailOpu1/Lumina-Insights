@@ -1020,6 +1020,19 @@ const bn: Record<string, string> = {
   'Sell about {amount} a day to reach it.': 'লক্ষ্যে পৌঁছাতে দিনে প্রায় {amount} বিক্রি করুন।',
   'On track: your pace reaches it. About {amount} a day keeps it safe.': 'ঠিক পথে আছেন: এই গতিতে লক্ষ্য পূরণ হবে। দিনে প্রায় {amount} বিক্রি হলে নিশ্চিত থাকবেন।',
   'Behind: you need about {amount} a day to reach it.': 'পিছিয়ে আছেন: লক্ষ্যে পৌঁছাতে দিনে প্রায় {amount} বিক্রি দরকার।',
+
+  // Profit by product, and channels
+  'Units sold': 'বিক্রির সংখ্যা',
+  'Rank products by': 'প্রোডাক্ট সাজান',
+  'After product cost, delivery and order ads': 'প্রোডাক্ট খরচ, ডেলিভারি ও অর্ডারের বিজ্ঞাপন বাদে',
+  '{amount} · {pct}% margin': '{amount} · {pct}% মার্জিন',
+  '{n} sold · {amount}': '{n}টি বিক্রি · {amount}',
+  'Channels': 'চ্যানেল',
+  'Where orders come from, and what each earns after cancels and returns': 'অর্ডার কোথা থেকে আসে, আর বাতিল ও ফেরতের পর কোনটি কত আয় করে',
+  'Cancelled or returned': 'বাতিল বা ফেরত',
+  'No orders in this period yet': 'এই সময়ে এখনো কোনো অর্ডার নেই',
+  '{source} earns you the most after cancels and returns.': 'বাতিল ও ফেরতের পরও সবচেয়ে বেশি আয় হচ্ছে {source} থেকে।',
+  '{source}: {pct}% of orders are cancelled or returned.': '{source}: {pct}% অর্ডার বাতিল বা ফেরত হচ্ছে।',
 };
 
 export default bn;

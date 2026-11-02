@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   activeOrders,
   computeKPIs,
+  getChannels,
   getCollection,
   getRevenueBySource,
   getTopProducts,
@@ -182,5 +183,36 @@ describe('Money still to collect', () => {
     expect(getCollection(orders)).toEqual({ delivered: 2000, toCollect: 1000 });
     // Together they are the revenue.
     expect(computeKPIs(orders, [], []).totalRevenue).toBe(3000);
+  });
+});
+
+describe('Profit by product', () => {
+  it("counts each product's own profit, with a return's lost delivery and ads against it", () => {
+    const top = getTopProducts([
+      order({ product_name: 'Lungi', product_id: null, quantity: 10, selling_price: 550, profit_per_order: 1200 }),
+      order({ product_name: 'Saree', product_id: null, quantity: 1, selling_price: 6500, profit_per_order: 2580 }),
+      order({ product_name: 'Saree', product_id: null, quantity: 1, selling_price: 6500, status: 'Returned', profit_per_order: -210 }),
+      order({ product_name: 'Saree', product_id: null, quantity: 1, selling_price: 6500, status: 'Cancelled', profit_per_order: 2580 }),
+    ], []);
+    // By units the lungi leads; by profit the saree does.
+    expect(top[0]).toMatchObject({ name: 'Lungi', qty: 10, revenue: 5500, profit: 1200 });
+    expect(top[1]).toMatchObject({ name: 'Saree', qty: 1, revenue: 6500, profit: 2370 });
+  });
+});
+
+describe('Channels', () => {
+  it("shows each source's cancels and returns, and its profit after them, best first", () => {
+    const channels = getChannels([
+      order({ selling_price: 1000, source: 'Facebook', profit_per_order: 500 }),
+      order({ selling_price: 1000, source: 'Facebook', status: 'Cancelled', profit_per_order: 500 }),
+      order({ selling_price: 1000, source: 'Facebook', status: 'Returned', profit_per_order: -180 }),
+      order({ selling_price: 1000, source: 'Facebook', profit_per_order: 500 }),
+      order({ selling_price: 1000, source: 'WhatsApp', profit_per_order: 900 }),
+      order({ selling_price: 1000, source: 'WhatsApp', profit_per_order: 900 }),
+      order({ selling_price: 1000, source: '', profit_per_order: 100 }),
+    ]);
+    expect(channels.map((c) => c.source)).toEqual(['WhatsApp', 'Facebook', 'Unknown']);
+    expect(channels[1]).toMatchObject({ orders: 4, cancelled: 1, returned: 1, lostRate: 50, revenue: 2000, profit: 820 });
+    expect(channels[0]).toMatchObject({ orders: 2, lostRate: 0, profit: 1800 });
   });
 });

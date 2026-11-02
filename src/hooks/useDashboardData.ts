@@ -199,17 +199,54 @@ export function getOrdersByStatus(orders: Order[]) {
   return Object.entries(map).map(([name, value]) => ({ name, value }));
 }
 
+/**
+ * Every product's units sold, revenue and profit. Profit is each order's own
+ * profit (after product cost, delivery and the order's ad cost), so a
+ * returned order's lost delivery and ads count against its product. General
+ * expenses aren't split between products.
+ */
 export function getTopProducts(orders: Order[], inventory: InventoryItem[]) {
   const invMap = new Map(inventory.map(i => [i.id, i]));
-  const productData: Record<string, { name: string; qty: number; revenue: number }> = {};
-  activeOrders(orders).forEach(o => {
+  const productData: Record<string, { name: string; qty: number; revenue: number; profit: number }> = {};
+  orders.filter(o => countsForProfit(o.status)).forEach(o => {
     const inv = o.product_id ? invMap.get(o.product_id) : null;
     const name = inv?.product_name || o.product_name || 'Unknown';
-    if (!productData[name]) productData[name] = { name, qty: 0, revenue: 0 };
+    if (!productData[name]) productData[name] = { name, qty: 0, revenue: 0, profit: 0 };
+    productData[name].profit += o.profit_per_order ?? 0;
+    if (!isSale(o.status)) return;
     productData[name].qty += o.quantity;
     productData[name].revenue += o.selling_price * o.quantity;
   });
-  return Object.values(productData).sort((a, b) => b.qty - a.qty).slice(0, 8);
+  return Object.values(productData).sort((a, b) => b.qty - a.qty);
+}
+
+export interface Channel {
+  source: string;
+  orders: number;
+  cancelled: number;
+  returned: number;
+  /** Cancelled and returned, as a percent of all orders from this source. */
+  lostRate: number;
+  revenue: number;
+  profit: number;
+}
+
+/** Each source's orders, how many were cancelled or returned, and what it earned after them. Most profitable first. */
+export function getChannels(orders: Pick<Order, 'source' | 'status' | 'selling_price' | 'quantity' | 'profit_per_order'>[]): Channel[] {
+  const map = new Map<string, Channel>();
+  for (const o of orders) {
+    const source = o.source || 'Unknown';
+    let c = map.get(source);
+    if (!c) map.set(source, c = { source, orders: 0, cancelled: 0, returned: 0, lostRate: 0, revenue: 0, profit: 0 });
+    c.orders += 1;
+    if (o.status === 'Cancelled') c.cancelled += 1;
+    if (o.status === 'Returned') c.returned += 1;
+    if (isSale(o.status)) c.revenue += o.selling_price * o.quantity;
+    if (countsForProfit(o.status)) c.profit += o.profit_per_order ?? 0;
+  }
+  return [...map.values()]
+    .map(c => ({ ...c, lostRate: ((c.cancelled + c.returned) / c.orders) * 100 }))
+    .sort((a, b) => b.profit - a.profit);
 }
 
 export function getRevenueOverTime(

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useFilter } from '@/context/FilterContext';
 import { Button } from '@/components/ui/button';
 import {
-  useDashboardData, computeKPIs, getCollection, getRevenueBySource, getOrdersByStatus, getTopProducts, percentChange,
+  useDashboardData, computeKPIs, getChannels, getCollection, getRevenueBySource, getOrdersByStatus, getTopProducts, percentChange,
 } from '@/hooks/useDashboardData';
 import DateFilterBar from '@/components/dashboard/DateFilterBar';
 import KPICards, { type KPI } from '@/components/dashboard/KPICards';
@@ -15,6 +15,7 @@ import TopSellingProductsBar from '@/components/dashboard/TopSellingProductsBar'
 import OrderStatusPie from '@/components/dashboard/OrderStatusPie';
 import InventoryAlerts from '@/components/dashboard/InventoryAlerts';
 import NeedsAttention from '@/components/dashboard/NeedsAttention';
+import ChannelsTable from '@/components/dashboard/ChannelsTable';
 import MonthForecast from '@/components/dashboard/MonthForecast';
 import BusinessMetrics from '@/components/dashboard/BusinessMetrics';
 import RecentOrdersTable from '@/components/dashboard/RecentOrdersTable';
@@ -91,6 +92,7 @@ export default function Dashboard() {
   const sourceData = getRevenueBySource(orders);
   const statusData = getOrdersByStatus(orders);
   const topProducts = getTopProducts(orders, inventory);
+  const channels = getChannels(orders);
 
   // Ad spend counts both ad expenses and per-order ad costs.
   const avgAdCostPerOrder = kpis.totalOrders > 0 ? kpis.totalAdSpend / kpis.totalOrders : 0;
@@ -203,6 +205,8 @@ export default function Dashboard() {
         <SalesBySourcePie data={sourceData} loading={loading} />
         <OrderStatusPie data={statusData} loading={loading} />
       </div>
+
+      <ChannelsTable data={channels} loading={loading} />
 
       <div className="mb-6 grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">

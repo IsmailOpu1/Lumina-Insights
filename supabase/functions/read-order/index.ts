@@ -13,13 +13,12 @@ const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 const MAX_PRODUCTS = 400;
 const MAX_ITEMS = 10;
 const SOURCES = ["Facebook", "Instagram", "WhatsApp", "Website", "TikTok"];
-// Tried in order: a full Flash model reads Bangla digits in screenshots far
-// more reliably than the lite one, but Google retires model names, so a
-// model that is gone (or rejects the request) falls through to the next, and
-// last to the default model every other AI feature uses.
+// The default (lite) model answers in a few seconds; newer Flash models think
+// for minutes, too slow for a seller adding orders. checkedPrice covers its
+// occasional misread digit. GEMINI_ORDER_MODEL can try another model, and
+// falls back to the default if Google has retired it.
 const ORDER_MODELS: (string | undefined)[] = [
   ...(Deno.env.get("GEMINI_ORDER_MODEL") ? [Deno.env.get("GEMINI_ORDER_MODEL")] : []),
-  "gemini-flash-latest",
   undefined,
 ];
 
@@ -165,8 +164,7 @@ Deno.serve(async (req) => {
         system: SYSTEM,
         contents: [{ role: "user", parts }],
         temperature: 0,
-        // Room for newer models that think before answering.
-        maxOutputTokens: 8192,
+        maxOutputTokens: 2048,
         responseSchema: SCHEMA,
       });
       if (result.ok || (result.status !== 404 && result.status !== 400)) break;

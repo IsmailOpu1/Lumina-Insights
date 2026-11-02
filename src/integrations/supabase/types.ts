@@ -271,6 +271,8 @@ export type Database = {
           ad_cost: number
           created_at: string | null
           customer_name: string
+          customer_address: string | null
+          customer_phone: string | null
           date: string
           id: string
           order_number: string
@@ -289,6 +291,8 @@ export type Database = {
           ad_cost?: number
           created_at?: string | null
           customer_name: string
+          customer_address?: string | null
+          customer_phone?: string | null
           date?: string
           id?: string
           order_number: string
@@ -307,6 +311,8 @@ export type Database = {
           ad_cost?: number
           created_at?: string | null
           customer_name?: string
+          customer_address?: string | null
+          customer_phone?: string | null
           date?: string
           id?: string
           order_number?: string
@@ -390,6 +396,7 @@ export type Database = {
       plans: {
         Row: {
           ai_chat_per_day: number
+          order_reads_per_day: number | null
           data_export: boolean
           id: string
           insights_per_day: number
@@ -404,6 +411,7 @@ export type Database = {
         }
         Insert: {
           ai_chat_per_day: number
+          order_reads_per_day?: number | null
           data_export: boolean
           id: string
           insights_per_day: number
@@ -418,6 +426,7 @@ export type Database = {
         }
         Update: {
           ai_chat_per_day?: number
+          order_reads_per_day?: number | null
           data_export?: boolean
           id?: string
           insights_per_day?: number

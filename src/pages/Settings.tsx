@@ -341,14 +341,14 @@ export default function SettingsPage() {
       const wb = XLSX.utils.book_new();
 
       const orders = ordersRes.data || [];
-      const oHeaders = ['Order #', 'Customer', 'Product', 'Source', 'Status', 'Qty', `Unit price ${symbol}`, `Order total ${symbol}`, `Shipping ${symbol}`, `Ad Cost ${symbol}`, `Profit ${symbol}`, 'Date'];
+      const oHeaders = ['Order #', 'Customer', 'Phone', 'Address', 'Product', 'Source', 'Status', 'Qty', `Unit price ${symbol}`, `Order total ${symbol}`, `Shipping ${symbol}`, `Ad Cost ${symbol}`, `Profit ${symbol}`, 'Date'];
       const oRows = orders.map((o) => [
-        o.order_number, o.customer_name, (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
+        o.order_number, o.customer_name, o.customer_phone || '', o.customer_address || '', (o.inventory?.product_name ?? o.product_name) || '', o.source || '', o.status,
         o.quantity, o.selling_price, o.selling_price * o.quantity, o.shipping_cost, o.ad_cost, o.profit_per_order ?? 0,
         fnsFormat(parseDay(o.date), 'dd/MM/yyyy'),
       ]);
       const oTotals = [
-        'TOTALS', '', '', '', '',
+        'TOTALS', '', '', '', '', '', '',
         orders.reduce((s, o) => s + o.quantity, 0),
         '',
         orders.reduce((s, o) => s + o.selling_price * o.quantity, 0),

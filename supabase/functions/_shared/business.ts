@@ -165,7 +165,7 @@ export function cleanText(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-export type QuotaMetric = "ai_chat" | "insights" | "marketing";
+export type QuotaMetric = "ai_chat" | "insights" | "marketing" | "order_reader";
 
 const QUOTA_MESSAGES: Record<string, { status: number; error: string }> = {
   subscription_inactive: {
@@ -183,6 +183,10 @@ const QUOTA_MESSAGES: Record<string, { status: number; error: string }> = {
   plan_limit_marketing: {
     status: 429,
     error: "You've used this month's Marketing AI generations. Upgrade to Pro for unlimited content.",
+  },
+  plan_limit_order_reader: {
+    status: 429,
+    error: "You've read a lot of orders with AI today. The limit resets at midnight; you can still add orders by hand.",
   },
 };
 

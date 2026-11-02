@@ -12,9 +12,9 @@ import { dbErrorMessage, functionErrorMessage } from '@/lib/dbErrors';
 
 const plans = [
   { id: 'starter', name: 'Starter', monthly_price: 499, yearly_price: 4990, max_orders_per_month: 300, max_team_members: 0,
-    ai_chat_per_day: 20, insights_per_day: 10, marketing_per_month: 30, weekly_summary: false, data_export: false, sort_order: 1 },
+    ai_chat_per_day: 20, insights_per_day: 10, marketing_per_month: 30, order_reads_per_day: 500, weekly_summary: false, data_export: false, sort_order: 1 },
   { id: 'pro', name: 'Pro', monthly_price: 1499, yearly_price: 14990, max_orders_per_month: null, max_team_members: 5,
-    ai_chat_per_day: 100, insights_per_day: 30, marketing_per_month: null, weekly_summary: true, data_export: true, sort_order: 2 },
+    ai_chat_per_day: 100, insights_per_day: 30, marketing_per_month: null, order_reads_per_day: 500, weekly_summary: true, data_export: true, sort_order: 2 },
 ];
 
 const mocks = vi.hoisted(() => ({

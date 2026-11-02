@@ -975,6 +975,12 @@ const bn: Record<string, string> = {
   'vs previous {n} days': 'আগের {n} দিনের তুলনায়',
   '{delivered} delivered · {open} still to collect': '{delivered} ডেলিভারি হয়েছে · {open} এখনো পাওয়া বাকি',
   'Still to collect: pending, processing and shipped orders not yet delivered': 'পাওয়া বাকি: পেন্ডিং, প্রসেসিং ও শিপড অর্ডার, যা এখনো ডেলিভারি হয়নি',
+
+  // New version notice, and cash still to collect on the Orders page
+  'A new version of Lumina is ready': 'Lumina-র নতুন ভার্সন এসেছে',
+  'Refresh': 'রিফ্রেশ',
+  'Refresh to get the latest changes.': 'সর্বশেষ পরিবর্তনগুলো পেতে রিফ্রেশ করুন।',
+  '{open} still to collect': '{open} এখনো পাওয়া বাকি',
 };
 
 export default bn;

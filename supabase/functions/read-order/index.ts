@@ -13,12 +13,14 @@ const MAX_IMAGE_BASE64_CHARS = 7_000_000;
 const MAX_PRODUCTS = 400;
 const MAX_ITEMS = 10;
 const SOURCES = ["Facebook", "Instagram", "WhatsApp", "Website", "TikTok"];
-// The default (lite) model answers in a few seconds; newer Flash models think
-// for minutes, too slow for a seller adding orders. checkedPrice covers its
-// occasional misread digit. GEMINI_ORDER_MODEL can try another model, and
-// falls back to the default if Google has retired it.
+// Tested on a Bangla Messenger screenshot: gemini-2.5-flash-lite misread both
+// the price (৬৫০০ as 1600) and the phone number, gemini-flash-latest took
+// over 90 seconds, and gemini-flash-lite-latest read every digit right in
+// about 2 seconds. GEMINI_ORDER_MODEL can try another model; a model Google
+// has retired falls through to the next, and last to the default.
 const ORDER_MODELS: (string | undefined)[] = [
   ...(Deno.env.get("GEMINI_ORDER_MODEL") ? [Deno.env.get("GEMINI_ORDER_MODEL")] : []),
+  "gemini-flash-lite-latest",
   undefined,
 ];
 
@@ -95,15 +97,15 @@ const money = (v: unknown) => {
 
 /**
  * The price agreed in the chat, unless it is far from the product's own
- * price. Discounts and small mark-ups are normal; a price at a quarter or
- * double the usual one is almost always a misread number (Bangla digits in
- * a screenshot), so the product's price is used instead.
+ * price. Discounts and small mark-ups are normal; a price more than 30% off
+ * the usual one is almost always a misread number (Bangla digits in a
+ * screenshot), so the product's price is used instead.
  */
 function checkedPrice(read: number, product: Product | undefined) {
   const usual = Number(product?.selling_price) || 0;
   if (!read) return usual;
   if (!usual) return read;
-  return read >= usual * 0.5 && read <= usual * 1.5 ? read : usual;
+  return read >= usual * 0.7 && read <= usual * 1.3 ? read : usual;
 }
 
 Deno.serve(async (req) => {

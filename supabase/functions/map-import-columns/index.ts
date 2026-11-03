@@ -1,10 +1,10 @@
-import { corsHeaders, getCaller, json } from "../_shared/business.ts";
+import { consumeQuota, corsHeaders, getCaller, json, refundQuota } from "../_shared/business.ts";
 import { generate } from "../_shared/gemini.ts";
 
 // Suggests which Lumina field each spreadsheet column holds. Only column
-// names and a few sample rows are sent, never the whole file. It doesn't use
-// the plan's AI quota: the app falls back to its own matcher if this fails,
-// and the input is too small to be useful for anything else.
+// names and a few sample rows are sent, never the whole file. Each call
+// counts against the order reader's daily limit, so it can't be used to run
+// up AI costs; when refused, the app falls back to its own matcher.
 
 const FIELDS: Record<string, Record<string, string>> = {
   inventory: {
@@ -86,6 +86,13 @@ Return JSON only.`;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Set once a use has been counted, so failures after that can give it back.
+  let chargedUser: string | null = null;
+  const fail = async (body: unknown, status: number) => {
+    if (chargedUser) await refundQuota(chargedUser, "order_reader");
+    return json(body, status);
+  };
+
   try {
     const caller = await getCaller(req);
     if (!caller) return json({ error: "Unauthorized" }, 401);
@@ -103,6 +110,10 @@ Deno.serve(async (req) => {
       return { name: clip(s.name), headers, sample };
     });
 
+    const refused = await consumeQuota(caller.client, "order_reader");
+    if (refused) return refused;
+    chargedUser = caller.user.id;
+
     const prompt = sheets.map((s: { name: string; headers: string[]; sample: string[][] }, i: number) =>
       `SHEET ${i + 1}: "${s.name}"\n` +
       s.headers.map((h, c) => `  [${c}] "${h}" e.g. ${s.sample.map((r) => JSON.stringify(r[c] ?? "")).join(", ")}`).join("\n")
@@ -116,13 +127,13 @@ Deno.serve(async (req) => {
       maxOutputTokens: 2048,
       responseSchema: SCHEMA,
     });
-    if (!result.ok) return json({ error: "AI matching is unavailable right now" }, 503);
+    if (!result.ok) return fail({ error: "AI matching is unavailable right now" }, 503);
 
     let parsed: { sheets?: { entity?: string; columns?: { index?: number; field?: string }[] }[] };
     try {
       parsed = JSON.parse(result.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, ""));
     } catch {
-      return json({ error: "AI matching returned an unreadable answer" }, 502);
+      return fail({ error: "AI matching returned an unreadable answer" }, 502);
     }
 
     // Only fields that exist, on columns that exist, each used once.
@@ -147,6 +158,6 @@ Deno.serve(async (req) => {
     return json({ sheets: out });
   } catch (e) {
     console.error("map-import-columns error:", e);
-    return json({ error: "AI matching failed" }, 500);
+    return fail({ error: "AI matching failed" }, 500);
   }
 });

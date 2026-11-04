@@ -4,6 +4,11 @@
 // Secrets: SSLCOMMERZ_STORE_ID, SSLCOMMERZ_STORE_PASSWORD, and
 // SSLCOMMERZ_LIVE=true once the live store is approved (sandbox otherwise).
 
+// A stuck gateway fails the request instead of holding it open. The IPN and
+// the customer's return each validate the payment, so one slow call alone
+// doesn't leave it unactivated.
+const TIMEOUT_MS = 30_000;
+
 function config() {
   const storeId = Deno.env.get("SSLCOMMERZ_STORE_ID");
   const storePassword = Deno.env.get("SSLCOMMERZ_STORE_PASSWORD");
@@ -54,7 +59,7 @@ export async function createSession(req: SessionRequest): Promise<string> {
     cus_phone: "01700000000",
   });
 
-  const res = await fetch(`${base}/gwprocess/v4/api.php`, { method: "POST", body: form });
+  const res = await fetch(`${base}/gwprocess/v4/api.php`, { method: "POST", body: form, signal: AbortSignal.timeout(TIMEOUT_MS) });
   const data = await res.json();
   if (data.status !== "SUCCESS" || !data.GatewayPageURL) {
     throw new Error(`SSLCommerz session failed: ${data.failedreason ?? res.status}`);
@@ -88,7 +93,7 @@ export async function validatePayment(valId: string): Promise<ValidatedPayment |
     format: "json",
   }).toString();
 
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) return null;
   const data = await res.json();
 

@@ -195,7 +195,7 @@ export default function Landing() {
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link to="/" className="flex shrink-0 items-center gap-2 sm:gap-2.5">
-            <img src="/icon.png" alt="" className="h-7 w-7 rounded-lg sm:h-8 sm:w-8" />
+            <img src="/logo-64.webp" width={32} height={32} alt="" className="h-7 w-7 rounded-lg sm:h-8 sm:w-8" />
             <span className="whitespace-nowrap text-[15px] font-semibold tracking-tight max-[359px]:sr-only sm:text-lg">{LEGAL.businessName}</span>
           </Link>
           <nav className="flex items-center sm:gap-2">

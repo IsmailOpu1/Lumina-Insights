@@ -23,7 +23,7 @@ export const FONT_LABELS: Record<FontStyle, string> = {
   dmsans: 'DM Sans',
 };
 
-// Google Fonts names; Inter is already in index.html.
+// Google Fonts names; Inter is self-hosted in index.css.
 const FONT_QUERIES: Record<Exclude<FontStyle, 'inter'>, string> = {
   poppins: 'Poppins:wght@400;500;600;700;800',
   roboto: 'Roboto:wght@400;500;600;700;800',

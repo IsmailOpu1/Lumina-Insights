@@ -29,7 +29,7 @@ export function historyToTurns(history: unknown, limit: number): GeminiTurn[] {
 /** Longest an AI answer may take before the customer gets an error instead. */
 const TIMEOUT_MS = 60_000;
 
-export type GeminiResult ={ ok: true; text: string } | { ok: false; status: number };
+export type GeminiResult = { ok: true; text: string } | { ok: false; status: number };
 
 /** One generateContent call with a proper system instruction. */
 export async function generate(opts: {

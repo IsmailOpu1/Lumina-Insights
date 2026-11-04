@@ -26,7 +26,10 @@ export function historyToTurns(history: unknown, limit: number): GeminiTurn[] {
   return turns;
 }
 
-export type GeminiResult = { ok: true; text: string } | { ok: false; status: number };
+/** Longest an AI answer may take before the customer gets an error instead. */
+const TIMEOUT_MS = 60_000;
+
+export type GeminiResult ={ ok: true; text: string } | { ok: false; status: number };
 
 /** One generateContent call with a proper system instruction. */
 export async function generate(opts: {
@@ -48,18 +51,27 @@ export async function generate(opts: {
     generationConfig.responseSchema = opts.responseSchema;
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${opts.model ?? GEMINI_MODEL}:generateContent?key=${opts.apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: opts.system }] },
-        contents: opts.contents,
-        generationConfig,
-      }),
-    }
-  );
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${opts.model ?? GEMINI_MODEL}:generateContent?key=${opts.apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: opts.system }] },
+          contents: opts.contents,
+          generationConfig,
+        }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      }
+    );
+  } catch (e) {
+    // Timed out or unreachable: callers treat it like any failed AI call
+    // (an error message, and the use refunded).
+    console.error("Gemini request failed:", e instanceof Error ? e.name : e);
+    return { ok: false, status: 504 };
+  }
   if (!res.ok) {
     console.error("Gemini API error:", res.status, await res.text());
     return { ok: false, status: res.status };

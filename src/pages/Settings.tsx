@@ -25,6 +25,7 @@ import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll } from '@/lib/fetchAll';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { parseDay } from '@/lib/dates';
+import { avatarImage } from '@/lib/avatarImage';
 import { useT, tr, msg, currentDateLocale } from '@/i18n';
 
 interface NotifPrefs {
@@ -277,13 +278,14 @@ export default function SettingsPage() {
     if (!user || !event.target.files || !event.target.files[0]) return;
     
     const file = event.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${user.id}/avatar.${fileExt}`;
-    
+
     setUploadingAvatar(true);
     try {
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, {
+      const { blob, ext } = await avatarImage(file);
+      const filePath = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, blob, {
         upsert: true,
+        contentType: blob.type,
       });
       
       if (uploadError) throw uploadError;

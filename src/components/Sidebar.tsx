@@ -101,7 +101,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
 
         {/* Logo */}
         <div className={cn('flex h-14 shrink-0 items-center gap-2.5 border-b border-border px-4', isCollapsed && 'justify-center px-0')}>
-          <img src="/icon.png" alt="Lumina Insights" className="h-8 w-8 shrink-0 rounded-lg" />
+          <img src="/logo-64.webp" width={32} height={32} alt="Lumina Insights" className="h-8 w-8 shrink-0 rounded-lg" />
           {!isCollapsed && (
             <span className="whitespace-nowrap text-[15px] font-semibold tracking-tight text-foreground">
               Lumina <span className="text-gradient">Insights</span>

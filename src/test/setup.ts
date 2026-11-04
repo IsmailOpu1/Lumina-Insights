@@ -26,3 +26,9 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
+
+// Pages remember what they loaded (src/lib/pageCache.ts); start every test
+// from nothing. Imported here, not at the top, so a test's own mocks apply.
+afterEach(async () => {
+  (await import("@/lib/pageCache")).clearPageCache();
+});

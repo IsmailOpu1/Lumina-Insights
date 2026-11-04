@@ -3,6 +3,7 @@ import { format, subDays } from 'date-fns';
 import { MessageCircle, Repeat, Users, Wallet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAll } from '@/lib/fetchAll';
+import { useCachedState } from '@/lib/pageCache';
 import { parseDay } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import {
@@ -31,8 +32,8 @@ const SHOW_SLIPPING = 10;
 export default function Insights() {
   const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
-  const [orders, setOrders] = useState<InsightOrder[] | null>(null);
-  const [expenses, setExpenses] = useState<InsightExpense[]>([]);
+  const [orders, setOrders] = useCachedState<InsightOrder[] | null>('insights:orders', null);
+  const [expenses, setExpenses] = useCachedState<InsightExpense[]>('insights:expenses', []);
   const [adRange, setAdRange] = useState<AdRange>('90');
   const [showAll, setShowAll] = useState(false);
 
@@ -46,7 +47,7 @@ export default function Insights() {
       setOrders((o.data as InsightOrder[]) ?? []);
       setExpenses((e.data as InsightExpense[]) ?? []);
     });
-  }, []);
+  }, [setOrders, setExpenses]);
 
   const customers = useMemo(() => getCustomers(orders ?? []), [orders]);
   const slipping = useMemo(() => slippingAway(customers), [customers]);

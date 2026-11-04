@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFilter } from '@/context/FilterContext';
 import { addDays, differenceInCalendarDays, format, startOfDay } from 'date-fns';
 import { parseDay } from '@/lib/dates';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { fetchAll } from '@/lib/fetchAll';
+import { useCachedState } from '@/lib/pageCache';
 import { countsForProfit, isSale } from '@/lib/constants';
 
 interface Order {
@@ -86,16 +87,18 @@ export function getCollection(orders: { status: string; selling_price: number; q
   return { delivered, toCollect };
 }
 
+type Loaded = Omit<DashboardData, 'loading' | 'refetch'>;
+
+const EMPTY: Loaded = { orders: [], inventory: [], expenses: [], previous: null };
+
 export function useDashboardData(): DashboardData {
   const { getDateRange, dateFilter } = useFilter();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [previous, setPrevious] = useState<DashboardData['previous']>(null);
-  const [loading, setLoading] = useState(true);
+  // Remembered per period, so switching back to a period shows it at once.
+  const period = getDateRange();
+  const [data, setData] = useCachedState<Loaded | null>(
+    `dashboard:${dateFilter}:${format(period.from, 'yyyy-MM-dd')}:${format(period.to, 'yyyy-MM-dd')}`, null);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
     const { from, to } = getDateRange();
     const fromStr = format(from, 'yyyy-MM-dd');
     const toStr = format(to, 'yyyy-MM-dd');
@@ -113,14 +116,15 @@ export function useDashboardData(): DashboardData {
       prev ? fetchAll((a, b) => supabase.from('expenses').select('*').gte('date', prevFrom).lte('date', prevTo).order('id').range(a, b)) : null,
     ]);
 
-    setOrders((ordersRes.data as Order[]) || []);
-    setInventory((inventoryRes.data as InventoryItem[]) || []);
-    setExpenses((expensesRes.data as Expense[]) || []);
-    setPrevious(prev && prevOrdersRes && prevExpensesRes && !prevOrdersRes.error && !prevExpensesRes.error
-      ? { orders: (prevOrdersRes.data as Order[]) || [], expenses: (prevExpensesRes.data as Expense[]) || [], days: prev.days }
-      : null);
-    setLoading(false);
-  }, [getDateRange, dateFilter]);
+    setData({
+      orders: (ordersRes.data as Order[]) || [],
+      inventory: (inventoryRes.data as InventoryItem[]) || [],
+      expenses: (expensesRes.data as Expense[]) || [],
+      previous: prev && prevOrdersRes && prevExpensesRes && !prevOrdersRes.error && !prevExpensesRes.error
+        ? { orders: (prevOrdersRes.data as Order[]) || [], expenses: (prevExpensesRes.data as Expense[]) || [], days: prev.days }
+        : null,
+    });
+  }, [getDateRange, dateFilter, setData]);
 
   useEffect(() => {
     fetchData();
@@ -129,7 +133,7 @@ export function useDashboardData(): DashboardData {
   useRefreshOnSave('expense', fetchData);
   useRefreshOnSave('product', fetchData);
 
-  return { orders, inventory, expenses, previous, loading, refetch: fetchData };
+  return { ...(data ?? EMPTY), loading: data === null, refetch: fetchData };
 }
 
 // Sales only: cancelled and returned orders earn nothing.

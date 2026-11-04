@@ -6,6 +6,7 @@ import { tr } from '@/i18n';
 import { acceptInvite } from '@/lib/invites';
 import { setMonitoringUser } from '@/lib/monitoring';
 import { clearKeptWork } from '@/lib/keptWork';
+import { clearPageCache, setPageCacheUser } from '@/lib/pageCache';
 
 export type UserRole = 'owner' | 'manager' | 'viewer';
 
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMonitoringUser(null);
     await supabase.auth.signOut();
     clearKeptWork();
+    clearPageCache();
     setUser(null);
     setSession(null);
     setUserSettings(null);
@@ -131,6 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         setSession(newSession);
+        // Before the new user renders, so no page shows the previous user's data.
+        setPageCacheUser(newSession?.user?.id ?? null);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
           // Check if email is confirmed, sign out if not

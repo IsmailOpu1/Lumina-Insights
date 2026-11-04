@@ -22,6 +22,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll as fetchAllRows } from '@/lib/fetchAll';
+import { useCachedState } from '@/lib/pageCache';
 import { useReadOnly } from '@/hooks/useReadOnly';
 import { msg, useT } from '@/i18n';
 
@@ -48,6 +49,17 @@ type StockFilter = 'all' | 'low' | 'out';
 
 const PAGE_SIZE = 20;
 
+interface InventoryData {
+  items: InvRow[];
+  orderAggs: OrderAgg[];
+  deadDays: number;
+  soldRecently: Set<string>;
+}
+
+const NO_ITEMS: InvRow[] = [];
+const NO_AGGS: OrderAgg[] = [];
+const NO_SALES = new Set<string>();
+
 export default function Inventory() {
   const { t } = useT();
   const { formatCurrency, symbol } = useCurrency();
@@ -55,8 +67,12 @@ export default function Inventory() {
   const { getDateRange } = useFilter();
   const { ownerIdForQueries } = useAuth();
   const readOnly = useReadOnly();
-  const [items, setItems] = useState<InvRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Sales metrics depend on the period, so each period is remembered on its own.
+  const period = getDateRange();
+  const [data, setData] = useCachedState<InventoryData | null>(
+    `inventory:${fnsFormat(period.from, 'yyyy-MM-dd')}:${fnsFormat(period.to, 'yyyy-MM-dd')}`, null);
+  const loading = data === null;
+  const items = data?.items ?? NO_ITEMS;
   const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('product_name');
@@ -69,19 +85,16 @@ export default function Inventory() {
   const [exporting, setExporting] = useState(false);
 
   // Metrics data
-  const [orderAggs, setOrderAggs] = useState<OrderAgg[]>([]);
-  const [deadDays, setDeadDays] = useState(30);
-  const [soldRecently, setSoldRecently] = useState<Set<string>>(new Set());
+  const orderAggs = data?.orderAggs ?? NO_AGGS;
+  const deadDays = data?.deadDays ?? 30;
+  const soldRecently = data?.soldRecently ?? NO_SALES;
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
     const [{ data: inv }, { data: settings }] = await Promise.all([
     fetchAllRows((a, b) => supabase.from('inventory').select('*').order('product_name').order('id').range(a, b)),
     supabase.from('user_settings').select('dead_product_days').eq('user_id', ownerIdForQueries).maybeSingle()]
     );
-    if (inv) setItems(inv as InvRow[]);
     const days = settings?.dead_product_days || 30;
-    setDeadDays(days);
 
     // Sales metrics cover the selected period; "dead" products are judged on
     // their own window. Cancelled and returned orders are not sales.
@@ -106,6 +119,7 @@ export default function Inventory() {
         .range(a, b)),
     ]);
 
+    let orderAggs: OrderAgg[] = [];
     if (ordersData) {
       const map: Record<string, {total_qty: number;total_revenue: number;}> = {};
       ordersData.forEach((o) => {
@@ -114,11 +128,15 @@ export default function Inventory() {
         map[pid].total_qty += o.quantity;
         map[pid].total_revenue += o.selling_price * o.quantity;
       });
-      setOrderAggs(Object.entries(map).map(([product_id, v]) => ({ product_id, ...v })));
+      orderAggs = Object.entries(map).map(([product_id, v]) => ({ product_id, ...v }));
     }
-    setSoldRecently(new Set((recentSales || []).map((o) => o.product_id as string)));
-    setLoading(false);
-  }, [getDateRange, ownerIdForQueries]);
+    setData({
+      items: (inv as InvRow[]) || [],
+      orderAggs,
+      deadDays: days,
+      soldRecently: new Set((recentSales || []).map((o) => o.product_id as string)),
+    });
+  }, [getDateRange, ownerIdForQueries, setData]);
 
   useEffect(() => {fetchAll();}, [fetchAll]);
   useRefreshOnSave('product', fetchAll);

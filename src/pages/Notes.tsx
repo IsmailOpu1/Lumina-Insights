@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCachedState } from '@/lib/pageCache';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Search, Plus, Trash2, Pencil, X as XIcon, Mic, ArrowLeft } from 'lucide-react';
@@ -56,9 +57,9 @@ export default function Notes() {
   const { t, lang } = useT();
   const speechLang = lang === 'bn' ? 'bn-BD' : 'en-US';
   const { ownerIdForQueries } = useAuth();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [marketingOutputs, setMarketingOutputs] = useState<MarketingOutput[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notes, setNotes, cached] = useCachedState<Note[]>('notes', []);
+  const [marketingOutputs, setMarketingOutputs] = useCachedState<MarketingOutput[]>('notes:marketing', []);
+  const [loading, setLoading] = useState(!cached);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -97,7 +98,6 @@ export default function Notes() {
   }, []);
 
   async function fetchAll() {
-    setLoading(true);
     const [notesRes, marketingRes] = await Promise.all([
       supabase.from('notes').select('*').order('created_at', { ascending: false }),
       supabase.from('marketing_outputs').select('*').order('created_at', { ascending: false }),

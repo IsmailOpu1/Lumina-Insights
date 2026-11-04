@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCachedState } from '@/lib/pageCache';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Bell, ShoppingBag, AlertTriangle,
@@ -65,14 +66,13 @@ export default function Notifications() {
   const { t } = useT();
   const navigate = useNavigate();
   const { markAllRead, markOneRead, dismiss } = useNotifications();
-  const [notifs, setNotifs] = useState<NotifRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notifs, setNotifs, cached] = useCachedState<NotifRow[]>('notifications', []);
+  const [loading, setLoading] = useState(!cached);
   const [tab, setTab] = useState<FilterTab>('all');
   const [page, setPage] = useState(1);
   const [clearOpen, setClearOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    setLoading(true);
     // Read/dismissed state is per user (see my_notifications).
     const { data } = await supabase
       .from('my_notifications')
@@ -81,7 +81,7 @@ export default function Notifications() {
       .limit(500);
     setNotifs((data as NotifRow[]) || []);
     setLoading(false);
-  }, []);
+  }, [setNotifs]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 

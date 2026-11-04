@@ -78,7 +78,8 @@ const App = () => (
               <TooltipProvider>
                 <Toaster />
                 <Sonner position="bottom-right" />
-                <BrowserRouter>
+                {/* Keeps the current page on screen until the next one is ready, instead of flashing a loader. */}
+                <BrowserRouter future={{ v7_startTransition: true }}>
                   <SettingsBootstrap>
                     <Suspense fallback={<PageLoader fullScreen />}>
                     <Routes>

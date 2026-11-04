@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCachedState } from '@/lib/pageCache';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useAuth } from '@/context/AuthContext';
@@ -75,8 +76,8 @@ export default function Expenses() {
   const canExport = useExportGate();
   const { ownerIdForQueries } = useAuth();
   const readOnly = useReadOnly();
-  const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [expenses, setExpenses, cached] = useCachedState<ExpenseRow[]>('expenses', []);
+  const [loading, setLoading] = useState(!cached);
   const [dateFilter, setDateFilter] = useState<DateFilter>('30days');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('date');
@@ -97,7 +98,6 @@ export default function Expenses() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchExpenses = useCallback(async () => {
-    setLoading(true);
     const { data, error } = await fetchAll((a, b) => supabase
       .from('expenses')
       .select('*')
@@ -107,7 +107,7 @@ export default function Expenses() {
     if (error) { toast.error(t('Failed to load expenses')); console.error(error); }
     else setExpenses((data as ExpenseRow[]) || []);
     setLoading(false);
-  }, []);
+  }, [setExpenses]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
   useRefreshOnSave('expense', fetchExpenses);

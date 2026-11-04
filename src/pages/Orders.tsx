@@ -26,6 +26,7 @@ import { format as fnsFormat } from 'date-fns';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useExportGate } from '@/hooks/useExportGate';
 import { fetchAll } from '@/lib/fetchAll';
+import { useCachedState } from '@/lib/pageCache';
 import { getCollection } from '@/hooks/useDashboardData';
 import { currentDateLocale, msg, useT } from '@/i18n';
 
@@ -67,8 +68,8 @@ export default function Orders() {
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const readOnly = useReadOnly();
-  const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders, cached] = useCachedState<OrderRow[]>('orders', []);
+  const [loading, setLoading] = useState(!cached);
   const [search, setSearch] = useState('');
   // A link such as /orders?status=Shipped (from the dashboard) opens that status, over all time.
   const [linkedStatus] = useState(() => {
@@ -91,7 +92,6 @@ export default function Orders() {
   const [savingStatus, setSavingStatus] = useState<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
-    setLoading(true);
     const { data, error } = await fetchAll((a, b) => supabase.
     from('orders').
     select('*, inventory!orders_product_id_fkey(product_name)').
@@ -101,7 +101,7 @@ export default function Orders() {
     if (error) {toast.error(t('Failed to load orders'));console.error(error);} else
     setOrders(data as OrderRow[] || []);
     setLoading(false);
-  }, []);
+  }, [setOrders]);
 
   useEffect(() => {fetchOrders();}, [fetchOrders]);
   useRefreshOnSave('order', fetchOrders);

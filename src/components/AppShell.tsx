@@ -1,4 +1,4 @@
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -19,6 +19,26 @@ function getInitialCollapsed() {
   }
 }
 
+// Once the app is on screen, fetch the other pages' code in the background so
+// opening them later doesn't wait on a download.
+function preloadPages() {
+  void Promise.allSettled([
+    import('@/pages/Dashboard'),
+    import('@/pages/Orders'),
+    import('@/pages/Inventory'),
+    import('@/pages/Expenses'),
+    import('@/pages/Insights'),
+    import('@/pages/ProfitCalculator'),
+    import('@/pages/AIAssistant'),
+    import('@/pages/MarketingAI'),
+    import('@/pages/Notes'),
+    import('@/pages/Notifications'),
+    import('@/pages/Settings'),
+    import('@/pages/Billing'),
+    import('@/pages/ImportData'),
+  ]);
+}
+
 export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(getInitialCollapsed);
@@ -29,6 +49,16 @@ export default function AppShell() {
       try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next)); } catch { /* storage unavailable */ }
       return next;
     });
+  }, []);
+
+  useEffect(() => {
+    // Skipped when Data Saver is on; pages then load the first time they open.
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (conn?.saveData) return;
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = idle(preloadPages);
+    return () => cancel(id);
   }, []);
 
 

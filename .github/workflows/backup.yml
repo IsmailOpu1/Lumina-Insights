@@ -1,0 +1,71 @@
+name: Nightly database backup
+
+# The free Supabase plan keeps no backups, so this makes one every night:
+# a pg_dump of the live database (business data, logins and file records),
+# encrypted, kept for 30 days as a workflow artifact in this private repo.
+# Restore steps: docs/backups.md.
+#
+# Secrets (repo Settings -> Secrets and variables -> Actions):
+#   SUPABASE_DB_URL     Session pooler connection string from Supabase
+#                       (Connect -> Session pooler), with the password filled in.
+#   BACKUP_PASSPHRASE   A long random passphrase. Keep a copy somewhere safe:
+#                       without it the backups can't be opened.
+
+on:
+  schedule:
+    - cron: "43 20 * * *" # daily, 02:43 in Dhaka
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check secrets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          missing=""
+          [ -n "$SUPABASE_DB_URL" ] || missing="$missing SUPABASE_DB_URL"
+          [ -n "$BACKUP_PASSPHRASE" ] || missing="$missing BACKUP_PASSPHRASE"
+          if [ -n "$missing" ]; then echo "::error::Missing secrets:$missing"; exit 1; fi
+
+      # The client must be at least the server's version (Postgres 17).
+      - name: Dump the database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          docker run --rm -e SUPABASE_DB_URL -v "$PWD:/out" postgres:17 \
+            sh -c 'pg_dump "$SUPABASE_DB_URL" --format=custom --no-owner --no-privileges \
+                     --schema=public --schema=auth --schema=storage \
+                     --file=/out/lumina.dump && pg_restore --list /out/lumina.dump > /out/contents.txt'
+          echo "Dump size: $(stat -c %s lumina.dump) bytes"
+          # Fail loudly if the main tables are missing, instead of keeping an
+          # empty backup.
+          for t in orders inventory expenses user_settings subscriptions users; do
+            grep -Eq "TABLE DATA [a-z_]+ $t( |$)" contents.txt ||{ echo "::error::Backup has no data for $t"; exit 1; }
+          done
+
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+            -in lumina.dump -out lumina.dump.enc -pass env:BACKUP_PASSPHRASE
+          rm lumina.dump contents.txt
+          echo "NAME=lumina-backup-$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: lumina.dump.enc
+          retention-days: 30
+          if-no-files-found: error

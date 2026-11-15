@@ -18,7 +18,6 @@ const BUSINESS_TYPES = [msg('Fashion/Clothing'), msg('Electronics'), msg('Food &
 
 const CURRENCIES = [
   { code: 'BDT', symbol: '৳', name: msg('Bangladeshi Taka') },
-  { code: 'INR', symbol: '₹', name: msg('Indian Rupee') },
   { code: 'USD', symbol: '$', name: msg('US Dollar') },
 ];
 
@@ -200,7 +199,7 @@ export default function Onboarding() {
             <div className="flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-foreground">{t('Choose your currency')}</h2>
               <p className="text-muted-foreground">{t('This will be used across your entire dashboard')}</p>
-              <div className="grid grid-cols-3 max-md:grid-cols-2 gap-3 mt-2">
+              <div className="grid grid-cols-2 gap-3 mt-2">
                 {CURRENCIES.map((c) => (
                   <button
                     key={c.code}

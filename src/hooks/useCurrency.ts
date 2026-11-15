@@ -2,7 +2,6 @@ import { useAuth } from '@/context/AuthContext';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   BDT: '৳',
-  INR: '₹',
   USD: '$',
 };
 
@@ -13,7 +12,7 @@ export function formatCurrency(amount: number, currency: string = 'BDT'): string
   if (str.length <= 3) return symbol + str;
 
   // Bangladeshi-style grouping for BDT, standard for others
-  if (currency === 'BDT' || currency === 'INR') {
+  if (currency === 'BDT') {
     const last3 = str.slice(-3);
     let remaining = str.slice(0, -3);
     const parts: string[] = [];

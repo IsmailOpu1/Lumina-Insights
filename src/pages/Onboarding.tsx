@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { createInvite, type InviteRole } from '@/lib/invites';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useT, msg } from '@/i18n';
+import { DESCRIPTION_HINT, DESCRIPTION_MAX } from '@/lib/constants';
 
 // Stored in English; shown translated.
 const BUSINESS_TYPES = [msg('Fashion/Clothing'), msg('Electronics'), msg('Food & Beverage'), msg('Beauty & Skincare'), msg('Home & Living'), msg('Other')];
@@ -174,10 +175,10 @@ export default function Onboarding() {
                 <Textarea
                   placeholder={t('e.g. We sell handmade jewelry on Instagram and WhatsApp in Dhaka. Our main customers are women aged 18-35 in Bangladesh.')}
                   value={businessDesc}
-                  onChange={(e) => setBusinessDesc(e.target.value.slice(0, 300))}
+                  onChange={(e) => setBusinessDesc(e.target.value.slice(0, DESCRIPTION_MAX))}
                   className="min-h-[100px]"
                 />
-                <p className="text-xs text-muted-foreground mt-1">{businessDesc.length}/300 — {t('This helps our AI give you better advice')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t(DESCRIPTION_HINT)} <span className="tabular-nums">{businessDesc.length}/{DESCRIPTION_MAX}</span></p>
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">{t('Your Full Name *')}</label>

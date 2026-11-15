@@ -26,3 +26,8 @@ export const EXPENSE_TYPES = ['Ad Spend', 'Shipping', 'Miscellaneous'] as const;
 export type ExpenseType = (typeof EXPENSE_TYPES)[number];
 
 export const MARKETING_PLATFORMS = ['Facebook', 'Instagram', 'TikTok'] as const;
+
+/** Longest business description, used by every AI feature to learn the business. */
+export const DESCRIPTION_MAX = 1000;
+/** What a useful business description covers; shown under the box. */
+export const DESCRIPTION_HINT = 'Say what you sell, who buys it, your price range, where you sell, and how delivery and payment work. Our AI uses this to learn your business.';

@@ -39,7 +39,7 @@ const systemPrompt = (bangla: boolean) => `You are a senior social media copywri
 TRUTH RULES (most important):
 1. Use only the facts given: product name, features, the shop's own price and stock, and the business profile (including what the owner wrote about delivery, payment, returns and where they sell). Never invent prices, discounts, offers, free delivery, warranties, certifications, ingredients, sizes, ratings, review counts or customer numbers.
 2. If a fact would help but was not given (for example price or delivery terms), write around it (for example "Inbox us for today's price") instead of making one up.
-3. No false urgency or scarcity. Say "limited stock" only if the stock given is low. No exaggerated medical, health or "best in Bangladesh" claims.
+3. No false urgency or scarcity. Say "limited stock", "hurry" or "last few" only if the shop's stock line says it is low. No exaggerated medical, health or "best in Bangladesh" claims.
 4. Never mention competitors by name.
 
 WRITE FOR THIS SHOP:
@@ -53,6 +53,7 @@ WHAT GOOD LOOKS LIKE:
 - Speak to the target audience's real problem or desire first, then show how this product solves it. Turn each feature into a benefit ("hand-woven cotton" becomes "stays cool on a long, hot office day").
 - Be specific and concrete. Avoid empty words like "premium quality", "best", "amazing" or "unique" unless a real detail backs them up.
 - Write for Bangladeshi buyers: they trust real photos and clear prices, they like cash on delivery and bKash or Nagad, they care about delivery time inside and outside Dhaka, and they often order by Messenger, WhatsApp or by commenting. Mention a season or occasion (Eid, Pohela Boishakh, winter, weddings) only if it fits the product and today's date.
+- Read every line back as a buyer would. It must sound natural and positive, and never accidentally call the product ordinary, average or cheap in quality.
 - The CTA tells people exactly what to do: inbox, comment a keyword, WhatsApp, or tap the link. Keep it to one action.
 - ${bangla ? WRITE_BANGLA : WRITE_ENGLISH}
 
@@ -107,13 +108,13 @@ Deno.serve(async (req) => {
     const sym = currencySymbol(snapshot);
     const item = findProduct((inventory ?? []) as InventoryRow[], product_name);
     const shopFacts = item
-      ? `From the shop's inventory (listed as "${item.product_name}"): selling price ${sym}${Math.round(item.selling_price).toLocaleString("en-US")}, ${item.stock_quantity} in stock${item.stock_quantity <= item.low_stock_threshold ? " (low stock)" : ""}.`
+      ? `From the shop's inventory (listed as "${item.product_name}"): selling price ${sym}${Math.round(item.selling_price).toLocaleString("en-US")}, ${item.stock_quantity} in stock${item.stock_quantity <= item.low_stock_threshold ? " (low stock, so \"limited stock\" is true)" : " (not low, so do not say limited stock, hurry or last few)"}.`
       : "Price and stock: not given.";
 
     const userPrompt = `Write ${platform} marketing content.
 
 PRODUCT: ${product_name}
-FEATURES AND OFFER DETAILS: ${product_features || "Not given. Keep claims general and true."}
+FEATURES AND OFFER DETAILS: ${product_features || "Not given. Do not claim anything about how well it performs or what it is made of (sound, quality, durability, battery, material, comfort, size). Sell on what it is, what it is for, the price if known, and how easy it is to order, and invite people to inbox for details."}
 TARGET AUDIENCE: ${target_audience || "Not given. Write for the customers the business profile describes."}
 ${shopFacts}
 Today's date: ${todayInDhaka()}

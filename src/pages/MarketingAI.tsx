@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import AITextRenderer from '@/components/AITextRenderer';
 import { Copy, RefreshCw, Save, Trash2, Sparkles, Loader2, Anchor, Gem, Megaphone, MessageSquareText, Clapperboard, Hash, Lightbulb, Wand2, PenLine, Facebook, Instagram, Music2, type LucideIcon } from 'lucide-react';
 import GlowBackdrop from '@/components/GlowBackdrop';
@@ -85,7 +85,7 @@ export default function MarketingAI() {
 
   const generate = async () => {
     if (!productName.trim()) {
-      toast({ title: t('Product name is required'), variant: 'destructive' });
+      toast.error(t('Product name is required'));
       return;
     }
     setBrief({ loading: true, pending: true, error: '', output: null });
@@ -155,9 +155,9 @@ export default function MarketingAI() {
       });
       if (noteError) throw new Error(dbErrorMessage(noteError.message));
 
-      toast({ title: t('Saved to Notes ✓') });
+      toast.success(t('Saved to Notes ✓'));
     } catch (e) {
-      toast({ title: t('Save failed'), description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+      toast.error(t('Save failed'), { description: e instanceof Error ? e.message : undefined });
     } finally {
       setSaving(false);
     }
@@ -165,19 +165,19 @@ export default function MarketingAI() {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: t('{label} copied!', { label }) });
+    toast.success(t('{label} copied!', { label }));
   };
 
   const copyHashtag = (tag: string) => {
     navigator.clipboard.writeText(`#${tag}`);
-    toast({ title: t('Copied {tag}!', { tag: `#${tag}` }) });
+    toast.success(t('Copied {tag}!', { tag: `#${tag}` }));
   };
 
   const copyAllHashtags = () => {
     if (!output?.hashtags) return;
     const all = output.hashtags.map((h) => `#${h}`).join(' ');
     navigator.clipboard.writeText(all);
-    toast({ title: t('All hashtags copied!') });
+    toast.success(t('All hashtags copied!'));
   };
 
   const clear = () => {

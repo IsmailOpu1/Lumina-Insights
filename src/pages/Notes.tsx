@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCachedState } from '@/lib/pageCache';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Search, Plus, Trash2, Pencil, X as XIcon, Mic, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -206,9 +206,9 @@ export default function Notes() {
       })
       .eq('id', activeNoteId);
     if (error) {
-      toast({ title: t('Error'), description: dbErrorMessage(error.message), variant: 'destructive' });
+      toast.error(t('Error'), { description: dbErrorMessage(error.message) });
     } else {
-      toast({ title: t('Saved ✓') });
+      toast.success(t('Saved ✓'));
       setHasUnsaved(false);
       setIsEditing(false);
       fetchAll();
@@ -224,9 +224,9 @@ export default function Notes() {
       owner_id: ownerIdForQueries,
     });
     if (error) {
-      toast({ title: t('Error'), description: dbErrorMessage(error.message), variant: 'destructive' });
+      toast.error(t('Error'), { description: dbErrorMessage(error.message) });
     } else {
-      toast({ title: t('Note created ✓') });
+      toast.success(t('Note created ✓'));
       setShowNewModal(false);
       setNewTitle('');
       setNewTranscript('');
@@ -250,7 +250,7 @@ export default function Notes() {
       }
     }
     setDeleteTarget(null);
-    toast({ title: t('Deleted') });
+    toast.success(t('Deleted'));
     fetchAll();
   }
 
@@ -258,7 +258,7 @@ export default function Notes() {
   function startVoiceNote() {
     const SR = getSpeechRecognition();
     if (!SR) {
-      toast({ title: t('Voice notes need Chrome or Edge'), variant: 'destructive' });
+      toast.error(t('Voice notes need Chrome or Edge'));
       return;
     }
     const rec = new SR();
@@ -278,7 +278,7 @@ export default function Notes() {
       setLiveTranscript(finalText + interim);
     };
     rec.onerror = () => {
-      toast({ title: t('Mic error'), variant: 'destructive' });
+      toast.error(t('Mic error'));
       setIsRecording(false);
     };
     rec.onend = () => {};
@@ -309,7 +309,7 @@ export default function Notes() {
   function startModalRecording() {
     const SR = getSpeechRecognition();
     if (!SR) {
-      toast({ title: t('Voice notes need Chrome or Edge'), variant: 'destructive' });
+      toast.error(t('Voice notes need Chrome or Edge'));
       return;
     }
     const rec = new SR();
@@ -327,7 +327,7 @@ export default function Notes() {
     };
 
     rec.onerror = () => {
-      toast({ title: t('Mic error'), variant: 'destructive' });
+      toast.error(t('Mic error'));
       stopModalRecording();
     };
 
@@ -405,7 +405,7 @@ export default function Notes() {
                 <Badge variant="outline" className="text-[11px]">{activeNote.source_module}</Badge>
               )}
               <span className="text-[13px] text-muted-foreground">
-                {activeNote.created_at ? format(new Date(activeNote.created_at), 'MMM d, yyyy', { locale: currentDateLocale() }) : ''}
+                {activeNote.created_at ? format(new Date(activeNote.created_at), 'd MMM yyyy', { locale: currentDateLocale() }) : ''}
               </span>
               {!isEditing && (
                 <button
@@ -494,7 +494,7 @@ export default function Notes() {
               <h2 className="text-xl font-bold text-card-foreground">{activeMarketing.product_name}</h2>
             </div>
             <span className="text-[13px] text-muted-foreground">
-              {activeMarketing.created_at ? format(new Date(activeMarketing.created_at), 'MMM d, yyyy', { locale: currentDateLocale() }) : ''}
+              {activeMarketing.created_at ? format(new Date(activeMarketing.created_at), 'd MMM yyyy', { locale: currentDateLocale() }) : ''}
             </span>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4" style={isMobile ? { height: 'calc(100vh - 220px)' } : undefined}>
@@ -537,7 +537,7 @@ export default function Notes() {
                       key={i}
                       onClick={() => {
                         navigator.clipboard.writeText(h.trim());
-                        toast({ title: t('Copied!') });
+                        toast.success(t('Copied!'));
                       }}
                       className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-secondary-foreground hover:bg-secondary/80 cursor-pointer"
                     >
@@ -686,7 +686,7 @@ export default function Notes() {
                         <div className="flex items-center gap-1.5 shrink-0">
                           {typeBadge(item.type, item.platform)}
                           <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            {item.date ? format(new Date(item.date), 'MMM d', { locale: currentDateLocale() }) : ''}
+                            {item.date ? format(new Date(item.date), 'd MMM', { locale: currentDateLocale() }) : ''}
                           </span>
                         </div>
                       </div>
@@ -728,7 +728,7 @@ export default function Notes() {
                       <div className="flex items-center gap-1.5 shrink-0">
                         {typeBadge(item.type, item.platform)}
                         <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          {item.date ? format(new Date(item.date), 'MMM d', { locale: currentDateLocale() }) : ''}
+                          {item.date ? format(new Date(item.date), 'd MMM', { locale: currentDateLocale() }) : ''}
                         </span>
                       </div>
                     </div>

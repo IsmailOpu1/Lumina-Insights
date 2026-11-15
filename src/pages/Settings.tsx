@@ -721,7 +721,7 @@ export default function SettingsPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{invite.email}</p>
-                    <p className="text-xs text-muted-foreground">{t('Invite pending · expires {date}', { date: fnsFormat(new Date(invite.expires_at), 'MMM d', { locale: currentDateLocale() }) })}</p>
+                    <p className="text-xs text-muted-foreground">{t('Invite pending · expires {date}', { date: fnsFormat(new Date(invite.expires_at), 'd MMM', { locale: currentDateLocale() }) })}</p>
                   </div>
                   <RoleBadge role={invite.role} />
                   <button onClick={() => copyInviteLink(invite.token)} className="icon-btn" aria-label={t('Copy invite link')}>

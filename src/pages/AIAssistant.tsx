@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import {
   Send, RefreshCw, ChevronDown, ChevronUp,
   BookmarkPlus, Check, ImageIcon, X, Mic, MicOff, Sparkles, BarChart3, SquarePen, RotateCcw
@@ -151,11 +151,7 @@ export default function AIAssistant() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: t('Image too large'),
-        description: t('Max 5MB'),
-        variant: 'destructive',
-      });
+      toast.error(t('Image too large'), { description: t('Max 5MB') });
       return;
     }
     setImageFile(file);
@@ -181,10 +177,7 @@ export default function AIAssistant() {
   function startListening() {
     const SR = getSpeechRecognition();
     if (!SR) {
-      toast({
-        title: t('Speech to text needs Chrome or Edge browser'),
-        variant: 'destructive',
-      });
+      toast.error(t('Speech to text needs Chrome or Edge browser'));
       return;
     }
 
@@ -210,10 +203,7 @@ export default function AIAssistant() {
 
     rec.onerror = (e) => {
       if (e.error === 'not-allowed') {
-        toast({
-          title: t('Microphone access denied'),
-          variant: 'destructive',
-        });
+        toast.error(t('Microphone access denied'));
         stopListening();
       }
     };
@@ -341,7 +331,7 @@ export default function AIAssistant() {
       owner_id: ownerIdForQueries,
     });
     if (error) {
-      toast({ title: t('Could not save'), description: dbErrorMessage(error.message), variant: 'destructive' });
+      toast.error(t('Could not save'), { description: dbErrorMessage(error.message) });
       return;
     }
     setMessages((prev) =>
@@ -349,7 +339,7 @@ export default function AIAssistant() {
         m.id === msg.id ? { ...m, savedToNotes: true } : m
       )
     );
-    toast({ title: t('Saved ✓') });
+    toast.success(t('Saved ✓'));
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {

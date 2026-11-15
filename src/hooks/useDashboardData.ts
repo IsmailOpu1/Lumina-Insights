@@ -7,6 +7,7 @@ import { useRefreshOnSave } from '@/context/FABContext';
 import { fetchAll } from '@/lib/fetchAll';
 import { useCachedState } from '@/lib/pageCache';
 import { countsForProfit, isSale } from '@/lib/constants';
+import { currentDateLocale } from '@/i18n';
 
 interface Order {
   id: string;
@@ -257,20 +258,29 @@ export function getRevenueOverTime(
   orders: Pick<Order, 'date' | 'selling_price' | 'quantity' | 'status'>[],
   granularity: 'daily' | 'weekly' | 'monthly'
 ) {
-  const map: Record<string, number> = {};
+  // Group by a sortable key, oldest first (orders arrive newest first), then label in the app's language.
+  const map = new Map<string, { at: Date; revenue: number }>();
   activeOrders(orders).forEach(o => {
-    let key: string;
     const d = parseDay(o.date);
+    let at: Date;
     if (granularity === 'daily') {
-      key = format(d, 'MMM dd');
+      at = d;
     } else if (granularity === 'weekly') {
-      const weekStart = new Date(d);
-      weekStart.setDate(d.getDate() - d.getDay());
-      key = format(weekStart, 'MMM dd');
+      at = new Date(d);
+      at.setDate(d.getDate() - d.getDay());
     } else {
-      key = format(d, 'MMM yyyy');
+      at = new Date(d.getFullYear(), d.getMonth(), 1);
     }
-    map[key] = (map[key] || 0) + o.selling_price * o.quantity;
+    const key = format(at, 'yyyy-MM-dd');
+    const entry = map.get(key) ?? { at, revenue: 0 };
+    entry.revenue += o.selling_price * o.quantity;
+    map.set(key, entry);
   });
-  return Object.entries(map).map(([date, revenue]) => ({ date, revenue }));
+  const locale = currentDateLocale();
+  return [...map.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, { at, revenue }]) => ({
+      date: format(at, granularity === 'monthly' ? 'MMM yyyy' : 'd MMM', { locale }),
+      revenue,
+    }));
 }

@@ -34,7 +34,7 @@ export default function SalesBySourcePie({ data, loading }: Props) {
         centerValue={slices.length ? `${Math.round((slices[0].value / (total || 1)) * 100)}%` : '—'}
         centerLabel={slices[0]?.name ?? ''}
         formatValue={formatCurrency}
-        emptyText="No sales in this period yet"
+        emptyText={t('No sales in this period yet')}
       />
     </ChartCard>
   );

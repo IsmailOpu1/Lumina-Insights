@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import LanguageToggle from '@/components/LanguageToggle';
 import { clearPasswordRecovery, passwordRecoveryEmail } from '@/lib/recovery';
 import { useT, rich } from '@/i18n';
-import { passwordProblem } from '@/lib/password';
+import { passwordProblem, PASSWORD_RULE } from '@/lib/password';
 
 export default function ResetPassword() {
   const { t } = useT();
@@ -73,7 +73,7 @@ export default function ResetPassword() {
           <div className="relative">
             <Input
               type={showPassword ? 'text' : 'password'}
-              placeholder={t('New password (min 8 characters)')}
+              placeholder={t('New password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-12 text-base pr-12"
@@ -83,6 +83,7 @@ export default function ResetPassword() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          <p className="-mt-2 text-xs text-muted-foreground">{t(PASSWORD_RULE)}</p>
           <Input type="password" placeholder={t('Confirm password')} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="h-12 text-base" required />
           <Button type="submit" disabled={loading} className="h-12 w-full bg-primary font-bold text-white hover:bg-primary/90">
             {loading ? <Loader2 className="animate-spin" size={20} /> : t('Update Password')}

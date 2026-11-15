@@ -125,7 +125,7 @@ describe('Login', () => {
 describe('Signup', () => {
   function fillSignup(password = 'Str0ng!pass', confirm = password) {
     fireEvent.change(screen.getByPlaceholderText('Full Name'), { target: { value: 'Karim Ahmed' } });
-    fireEvent.change(screen.getByPlaceholderText('Password (min 8 characters)'), { target: { value: password } });
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: password } });
     fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: confirm } });
     fireEvent.click(screen.getByRole('checkbox'));
   }

@@ -5,6 +5,7 @@ import {
   getChannels,
   getCollection,
   getRevenueBySource,
+  getRevenueOverTime,
   getTopProducts,
   percentChange,
   previousPeriod,
@@ -214,5 +215,22 @@ describe('Channels', () => {
     expect(channels.map((c) => c.source)).toEqual(['WhatsApp', 'Facebook', 'Unknown']);
     expect(channels[1]).toMatchObject({ orders: 4, cancelled: 1, returned: 1, lostRate: 50, revenue: 2000, profit: 820 });
     expect(channels[0]).toMatchObject({ orders: 2, lostRate: 0, profit: 1800 });
+  });
+});
+
+describe('Sales over time', () => {
+  it('runs oldest to newest even though orders arrive newest first', () => {
+    const orders = [
+      order({ date: '2026-11-10', selling_price: 300, status: 'Delivered' }),
+      order({ date: '2026-11-03', selling_price: 200, status: 'Delivered' }),
+      order({ date: '2026-11-03', selling_price: 50, status: 'Delivered' }),
+      order({ date: '2026-10-28', selling_price: 100, status: 'Delivered' }),
+    ];
+    expect(getRevenueOverTime(orders, 'daily')).toEqual([
+      { date: '28 Oct', revenue: 100 },
+      { date: '3 Nov', revenue: 250 },
+      { date: '10 Nov', revenue: 300 },
+    ]);
+    expect(getRevenueOverTime(orders, 'monthly').map((p) => p.date)).toEqual(['Oct 2026', 'Nov 2026']);
   });
 });

@@ -33,9 +33,9 @@ export default function ProfitBreakdownPie({ revenue, cogs, shipping, adSpend, o
       <DonutChart
         data={data}
         centerValue={formatCurrency(revenue)}
-        centerLabel="revenue"
+        centerLabel={t('revenue')}
         formatValue={formatCurrency}
-        emptyText="No sales in this period yet"
+        emptyText={t('No sales in this period yet')}
       />
     </ChartCard>
   );

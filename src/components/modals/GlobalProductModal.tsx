@@ -59,37 +59,37 @@ export default function GlobalProductModal() {
     <ModalShell isOpen={isOpen} onClose={closeModal} title={t('Add product')}>
       <div className="flex flex-col gap-4">
         <div>
-          <Label>{t('Product name')} *</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Premium T-Shirt')} />
+          <Label htmlFor="qp-name">{t('Product name')} *</Label>
+          <Input id="qp-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Premium T-Shirt')} />
         </div>
         <div>
-          <Label>{t('SKU')}</Label>
-          <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder={t('e.g. PANJ-001')} />
+          <Label htmlFor="qp-sku">{t('SKU')}</Label>
+          <Input id="qp-sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder={t('e.g. PANJ-001')} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>{t('Cost price')} {symbol} *</Label>
-            <Input type="number" min={0.01} step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0" />
+            <Label htmlFor="qp-cost">{t('Cost price')} {symbol} *</Label>
+            <Input id="qp-cost" type="number" min={0.01} step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label>{t('Selling price')} {symbol} *</Label>
-            <Input type="number" min={0.01} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="0" />
+            <Label htmlFor="qp-price">{t('Selling price')} {symbol} *</Label>
+            <Input id="qp-price" type="number" min={0.01} step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="0" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>{t('Stock quantity')} *</Label>
-            <Input type="number" min={0} value={stockQty} onChange={(e) => setStockQty(e.target.value)} />
+            <Label htmlFor="qp-stock">{t('Stock quantity')} *</Label>
+            <Input id="qp-stock" type="number" min={0} value={stockQty} onFocus={(e) => e.target.select()} onChange={(e) => setStockQty(e.target.value)} />
           </div>
           <div>
-            <Label>{t('Low stock alert at')} *</Label>
-            <Input type="number" min={0} value={threshold} onChange={(e) => setThreshold(e.target.value)} />
+            <Label htmlFor="qp-threshold">{t('Low stock alert at')} *</Label>
+            <Input id="qp-threshold" type="number" min={0} value={threshold} onFocus={(e) => e.target.select()} onChange={(e) => setThreshold(e.target.value)} />
             <p className="mt-1 text-xs text-muted-foreground">{t('Alert when stock falls below this number')}</p>
           </div>
         </div>
         <div>
-          <Label>{t('Supplier')}</Label>
-          <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder={t('Optional')} />
+          <Label htmlFor="qp-supplier">{t('Supplier')}</Label>
+          <Input id="qp-supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder={t('Optional')} />
         </div>
         <Button onClick={handleSave} disabled={!isValid || submitting} className="mt-2 h-12 w-full font-bold text-base">
           {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('Saving...')}</> : t('Save product')}

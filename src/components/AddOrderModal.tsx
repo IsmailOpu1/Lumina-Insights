@@ -563,7 +563,7 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="quantity">{t('Quantity')} *</Label>
-            <Input id="quantity" type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} onBlur={() => touch('quantity')} />
+            <Input id="quantity" type="number" min={1} value={quantity} onFocus={(e) => e.target.select()} onChange={(e) => setQuantity(e.target.value)} onBlur={() => touch('quantity')} />
             {touched.quantity && errors.quantity && <p className="mt-1 text-xs font-medium text-destructive">{errors.quantity}</p>}
           </div>
           <div>
@@ -576,11 +576,11 @@ export default function AddOrderModal({ editOrder, copyFrom, onClose, onSaved, e
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="shippingCost">{t('Shipping cost')} {symbol}</Label>
-            <Input id="shippingCost" type="number" min={0} step="0.01" value={shippingCost} onChange={(e) => setShippingCost(e.target.value)} placeholder="0" />
+            <Input id="shippingCost" type="number" min={0} step="0.01" value={shippingCost} onFocus={(e) => e.target.select()} onChange={(e) => setShippingCost(e.target.value)} placeholder="0" />
           </div>
           <div>
             <Label htmlFor="adCost">{t('Ad cost')} {symbol}</Label>
-            <Input id="adCost" type="number" min={0} step="0.01" value={adCost} onChange={(e) => setAdCost(e.target.value)} placeholder="0" />
+            <Input id="adCost" type="number" min={0} step="0.01" value={adCost} onFocus={(e) => e.target.select()} onChange={(e) => setAdCost(e.target.value)} placeholder="0" />
             <p className="mt-1 text-xs text-muted-foreground">{t('Ad spend for this specific order')}</p>
           </div>
         </div>

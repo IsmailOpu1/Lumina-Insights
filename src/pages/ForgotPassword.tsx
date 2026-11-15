@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { CODE_LENGTH } from '@/components/auth/ConfirmCode';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useT, rich } from '@/i18n';
-import { passwordProblem } from '@/lib/password';
+import { passwordProblem, PASSWORD_RULE } from '@/lib/password';
 
 /**
  * Password reset by code. The email carries a code rather than a link, because
@@ -110,7 +110,7 @@ export default function ForgotPassword() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder={t('New password (min 8 characters)')}
+                  placeholder={t('New password')}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(null); }}
                   autoComplete="new-password"
@@ -120,6 +120,7 @@ export default function ForgotPassword() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <p className="-mt-2 text-xs text-muted-foreground">{t(PASSWORD_RULE)}</p>
               <Input
                 type="password"
                 placeholder={t('Confirm password')}

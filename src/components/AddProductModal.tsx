@@ -191,12 +191,12 @@ export default function AddProductModal({ editProduct, onClose, onSaved, externa
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="stockQty">{t('Stock quantity')} *</Label>
-            <Input id="stockQty" type="number" min={0} value={stockQty} onChange={(e) => setStockQty(e.target.value)} onBlur={() => touch('stockQty')} />
+            <Input id="stockQty" type="number" min={0} value={stockQty} onFocus={(e) => e.target.select()} onChange={(e) => setStockQty(e.target.value)} onBlur={() => touch('stockQty')} />
             {touched.stockQty && errors.stockQty && <p className="mt-1 text-xs font-medium text-destructive">{errors.stockQty}</p>}
           </div>
           <div>
             <Label htmlFor="threshold">{t('Low stock alert at')} *</Label>
-            <Input id="threshold" type="number" min={0} value={threshold} onChange={(e) => setThreshold(e.target.value)} onBlur={() => touch('threshold')} />
+            <Input id="threshold" type="number" min={0} value={threshold} onFocus={(e) => e.target.select()} onChange={(e) => setThreshold(e.target.value)} onBlur={() => touch('threshold')} />
             <p className="mt-1 text-xs text-muted-foreground">{t('Alert when stock falls below this number')}</p>
             {touched.threshold && errors.threshold && <p className="mt-1 text-xs font-medium text-destructive">{errors.threshold}</p>}
           </div>

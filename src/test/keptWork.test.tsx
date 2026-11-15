@@ -40,7 +40,6 @@ vi.mock('@/context/FABContext', () => ({
   useFAB: () => ({ activeModal: null, closeModal: vi.fn() }),
 }));
 vi.mock('@/lib/businessSnapshot', () => ({ fetchRecentSnapshot: () => Promise.resolve(null) }));
-vi.mock('@/hooks/use-toast', () => ({ toast: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 beforeEach(() => {

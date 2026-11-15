@@ -16,6 +16,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { getSpeechRecognition, type SpeechRecognitionInstance } from '@/lib/speech';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { useT, currentDateLocale } from '@/i18n';
+import { clickableProps, clickableFocus } from '@/lib/clickable';
 
 interface Note {
   id: string;
@@ -674,8 +675,9 @@ export default function Notes() {
                   return (
                     <div
                       key={`${item.kind}-${item.id}`}
-                      onClick={() => (item.kind === 'note' ? selectNote(item.id) : selectMarketing(item.id))}
-                      className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[hsl(var(--card))] ${
+                      {...clickableProps(() => (item.kind === 'note' ? selectNote(item.id) : selectMarketing(item.id)))}
+                      aria-current={isActive || undefined}
+                      className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[hsl(var(--card))] ${clickableFocus} ${
                         isActive ? 'border-l-[3px] border-l-primary' : ''
                       }`}
                     >
@@ -715,8 +717,9 @@ export default function Notes() {
                 return (
                   <div
                     key={`${item.kind}-${item.id}`}
-                    onClick={() => (item.kind === 'note' ? selectNote(item.id) : selectMarketing(item.id))}
-                    className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[hsl(var(--card))] ${
+                    {...clickableProps(() => (item.kind === 'note' ? selectNote(item.id) : selectMarketing(item.id)))}
+                    aria-current={isActive || undefined}
+                    className={`note-hover rounded-lg border border-border p-3 cursor-pointer bg-[hsl(var(--card))] ${clickableFocus} ${
                       isActive ? 'border-l-[3px] border-l-primary' : ''
                     }`}
                   >

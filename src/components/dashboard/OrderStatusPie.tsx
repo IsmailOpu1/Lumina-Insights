@@ -21,9 +21,9 @@ export default function OrderStatusPie({ data, loading }: Props) {
       <DonutChart
         data={slices}
         centerValue={total.toLocaleString()}
-        centerLabel={total === 1 ? 'order' : 'orders'}
+        centerLabel={total === 1 ? t('order') : t('orders')}
         formatValue={(v) => v.toLocaleString()}
-        emptyText="No orders in this period yet"
+        emptyText={t('No orders in this period yet')}
       />
     </ChartCard>
   );

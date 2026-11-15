@@ -65,7 +65,7 @@ describe('ForgotPassword', () => {
     expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith('manager@example.com');
 
     fireEvent.change(screen.getByLabelText('Enter the 8-digit code from the email'), { target: { value: '1234 5678' } });
-    fireEvent.change(screen.getByPlaceholderText('New password (min 8 characters)'), { target: { value: 'New-secret-1' } });
+    fireEvent.change(screen.getByPlaceholderText('New password'), { target: { value: 'New-secret-1' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'New-secret-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Update Password' }));
 
@@ -81,10 +81,10 @@ describe('ForgotPassword', () => {
     fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'manager@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send reset code' }));
     fireEvent.change(await screen.findByLabelText('Enter the 8-digit code from the email'), { target: { value: '12345678' } });
-    fireEvent.change(screen.getByPlaceholderText('New password (min 8 characters)'), { target: { value: 'new-secret-1' } });
+    fireEvent.change(screen.getByPlaceholderText('New password'), { target: { value: 'new-secret-1' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'new-secret-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Update Password' }));
-    expect(await screen.findByText(/an uppercase letter, a lowercase letter, a number and a symbol/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('an uppercase letter, a lowercase letter, a number and a symbol');
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
     expect(mocks.updateUser).not.toHaveBeenCalled();
   });
@@ -95,7 +95,7 @@ describe('ForgotPassword', () => {
     fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'manager@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Send reset code' }));
     fireEvent.change(await screen.findByLabelText('Enter the 8-digit code from the email'), { target: { value: '11112222' } });
-    fireEvent.change(screen.getByPlaceholderText('New password (min 8 characters)'), { target: { value: 'New-secret-1' } });
+    fireEvent.change(screen.getByPlaceholderText('New password'), { target: { value: 'New-secret-1' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'New-secret-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Update Password' }));
 
@@ -108,7 +108,7 @@ describe('ResetPassword', () => {
   it('refuses to change the signed-in account when the link did not work', () => {
     renderAt('/reset-password', <ResetPassword />);
     expect(screen.getByText('This reset link has expired or was already used')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('New password (min 8 characters)')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('New password')).not.toBeInTheDocument();
     expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 
@@ -117,7 +117,7 @@ describe('ResetPassword', () => {
     mocks.getSession.mockResolvedValue({ data: { session: { user: { email: 'manager@example.com' } } } });
     renderAt('/reset-password', <ResetPassword />);
     expect(screen.getByText('manager@example.com')).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText('New password (min 8 characters)'), { target: { value: 'New-secret-1' } });
+    fireEvent.change(screen.getByPlaceholderText('New password'), { target: { value: 'New-secret-1' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'New-secret-1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Update Password' }));
     expect(await screen.findByText('Login page')).toBeInTheDocument();

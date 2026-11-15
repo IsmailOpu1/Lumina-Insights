@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useNotifications } from '@/context/NotificationContext';
 import { currentDateLocale, msg, useT } from '@/i18n';
 import { notificationText } from '@/i18n/notifications';
+import { clickableProps, clickableFocus } from '@/lib/clickable';
 
 interface NotifRow {
   id: string;
@@ -242,9 +243,10 @@ export default function Notifications() {
               return (
                 <div
                   key={n.id}
-                  onClick={() => handleNotifClick(n)}
+                  {...clickableProps(() => handleNotifClick(n))}
                   className={cn(
                     'notif-hover flex items-start gap-3 rounded-lg border border-border p-4 cursor-pointer transition-all',
+                    clickableFocus,
                     !n.is_read && 'bg-primary/5'
                   )}
                   style={{

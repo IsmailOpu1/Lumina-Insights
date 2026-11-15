@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -58,6 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ownerIdForQueries, setOwnerIdForQueries] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<WorkspaceProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  // Whose settings are loaded (or loading). Supabase reports the same sign-in
+  // more than once (INITIAL_SESSION and SIGNED_IN on start, SIGNED_IN again
+  // when the tab comes back into view): load once, and never put the whole app
+  // back on the loader for the user who is already in.
+  const loadedFor = useRef<string | null>(null);
 
   const role: UserRole = (userSettings?.role as UserRole) || 'viewer';
   const isOwner = role === 'owner';
@@ -118,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     setMonitoringUser(null);
+    loadedFor.current = null;
     await supabase.auth.signOut();
     clearKeptWork();
     clearPageCache();
@@ -150,6 +156,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           // Token refreshes don't change settings; skip the refetch.
           if (event === 'TOKEN_REFRESHED') return;
+          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && loadedFor.current === newSession.user.id) return;
+          loadedFor.current = newSession.user.id;
           // Hold protected routes on the loader until settings arrive, so a
           // fresh sign-in is not mistaken for "no settings → onboarding".
           if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') setLoading(true);
@@ -160,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loadUser(u).finally(() => setLoading(false));
           }, 0);
         } else {
+          loadedFor.current = null;
           // Chats and drafts are kept per user in this browser; a sign-out
           // (here or in another tab) must not leave them for the next person.
           if (event === 'SIGNED_OUT') clearKeptWork();

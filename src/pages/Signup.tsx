@@ -13,7 +13,7 @@ import ResendConfirmation from '@/components/auth/ResendConfirmation';
 import ConfirmCode from '@/components/auth/ConfirmCode';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useT, msg, rich } from '@/i18n';
-import { passwordProblem } from '@/lib/password';
+import { passwordProblem, PASSWORD_RULE } from '@/lib/password';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -23,8 +23,9 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   if (score <= 1) return { score: 25, label: msg('Weak'), color: '#F43F5E' };
   if (score === 2) return { score: 50, label: msg('Medium'), color: '#F5A524' };
-  if (score === 3) return { score: 75, label: msg('Good'), color: '#5EEAD4' };
-  return { score: 100, label: msg('Strong'), color: '#10B981' };
+  // Only a password the server accepts is called strong.
+  if (!passwordProblem(pw)) return { score: 100, label: msg('Strong'), color: '#10B981' };
+  return { score: 75, label: msg('Almost there'), color: '#5EEAD4' };
 }
 
 export default function Signup() {
@@ -147,7 +148,7 @@ export default function Signup() {
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder={t('Password (min 8 characters)')}
+                    placeholder={t('Password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-12 text-base pr-12"
@@ -157,6 +158,9 @@ export default function Signup() {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {!password && (
+                  <p className="-mt-2 text-xs text-muted-foreground">{t(PASSWORD_RULE)}</p>
+                )}
                 {password && (
                   <div className="flex items-center gap-2">
                     <Progress value={strength.score} className="h-2 flex-1" style={{ '--progress-color': strength.color } as CSSProperties} />

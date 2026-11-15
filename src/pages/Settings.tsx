@@ -490,7 +490,8 @@ export default function SettingsPage() {
     { label: t('Plan'), value: planBadge ?? '—', icon: Crown },
     { label: t('Orders this month'), value: limits.max_orders_per_month === null ? `${usage.orders_this_month}` : `${usage.orders_this_month} / ${limits.max_orders_per_month}`, icon: ShoppingBag },
     { label: t('AI questions today'), value: `${usage.ai_chat_today} / ${limits.ai_chat_per_day}`, icon: Sparkles },
-    { label: t('Team'), value: limits.max_team_members > 0 ? `${usage.team_members + 1} / ${limits.max_team_members + 1}` : t('Just you'), icon: Users },
+    // Counted like the Billing page: members besides you, out of the plan's limit.
+    { label: t('Team members'), value: limits.max_team_members > 0 ? `${usage.team_members} / ${limits.max_team_members}` : t('Just you'), icon: Users },
   ] : [];
 
   return (
@@ -861,26 +862,29 @@ export default function SettingsPage() {
           <div className="space-y-4 py-4">
             {/* Avatar Upload */}
             <div className="flex flex-col items-center gap-3">
-              <div 
-                className="relative w-20 h-20 mx-auto group cursor-pointer"
+              <button
+                type="button"
+                className="group relative mx-auto block h-20 w-20 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                aria-label={t('Change profile photo')}
               >
-                {/* Avatar image or fallback */}
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border">
+                {/* Avatar image or fallback, the same as the profile card */}
+                <span className="block h-20 w-20 overflow-hidden rounded-full border-2 border-border">
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary to-highlight text-xl font-semibold text-primary-foreground">
-                      {user?.email?.[0]?.toUpperCase()}
-                    </div>
+                    <span className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary to-highlight text-xl font-semibold text-primary-foreground">
+                      {initials}
+                    </span>
                   )}
-                </div>
+                </span>
 
-                {/* Camera overlay — centered, shows on hover */}
-                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera size={22} className="text-white" />
-                </div>
-              </div>
+                {/* Camera overlay: shows on hover and keyboard focus, spins while uploading */}
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                  {uploadingAvatar ? <Loader2 size={22} className="animate-spin text-white" /> : <Camera size={22} className="text-white" />}
+                </span>
+              </button>
             </div>
 
             {/* Full Name */}

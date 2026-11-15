@@ -279,7 +279,8 @@ export default function Orders() {
     // Returned orders count here: their delivery and ad cost were lost.
     const profit = filtered.filter((o) => countsForProfit(o.status)).reduce((s, o) => s + (o.profit_per_order ?? 0), 0);
     const { toCollect } = getCollection(filtered);
-    return { revenue, profit, toCollect, avg: live.length ? revenue / live.length : 0, pending: filtered.filter((o) => o.status === 'Pending').length };
+    return { revenue, profit, toCollect, avg: live.length ? revenue / live.length : 0, // Not sent yet: Pending or Processing, the same orders the Dashboard warns about.
+    notSent: filtered.filter((o) => o.status === 'Pending' || o.status === 'Processing').length };
   }, [filtered]);
 
   const th = (key: SortKey, label: string) => (
@@ -311,7 +312,7 @@ export default function Orders() {
 
       <StatStrip
         stats={[
-          { label: t('Orders'), value: filtered.length, icon: ShoppingBag, hint: totals.pending ? t('{n} pending', { n: totals.pending }) : t('None pending') },
+          { label: t('Orders'), value: filtered.length, icon: ShoppingBag, hint: totals.notSent ? t('{n} not sent yet', { n: totals.notSent }) : filtered.length ? t('All sent') : t('No orders yet') },
           {
             label: t('Revenue'),
             value: formatCurrency(totals.revenue),

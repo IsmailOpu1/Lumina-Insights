@@ -29,6 +29,8 @@ verify_jwt = true
 [auth]
 site_url = "https://lumina-insights-ashen.vercel.app"
 additional_redirect_urls = ["https://lumina-insights-ashen.vercel.app"]
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits_symbols"
 
 [auth.mfa.totp]
 enroll_enabled = true

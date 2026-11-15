@@ -73,7 +73,7 @@ export default function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar onMenuClick={() => setSidebarOpen((p) => !p)} />
         <SubscriptionBanner />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 text-foreground animate-in fade-in duration-200">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 text-foreground animate-in fade-in duration-200">
           {/* Keeps the sidebar and top bar on screen while a page loads. */}
           <Suspense fallback={<PageLoader />}>
             <Outlet />

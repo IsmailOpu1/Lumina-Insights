@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCachedState } from '@/lib/pageCache';
 import { useRefreshOnSave } from '@/context/FABContext';
@@ -72,6 +72,10 @@ const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
 
 export default function Expenses() {
   const { t } = useT();
+  // The loader keeps one identity (a new one would reload the list), so it reads
+  // the current language through a ref: errors show in the language picked now.
+  const tRef = useRef(t);
+  tRef.current = t;
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const { ownerIdForQueries } = useAuth();
@@ -104,7 +108,7 @@ export default function Expenses() {
       .order('date', { ascending: false })
       .order('id')
       .range(a, b));
-    if (error) { toast.error(t('Failed to load expenses')); console.error(error); }
+    if (error) { toast.error(tRef.current('Failed to load expenses')); console.error(error); }
     else setExpenses((data as ExpenseRow[]) || []);
     setLoading(false);
   }, [setExpenses]);

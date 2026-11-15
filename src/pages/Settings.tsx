@@ -27,6 +27,8 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { parseDay } from '@/lib/dates';
 import { avatarImage } from '@/lib/avatarImage';
 import { useT, tr, msg, currentDateLocale } from '@/i18n';
+import { Textarea } from '@/components/ui/textarea';
+import { DESCRIPTION_HINT, DESCRIPTION_MAX } from '@/lib/constants';
 
 interface NotifPrefs {
   new_order: boolean;
@@ -157,6 +159,8 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileFullName, setProfileFullName] = useState('');
   const [profileBusinessName, setProfileBusinessName] = useState('');
+  const [businessDesc, setBusinessDesc] = useState('');
+  const [profileBusinessDesc, setProfileBusinessDesc] = useState('');
 
   // Team management state
   const [teamMembers, setTeamMembers] = useState<Tables<'team_members'>[]>([]);
@@ -178,6 +182,7 @@ export default function SettingsPage() {
       setRoasThreshold(String(data.roas_threshold ?? 2.0));
       setDeadDays(String(data.dead_product_days ?? 30));
       setBusinessName(data.business_name || 'My Business');
+      setBusinessDesc(data.business_description || '');
       setFullName(data.full_name || '');
       if (data.avatar_url) {
         setAvatarUrl(data.avatar_url);
@@ -310,12 +315,15 @@ export default function SettingsPage() {
 
   function handleProfileSave() {
     if (!user || !settingsId) return;
-    saveDebounced({ 
+    saveDebounced({
       full_name: profileFullName.trim(),
-      business_name: profileBusinessName.trim() 
+      business_name: profileBusinessName.trim(),
+      // Only the owner edits the business; team members' dialogs don't show it.
+      ...(isOwner ? { business_description: profileBusinessDesc.trim() } : {}),
     });
     setFullName(profileFullName.trim());
     setBusinessName(profileBusinessName.trim());
+    if (isOwner) setBusinessDesc(profileBusinessDesc.trim());
     setProfileModalOpen(false);
     setIsEditingProfile(false);
     toast.success(t('Profile updated successfully'));
@@ -324,6 +332,7 @@ export default function SettingsPage() {
   function openProfileModal() {
     setProfileFullName(fullName);
     setProfileBusinessName(businessName);
+    setProfileBusinessDesc(businessDesc);
     setProfileModalOpen(true);
     setIsEditingProfile(true);
   }
@@ -906,6 +915,21 @@ export default function SettingsPage() {
                   onChange={e => setProfileBusinessName(e.target.value)}
                   placeholder={t('Enter your business name')}
                 />
+              </div>
+            )}
+
+            {/* Business description - only for owners; every AI feature reads it */}
+            {isOwner && (
+              <div>
+                <Label htmlFor="profile-business-desc" className="mb-2 block text-sm">{t('Business description')}</Label>
+                <Textarea
+                  id="profile-business-desc"
+                  value={profileBusinessDesc}
+                  onChange={e => setProfileBusinessDesc(e.target.value.slice(0, DESCRIPTION_MAX))}
+                  placeholder={t('e.g. We sell handmade jewelry on Instagram and WhatsApp in Dhaka. Our main customers are women aged 18-35 in Bangladesh.')}
+                  className="min-h-[120px]"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">{t(DESCRIPTION_HINT)} <span className="tabular-nums">{profileBusinessDesc.length}/{DESCRIPTION_MAX}</span></p>
               </div>
             )}
 

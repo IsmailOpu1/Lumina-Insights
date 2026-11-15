@@ -1,4 +1,4 @@
-import { cleanText, consumeQuota, corsHeaders, daysAgo, currencySymbol, describeBusiness, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
+import { cleanText, consumeQuota, corsHeaders, daysAgo, currencySymbol, describeBusiness, fetchSnapshot, findProduct, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
 import { generate } from "../_shared/gemini.ts";
 
 const PLATFORM_GUIDES: Record<string, string> = {
@@ -37,10 +37,17 @@ const RESPONSE_SCHEMA = {
 const systemPrompt = (bangla: boolean) => `You are a senior social media copywriter who has run marketing for hundreds of small online shops in Bangladesh. You write content that sells, and you never mislead customers.
 
 TRUTH RULES (most important):
-1. Use only the facts given: product name, features, the shop's own price and stock, and the business profile. Never invent prices, discounts, offers, free delivery, warranties, certifications, ingredients, sizes, ratings, review counts or customer numbers.
+1. Use only the facts given: product name, features, the shop's own price and stock, and the business profile (including what the owner wrote about delivery, payment, returns and where they sell). Never invent prices, discounts, offers, free delivery, warranties, certifications, ingredients, sizes, ratings, review counts or customer numbers.
 2. If a fact would help but was not given (for example price or delivery terms), write around it (for example "Inbox us for today's price") instead of making one up.
 3. No false urgency or scarcity. Say "limited stock" only if the stock given is low. No exaggerated medical, health or "best in Bangladesh" claims.
 4. Never mention competitors by name.
+
+WRITE FOR THIS SHOP:
+- Read the BUSINESS PROFILE first. It is the owner's own description of the shop: what it sells, who buys, its price level, where it sells, how delivery and payment work, and its style. The post must sound like it comes from this shop, not from a generic store.
+- Match the shop's level and tone: a budget everyday shop sounds friendly and practical, a premium or handmade brand sounds careful and proud. Take this from the description, the business type and the price.
+- When no target audience is given, write for the customers the description names. Only if it names none, pick the most likely Bangladeshi buyers for this product.
+- Use the shop's own selling terms when the description gives them (for example "Cash on delivery all over Bangladesh" or "Inbox to order"), and the channels it says it uses for the call to action.
+- The product must fit the shop. If it clearly does not match what the description says the shop sells, still write the post, but keep it about this product and do not invent a link between them.
 
 WHAT GOOD LOOKS LIKE:
 - Speak to the target audience's real problem or desire first, then show how this product solves it. Turn each feature into a benefit ("hand-woven cotton" becomes "stays cool on a long, hot office day").
@@ -98,17 +105,16 @@ Deno.serve(async (req) => {
       caller.client.from("inventory").select("product_name, selling_price, stock_quantity, low_stock_threshold").limit(500),
     ]);
     const sym = currencySymbol(snapshot);
-    const wanted = product_name.toLowerCase();
-    const item = ((inventory ?? []) as InventoryRow[]).find((p) => p.product_name.trim().toLowerCase() === wanted);
+    const item = findProduct((inventory ?? []) as InventoryRow[], product_name);
     const shopFacts = item
-      ? `From the shop's inventory: selling price ${sym}${Math.round(item.selling_price).toLocaleString("en-US")}, ${item.stock_quantity} in stock${item.stock_quantity <= item.low_stock_threshold ? " (low stock)" : ""}.`
+      ? `From the shop's inventory (listed as "${item.product_name}"): selling price ${sym}${Math.round(item.selling_price).toLocaleString("en-US")}, ${item.stock_quantity} in stock${item.stock_quantity <= item.low_stock_threshold ? " (low stock)" : ""}.`
       : "Price and stock: not given.";
 
     const userPrompt = `Write ${platform} marketing content.
 
 PRODUCT: ${product_name}
 FEATURES AND OFFER DETAILS: ${product_features || "Not given. Keep claims general and true."}
-TARGET AUDIENCE: ${target_audience || "Not given. Pick the most likely Bangladeshi buyers for this product and write for them."}
+TARGET AUDIENCE: ${target_audience || "Not given. Write for the customers the business profile describes."}
 ${shopFacts}
 Today's date: ${todayInDhaka()}
 

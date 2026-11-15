@@ -11,6 +11,7 @@ import { NOTIFICATION_KEYS, notificationText } from '@/i18n/notifications';
 import { ENTITY_LABELS, FIELDS } from '@/lib/import/fields';
 import { paymentStatusLabel } from '@/lib/subscription';
 import { PASSWORD_RULE } from '@/lib/password';
+import { DESCRIPTION_HINT } from '@/lib/constants';
 
 /** Every English text passed to t(), tr() or msg() in the app's code. */
 function wrappedTexts() {
@@ -47,6 +48,7 @@ describe('Bangla dictionary', () => {
       ...['pending', 'paid', 'failed', 'cancelled', 'review'].map((s) => paymentStatusLabel(s, new Date().toISOString())),
       'Pro', 'Starter', 'Pro trial', 'Not completed',
       PASSWORD_RULE,
+      DESCRIPTION_HINT,
     ];
     expect(dynamic.filter((text) => !(text in bn))).toEqual([]);
   });

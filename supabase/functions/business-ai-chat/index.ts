@@ -1,4 +1,4 @@
-import { consumeQuota, corsHeaders, currencySymbol, daysAgo, describeKeyFigures, describeSnapshot, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
+import { CATALOG_LIMIT, consumeQuota, corsHeaders, currencySymbol, daysAgo, describeCatalog, describeKeyFigures, describeSnapshot, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka, type CatalogItem } from "../_shared/business.ts";
 import { generate, historyToTurns } from "../_shared/gemini.ts";
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -16,6 +16,17 @@ function systemPrompt(sym: string, data: string, bangla: boolean) {
   return `You are Lumina, the business advisor built into Lumina Insights. You work for the owner of a small online or retail business in Bangladesh, most likely selling through Facebook, Instagram, WhatsApp, a website or a shop. Today is ${todayInDhaka()}.
 
 Your job is to give the most accurate, logical and useful answer a sharp, experienced business consultant would give, then make it easy to act on.
+
+KNOW THIS BUSINESS (read before every answer):
+- The BUSINESS PROFILE below is the owner's own description. Learn from it what they sell, who their customers are, their price level, where and how they sell, and how delivery and payment work. Every answer must fit that business: its products, its customers, its size and its budget.
+- The PRODUCT CATALOG lists every product with price, cost, margin and stock. Use the real product names, prices and margins when you advise (which product to push, bundle, restock, reprice or drop). Never present a product the shop does not sell as if it were theirs; if a new product would help, say clearly that it is a new idea.
+- The BUSINESS DATA shows the last 30 days of sales. Put the three together: what the owner says the business is, what it stocks, and what is actually selling.
+- If the profile, catalog and numbers disagree (for example the description says sarees but most sales are jewellery), go by the numbers and point out the difference.
+- Speak like someone who has worked inside this shop for months: name its products, customers and channels instead of saying "your products" in general.
+
+STAY ON THIS BUSINESS:
+- Help with anything that runs or grows this business: sales, profit, pricing, stock, products, customers, marketing and ads, delivery and couriers, payments, staff, planning, and the general business or money questions a shop owner has. Answer general questions too, then tie them back to this shop.
+- If a request has nothing to do with running a business (for example homework, coding, politics, or medical or legal advice), say in one friendly sentence that you are here for the business, and suggest a related question you can answer.
 
 ACCURACY RULES (most important):
 1. Numbers about this business come ONLY from the BUSINESS DATA and KEY FIGURES below. Quote them exactly. Never invent, round up or "estimate" a figure about this business that is not there.
@@ -91,12 +102,17 @@ Deno.serve(async (req) => {
 
     // Business numbers come from the database, never from the request. The
     // period before is fetched too so the model can talk about trends.
-    const [snapshot, previous] = await Promise.all([
+    // The catalog (row level security keeps it to this workspace) lets the
+    // model advise on the shop's real products, prices and margins.
+    const [snapshot, previous, { data: catalog, count: productCount }] = await Promise.all([
       fetchSnapshot(caller.client, daysAgo(CONTEXT_DAYS - 1)),
       fetchSnapshot(caller.client, daysAgo(CONTEXT_DAYS * 2 - 1), daysAgo(CONTEXT_DAYS)),
+      caller.client.from("inventory")
+        .select("product_name, sku, cost_price, selling_price, stock_quantity, low_stock_threshold", { count: "exact" })
+        .order("product_name").limit(CATALOG_LIMIT),
     ]);
     const sym = currencySymbol(snapshot);
-    const data = `${describeSnapshot(snapshot)}\n\n${describeKeyFigures(snapshot, previous)}`;
+    const data = `${describeSnapshot(snapshot)}\n\n${describeKeyFigures(snapshot, previous)}\n\n${describeCatalog((catalog ?? []) as CatalogItem[], sym, productCount ?? undefined)}`;
 
     // The image, if any, goes alongside the latest message.
     const parts: Record<string, unknown>[] = [{ text: message }];

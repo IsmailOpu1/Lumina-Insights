@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { CODE_LENGTH } from '@/components/auth/ConfirmCode';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useT, rich } from '@/i18n';
+import { passwordProblem } from '@/lib/password';
 
 /**
  * Password reset by code. The email carries a code rather than a link, because
@@ -45,7 +46,9 @@ export default function ForgotPassword() {
     e.preventDefault();
     setError(null);
     if (code.length !== CODE_LENGTH) { setError(t('Enter the {n}-digit code from the email', { n: CODE_LENGTH })); return; }
-    if (password.length < 8) { setError(t('Password must be at least 8 characters')); return; }
+    // Before the code is used: a used code cannot be tried again.
+    const weak = passwordProblem(password);
+    if (weak) { setError(t(weak)); return; }
     if (password !== confirmPassword) { setError(t('Passwords do not match')); return; }
 
     setLoading(true);

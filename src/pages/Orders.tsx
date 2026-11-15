@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
@@ -65,6 +65,10 @@ const DATE_OPTIONS: { label: string; value: DateFilter }[] = [
 
 export default function Orders() {
   const { t } = useT();
+  // The loader keeps one identity (a new one would reload the list), so it reads
+  // the current language through a ref: errors show in the language picked now.
+  const tRef = useRef(t);
+  tRef.current = t;
   const { formatCurrency, symbol } = useCurrency();
   const canExport = useExportGate();
   const readOnly = useReadOnly();
@@ -98,7 +102,7 @@ export default function Orders() {
     order('created_at', { ascending: false }).
     order('id').
     range(a, b));
-    if (error) {toast.error(t('Failed to load orders'));console.error(error);} else
+    if (error) {toast.error(tRef.current('Failed to load orders'));console.error(error);} else
     setOrders(data as OrderRow[] || []);
     setLoading(false);
   }, [setOrders]);

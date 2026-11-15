@@ -250,7 +250,7 @@ export default function Inventory() {
     const top3Rev = sorted.slice(0, 3).reduce((s, a) => s + a.total_revenue, 0);
     const top3Pct = top3Rev / totalRev * 100;
     return { topProduct: topName, topPct, top3Pct };
-  }, [orderAggs, items]);
+  }, [orderAggs, items, t]);
 
   function riskColor(pct: number) {
     if (pct > 60) return 'text-destructive';

@@ -144,7 +144,6 @@ describe('formatCurrency', () => {
   });
 
   it('uses the right symbol and grouping per currency', () => {
-    expect(formatCurrency(1234567, 'INR')).toBe('₹12,34,567');
     expect(formatCurrency(1234567, 'USD')).toBe('$1,234,567');
   });
 

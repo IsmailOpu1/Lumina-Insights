@@ -556,7 +556,6 @@ const bn: Record<string, string> = {
   "Importing isn't available": 'ইমপোর্ট করা যাচ্ছে না',
   'Importing…': 'ইমপোর্ট হচ্ছে…',
   'Included in your Pro plan': 'আপনার Pro প্ল্যানে আছে',
-  'Indian Rupee': 'ভারতীয় রুপি',
   'Instagram Reel script': 'ইনস্টাগ্রাম রিল স্ক্রিপ্ট',
   'Install the app': 'অ্যাপ ইনস্টল করুন',
   'Invite': 'আমন্ত্রণ',

@@ -102,7 +102,7 @@ describe('Login', () => {
     mocks.signIn.mockResolvedValue({ error: { message: 'Invalid login credentials' } });
     renderAt('/login', <Login />, '/login');
     fillLogin();
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Login failed', { description: 'Invalid login credentials' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Wrong email or password. New here? Create an account first.');
     expect(screen.queryByText('Dashboard page')).not.toBeInTheDocument();
   });
 
@@ -215,7 +215,17 @@ describe('Signup', () => {
     fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
     fillSignup('Str0ng!pass', 'different!1');
     fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('Passwords do not match'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match');
+    expect(mocks.signUp).not.toHaveBeenCalled();
+  });
+
+  it('says plainly when the terms box is not ticked', async () => {
+    renderAt('/signup', <Signup />, '/signup');
+    fireEvent.change(screen.getByPlaceholderText('Email address'), { target: { value: 'new@example.com' } });
+    fillSignup('Str0ng!pass', 'Str0ng!pass');
+    fireEvent.click(screen.getByRole('checkbox')); // fillSignup ticked it; untick
+    fireEvent.click(screen.getByRole('button', { name: 'Create Account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please tick the box to agree');
     expect(mocks.signUp).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Loader2, Sparkles, Mail, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 import { siteUrl } from '@/lib/siteUrl';
 import { authEmailErrorMessage } from '@/lib/authEmail';
@@ -55,20 +54,16 @@ export default function Signup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
-      toast.error(t('Please fill all fields'));
-      return;
-    }
-    if (password.length < 8) {
-      toast.error(t('Password must be at least 8 characters'));
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error(t('Passwords do not match'));
-      return;
-    }
-    if (!agreed) {
-      toast.error(t('Please agree to the Terms of Service'));
+    // Shown in the box above the button: a corner toast was easy to miss, and
+    // the button then seemed to do nothing.
+    const problem =
+      !fullName.trim() || !email.trim() || !password || !confirmPassword ? t('Please fill all fields')
+      : password.length < 8 ? t('Password must be at least 8 characters')
+      : password !== confirmPassword ? t('Passwords do not match')
+      : !agreed ? t('Please tick the box to agree to the Terms of Service and Privacy Policy.')
+      : null;
+    if (problem) {
+      setSignupError(problem);
       return;
     }
 

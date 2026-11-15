@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, Sparkles, MailWarning } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, Sparkles, MailWarning } from 'lucide-react';
 import { toast } from 'sonner';
 import AuthLeftPanel from '@/components/auth/AuthLeftPanel';
 import { acceptInvite } from '@/lib/invites';
@@ -26,18 +26,22 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
     setLoading(true);
     setUnconfirmed(false);
+    setLoginError(null);
 
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (error) {
       if (isUnconfirmed(error)) setUnconfirmed(true);
-      else toast.error(t('Login failed'), { description: error.message });
+      else if (error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
+        setLoginError(t('Wrong email or password. New here? Create an account first. Forgot your password? Use "Forgot password?".'));
+      } else setLoginError(error.message);
       setLoading(false);
       return;
     }
@@ -52,6 +56,13 @@ export default function Login() {
     await refreshSettings();
     navigate('/', { replace: true });
   };
+
+  const loginErrorNotice = loginError && (
+    <div role="alert" className="mt-4 flex gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground">
+      <AlertCircle size={18} className="mt-0.5 shrink-0 text-destructive" />
+      <span>{loginError}</span>
+    </div>
+  );
 
   const unconfirmedNotice = unconfirmed && (
     <div role="alert" className="mt-4 flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/10 p-4">
@@ -167,6 +178,7 @@ export default function Login() {
                   {loading ? <Loader2 className="animate-spin" size={20} /> : t('Sign In')}
                 </Button>
               </form>
+              {loginErrorNotice}
               {unconfirmedNotice}
 
               <div className="my-6 flex items-center gap-3">
@@ -233,6 +245,7 @@ export default function Login() {
                 {loading ? <Loader2 className="animate-spin" size={20} /> : t('Sign In')}
               </Button>
             </form>
+            {loginErrorNotice}
             {unconfirmedNotice}
 
             <div className="my-6 flex items-center gap-3">

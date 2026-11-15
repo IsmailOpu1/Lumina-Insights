@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { siteUrl } from '@/lib/siteUrl';
 import { tr } from '@/i18n';
+import { PASSWORD_RULE } from '@/lib/password';
 
 interface AuthErrorLike {
   code?: string;
@@ -31,7 +32,7 @@ export function authEmailErrorMessage(error: AuthErrorLike) {
     return tr('An account with this email already exists. Please sign in instead.');
   }
   if (code === 'weak_password' || /password/i.test(message)) {
-    return tr('Please choose a stronger password: at least 8 characters, ideally with a number and a symbol.');
+    return tr(PASSWORD_RULE);
   }
   return message;
 }

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { daysUntil } from '@/lib/subscription';
 import { useT } from '@/i18n';
@@ -9,7 +9,19 @@ const TRIAL_WARNING_DAYS = 3;
 // Warns near the end of a trial and explains read-only mode after it.
 export default function SubscriptionBanner() {
   const { t } = useT();
-  const { subscription } = useSubscription();
+  const { subscription, error, refresh } = useSubscription();
+
+  if (error && !subscription) {
+    return (
+      <div role="alert" className="flex flex-wrap items-center gap-2 bg-[#F59E0B] px-4 py-2 text-sm text-black">
+        <AlertTriangle size={16} className="shrink-0" />
+        <span>{t("We couldn't check your plan right now, so some limits may not show correctly. Your data is safe.")}</span>
+        <button type="button" onClick={() => void refresh()} className="inline-flex items-center gap-1 font-extrabold underline underline-offset-2">
+          <RefreshCw size={14} /> {t('Try again')}
+        </button>
+      </div>
+    );
+  }
   if (!subscription) return null;
 
   const action = subscription.is_owner

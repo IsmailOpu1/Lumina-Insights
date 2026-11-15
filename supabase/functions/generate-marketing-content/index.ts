@@ -1,4 +1,4 @@
-import { cleanText, consumeQuota, corsHeaders, currencySymbol, describeBusiness, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
+import { cleanText, consumeQuota, corsHeaders, daysAgo, currencySymbol, describeBusiness, fetchSnapshot, getCaller, json, refundQuota, todayInDhaka } from "../_shared/business.ts";
 import { generate } from "../_shared/gemini.ts";
 
 const PLATFORM_GUIDES: Record<string, string> = {
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
     // snapshot query cheap since only the profile is used here. The shop's own
     // price and stock for this product, if it is in the inventory, keep the
     // copy honest.
-    const today = new Date().toISOString().slice(0, 10);
+    const today = daysAgo(0);
     const [snapshot, { data: inventory }] = await Promise.all([
       fetchSnapshot(caller.client, today, today),
       caller.client.from("inventory").select("product_name, selling_price, stock_quantity, low_stock_threshold").limit(500),

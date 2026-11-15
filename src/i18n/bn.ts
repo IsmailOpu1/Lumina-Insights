@@ -156,6 +156,7 @@ const bn: Record<string, string> = {
   'Choose a plan': 'একটি প্ল্যান বেছে নিন',
   'Ask the workspace owner to choose a plan.': 'ওয়ার্কস্পেসের মালিককে একটি প্ল্যান বেছে নিতে বলুন।',
   "Team access is a Pro feature, and this workspace isn't on Pro right now. Ask the workspace owner to upgrade to Pro to restore your access.": 'টিম অ্যাক্সেস Pro প্ল্যানের সুবিধা, আর এই ওয়ার্কস্পেস এখন Pro-তে নেই। আপনার অ্যাক্সেস ফিরে পেতে মালিককে Pro-তে আপগ্রেড করতে বলুন।',
+  "We couldn't check your plan right now, so some limits may not show correctly. Your data is safe.": 'এই মুহূর্তে আপনার প্ল্যান যাচাই করা যায়নি, তাই কিছু সীমা ঠিকভাবে না-ও দেখাতে পারে। আপনার ডেটা নিরাপদে আছে।',
   'Your plan has expired, so this workspace is read-only. Your data is safe.': 'আপনার প্ল্যানের মেয়াদ শেষ, তাই এই ওয়ার্কস্পেস এখন শুধু দেখা যাবে। আপনার ডেটা নিরাপদে আছে।',
   'Your free trial ends today.': 'আপনার ফ্রি ট্রায়াল আজ শেষ হচ্ছে।',
   'Your free trial ends in {n} day.': 'আপনার ফ্রি ট্রায়াল {n} দিন পর শেষ হবে।',

@@ -213,9 +213,13 @@ export async function refundQuota(userId: string, metric: QuotaMetric) {
   if (error) console.error("refund_ai_quota failed:", error.message);
 }
 
-/** YYYY-MM-DD for `days` days before today (UTC). */
-export function daysAgo(days: number) {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - days);
-  return d.toISOString().slice(0, 10);
+/**
+ * YYYY-MM-DD for `days` days before today in Bangladesh. Order dates are
+ * Dhaka calendar days; counting in UTC (6 hours behind) picked the wrong
+ * days between midnight and 6 am.
+ */
+export function daysAgo(days: number, now = new Date()) {
+  const today = new Date(`${now.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" })}T00:00:00Z`);
+  today.setUTCDate(today.getUTCDate() - days);
+  return today.toISOString().slice(0, 10);
 }

@@ -6,6 +6,8 @@ import type { Subscription } from '@/lib/subscription';
 interface SubscriptionContextType {
   subscription: Subscription | null;
   loading: boolean;
+  /** True when the last attempt to load the plan failed (network or server). */
+  error: boolean;
   /**
    * False once the trial or paid period has lapsed (the workspace is
    * read-only), or for a team member while the workspace isn't on Pro.
@@ -22,16 +24,25 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { ownerIdForQueries } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!ownerIdForQueries) {
       setSubscription(null);
+      setError(false);
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase.rpc('get_my_subscription');
-    if (error) console.error('get_my_subscription failed:', error.message);
-    setSubscription((data as unknown as Subscription | null) ?? null);
+    const { data, error: rpcError } = await supabase.rpc('get_my_subscription');
+    if (rpcError) {
+      // Keep what we last knew instead of treating a failed check as "no plan";
+      // the banner tells the user and offers to retry.
+      console.error('get_my_subscription failed:', rpcError.message);
+      setError(true);
+    } else {
+      setSubscription((data as unknown as Subscription | null) ?? null);
+      setError(false);
+    }
     setLoading(false);
   }, [ownerIdForQueries]);
 
@@ -49,7 +60,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   };
 
   return (
-    <SubscriptionContext.Provider value={{ subscription, loading, canWrite, features, refresh }}>
+    <SubscriptionContext.Provider value={{ subscription, loading, error, canWrite, features, refresh }}>
       {children}
     </SubscriptionContext.Provider>
   );

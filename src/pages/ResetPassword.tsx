@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import LanguageToggle from '@/components/LanguageToggle';
 import { clearPasswordRecovery, passwordRecoveryEmail } from '@/lib/recovery';
 import { useT, rich } from '@/i18n';
+import { passwordProblem } from '@/lib/password';
 
 export default function ResetPassword() {
   const { t } = useT();
@@ -21,7 +22,8 @@ export default function ResetPassword() {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) { toast.error(t('Password must be at least 8 characters')); return; }
+    const weak = passwordProblem(password);
+    if (weak) { toast.error(t(weak)); return; }
     if (password !== confirmPassword) { toast.error(t('Passwords do not match')); return; }
 
     setLoading(true);

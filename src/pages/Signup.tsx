@@ -13,6 +13,7 @@ import ResendConfirmation from '@/components/auth/ResendConfirmation';
 import ConfirmCode from '@/components/auth/ConfirmCode';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useT, msg, rich } from '@/i18n';
+import { passwordProblem } from '@/lib/password';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -58,7 +59,7 @@ export default function Signup() {
     // the button then seemed to do nothing.
     const problem =
       !fullName.trim() || !email.trim() || !password || !confirmPassword ? t('Please fill all fields')
-      : password.length < 8 ? t('Password must be at least 8 characters')
+      : passwordProblem(password) ? t(passwordProblem(password)!)
       : password !== confirmPassword ? t('Passwords do not match')
       : !agreed ? t('Please tick the box to agree to the Terms of Service and Privacy Policy.')
       : null;

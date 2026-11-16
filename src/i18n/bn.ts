@@ -454,7 +454,6 @@ const bn: Record<string, string> = {
   'Confirm Password': 'পাসওয়ার্ড আবার লিখুন',
   'Confirm email': 'ইমেইল নিশ্চিত করুন',
   'Confirm password': 'পাসওয়ার্ড আবার লিখুন',
-  'Content for Instagram, Facebook, TikTok': 'ইনস্টাগ্রাম, ফেসবুক, টিকটকের জন্য কনটেন্ট',
   'Continue': 'এগিয়ে যান',
   'Copied {tag}!': '{tag} কপি হয়েছে!',
   'Copied!': 'কপি হয়েছে!',

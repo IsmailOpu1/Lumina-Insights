@@ -160,7 +160,7 @@ export default function Billing() {
                   key={p}
                   onClick={() => setPeriod(p)}
                   aria-pressed={period === p}
-                  className={cn('rounded-md px-3 py-1.5 text-sm font-bold capitalize', period === p ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
+                  className={cn('rounded-md px-3 py-1.5 text-sm font-bold', period === p ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
                 >
                   {p === 'yearly' ? t('Yearly · 2 months free') : t('Monthly')}
                 </button>

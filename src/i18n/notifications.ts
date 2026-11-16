@@ -1,4 +1,5 @@
 import { tr } from '@/i18n';
+import { formatCurrency } from '@/hooks/useCurrency';
 
 /**
  * Notifications are written in English by database triggers (see the
@@ -20,6 +21,17 @@ const PATTERNS: [RegExp, string, string[]][] = [
   [/^Last 7 days: (\S+) revenue from (\d+) orders?, (\S+) net profit\.$/, 'Last 7 days: {revenue} revenue from {orders} orders, {profit} net profit.', ['revenue', 'orders', 'profit']],
 ];
 
+const MONEY = new Set(['amount', 'revenue', 'profit']);
+const SYMBOL_CURRENCY: Record<string, string> = { '৳': 'BDT', $: 'USD' };
+
+/** "৳2950" as the app writes money everywhere else ("৳2,950"); anything else as written. */
+function money(text: string) {
+  const m = /^(-?)([৳$])([\d,]+)$/.exec(text);
+  if (!m) return text;
+  const amount = Number(m[3].replace(/,/g, ''));
+  return formatCurrency(m[1] ? -amount : amount, SYMBOL_CURRENCY[m[2]]);
+}
+
 // Titles are fixed per notification type.
 const TITLES = [
   'New Order Received', 'Order Cancelled', 'Order Returned', 'Critical Stock Alert', 'Low Stock Alert',
@@ -31,7 +43,7 @@ export function notificationText(n: { title: string; message: string }) {
   for (const [pattern, key, names] of PATTERNS) {
     const m = pattern.exec(n.message);
     if (m) {
-      message = tr(key, Object.fromEntries(names.map((name, i) => [name, m[i + 1]])));
+      message = tr(key, Object.fromEntries(names.map((name, i) => [name, MONEY.has(name) ? money(m[i + 1]) : m[i + 1]])));
       break;
     }
   }

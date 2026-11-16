@@ -6,6 +6,7 @@ import OrderCard from '@/components/OrderCard';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { format } from 'date-fns';
 import { parseDay } from '@/lib/dates';
+import { countsForProfit } from '@/lib/constants';
 import { useCurrency } from '@/hooks/useCurrency';
 import ChartCard from './ChartCard';
 import { currentDateLocale, useT } from '@/i18n';
@@ -137,8 +138,8 @@ export default function RecentOrdersTable({ orders, inventory, loading }: Props)
                 <td className="px-5 py-3 tabular-nums text-foreground">{o.quantity}</td>
                 <td className="px-5 py-3 tabular-nums text-foreground">{formatCurrency(o.selling_price)}</td>
                 <td className="px-5 py-3 tabular-nums text-muted-foreground">{formatCurrency(o.shipping_cost)}</td>
-                <td className={`px-5 py-3 font-medium tabular-nums ${o.profit_per_order >= 0 ? 'text-success' : 'text-destructive'}`}>
-                  {formatCurrency(o.profit_per_order)}
+                <td className={`px-5 py-3 font-medium tabular-nums ${!countsForProfit(o.status) ? 'text-muted-foreground' : o.profit_per_order >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {countsForProfit(o.status) ? formatCurrency(o.profit_per_order) : '—'}
                 </td>
                 <td className="px-5 py-3 text-muted-foreground">{format(parseDay(o.date), 'dd MMM', { locale: currentDateLocale() })}</td>
               </tr>

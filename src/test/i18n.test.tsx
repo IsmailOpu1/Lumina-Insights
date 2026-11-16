@@ -87,7 +87,12 @@ describe('translating', () => {
     expect(tr('Cancelled')).toBe('বাতিল');
     // Database notifications: names, numbers and amounts are kept.
     expect(notificationText({ title: 'New Order Received', message: 'Order ORD-042 from Rahim Uddin for ৳2900' }))
-      .toEqual({ title: 'নতুন অর্ডার এসেছে', message: 'Rahim Uddin-এর কাছ থেকে অর্ডার ORD-042, ৳2900' });
+      .toEqual({ title: 'নতুন অর্ডার এসেছে', message: 'Rahim Uddin-এর কাছ থেকে অর্ডার ORD-042, ৳2,900' });
+    // Money in notifications is grouped like everywhere else in the app.
+    expect(notificationText({ title: 'Weekly Summary', message: 'Last 7 days: ৳180100 revenue from 3 orders, -৳4760 net profit.' }).message)
+      .toContain('৳1,80,100');
+    expect(notificationText({ title: 'Weekly Summary', message: 'Last 7 days: ৳180100 revenue from 3 orders, -৳4760 net profit.' }).message)
+      .toContain('-৳4,760');
     expect(notificationText({ title: 'Something new', message: 'An unknown message' }))
       .toEqual({ title: 'Something new', message: 'An unknown message' });
 

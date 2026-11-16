@@ -21,6 +21,12 @@ export const NOT_SALES = ['Cancelled', 'Returned'] as const;
 export const isSale = (status: string) => !(NOT_SALES as readonly string[]).includes(status);
 export const holdsStock = isSale;
 export const countsForProfit = (status: string) => status !== 'Cancelled';
+/**
+ * The profit an order adds, or null for a cancelled order: the database keeps
+ * what it would have earned, but it earns nothing, so lists show a dash.
+ */
+export const orderProfit = (status: string, profit: number | null | undefined) =>
+  countsForProfit(status) ? profit ?? 0 : null;
 
 export const EXPENSE_TYPES = ['Ad Spend', 'Shipping', 'Miscellaneous'] as const;
 export type ExpenseType = (typeof EXPENSE_TYPES)[number];

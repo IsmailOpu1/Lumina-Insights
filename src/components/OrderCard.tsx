@@ -4,6 +4,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { useCurrency } from '@/hooks/useCurrency';
 import { currentDateLocale, useT } from '@/i18n';
 import { parseDay } from '@/lib/dates';
+import { countsForProfit } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -49,7 +50,9 @@ export default function OrderCard({ orderNumber, customer, phone, product, sourc
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[11px] text-muted-foreground">{t('Profit')}</p>
-          <p className={cn('font-semibold tabular-nums', profit >= 0 ? 'text-success' : 'text-destructive')}>{formatCurrency(profit)}</p>
+          {countsForProfit(status)
+            ? <p className={cn('font-semibold tabular-nums', profit >= 0 ? 'text-success' : 'text-destructive')}>{formatCurrency(profit)}</p>
+            : <p className="font-semibold text-muted-foreground">—</p>}
         </div>
       </div>
       {actions && <div className="mt-1 flex justify-end gap-1">{actions}</div>}

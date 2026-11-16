@@ -153,9 +153,11 @@ export default function Dashboard() {
     {
       label: 'ROAS',
       value: roas,
-      format: 'roas',
+      // With no ad spend there is no return to measure, so say that instead of ∞.
+      ...(roas === Infinity
+        ? { format: 'name' as const, nameValue: t('No ads') }
+        : { format: 'roas' as const, tone: roas >= roasThreshold ? 'positive' as const : 'negative' as const }),
       icon: Gauge,
-      tone: roas >= roasThreshold ? 'positive' : 'negative',
       tooltip: t('Revenue per {amount} spent on ads. Your target: {target}x.', { amount: `${symbol}1`, target: roasThreshold }),
     },
   ];

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRefreshOnSave } from '@/context/FABContext';
 import { inDayFilter, parseDay, type DayFilter } from '@/lib/dates';
 import { useReadOnly } from '@/hooks/useReadOnly';
-import { ORDER_STATUSES, countsForProfit, isSale } from '@/lib/constants';
+import { ORDER_STATUSES, countsForProfit, isSale, orderProfit } from '@/lib/constants';
 import StatusBadge from '@/components/StatusBadge';
 import OrderCard from '@/components/OrderCard';
 import StatusPicker from '@/components/orders/StatusPicker';
@@ -254,7 +254,7 @@ export default function Orders() {
       o.selling_price * o.quantity,
       o.shipping_cost,
       o.ad_cost ?? 0,
-      o.profit_per_order ?? 0,
+      orderProfit(o.status, o.profit_per_order) ?? 0,
       fnsFormat(parseDay(o.date), 'dd/MM/yyyy')]
       );
       const totals = ['TOTALS', '', '', '', '', '', '',
@@ -263,7 +263,7 @@ export default function Orders() {
       filtered.reduce((s, o) => s + o.selling_price * o.quantity, 0),
       filtered.reduce((s, o) => s + o.shipping_cost, 0),
       filtered.reduce((s, o) => s + (o.ad_cost ?? 0), 0),
-      filtered.reduce((s, o) => s + (o.profit_per_order ?? 0), 0),
+      filtered.reduce((s, o) => s + (orderProfit(o.status, o.profit_per_order) ?? 0), 0),
       ''];
 
       await exportXLSX({ headers, rows, totalsRow: totals, filename: `Orders_Export_${todaySuffix()}.xlsx` });
@@ -402,7 +402,7 @@ export default function Orders() {
                 </thead>
                 <tbody>
                   {paged.map((o) => {
-                  const profit = o.profit_per_order ?? 0;
+                  const profit = orderProfit(o.status, o.profit_per_order);
                   return (
                     <tr key={o.id}>
                         <td className="font-medium">{o.order_number}</td>
@@ -420,8 +420,8 @@ export default function Orders() {
                         <td className="tabular-nums">{o.quantity}</td>
                         <td className="tabular-nums">{formatCurrency(o.selling_price)}</td>
                         <td className="tabular-nums text-muted-foreground">{formatCurrency(o.shipping_cost)}</td>
-                        <td className={cn('font-medium tabular-nums', profit >= 0 ? 'text-success' : 'text-destructive')}>
-                          {formatCurrency(profit)}
+                        <td className={cn('font-medium tabular-nums', profit === null ? 'text-muted-foreground' : profit >= 0 ? 'text-success' : 'text-destructive')}>
+                          {profit === null ? '—' : formatCurrency(profit)}
                         </td>
                         <td className="whitespace-nowrap tabular-nums text-muted-foreground">{fnsFormat(parseDay(o.date), 'dd MMM yyyy', { locale: currentDateLocale() })}</td>
                         {!readOnly && (

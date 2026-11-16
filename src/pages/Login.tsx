@@ -99,7 +99,7 @@ export default function Login() {
             <div className="flex-1 flex flex-col justify-center gap-3">
               {[
                 { emoji: '📊', title: t('AI Business Insights'), desc: t('Smart analysis of your real business data') },
-                { emoji: '📣', title: t('Marketing AI'), desc: t('Content for Instagram, Facebook, TikTok') },
+                { emoji: '📣', title: t('Marketing AI'), desc: t('Generate content for Instagram, Facebook, TikTok') },
                 { emoji: '🤖', title: t('Business AI Assistant'), desc: t('Personal advisor that knows your business') },
                 { emoji: '🎤', title: t('Voice Notes'), desc: t('Record and transcribe business notes instantly') },
                 { emoji: '🔔', title: t('Smart Notifications'), desc: t('Real-time alerts for orders, stock, performance') },
